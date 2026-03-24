@@ -1,101 +1,111 @@
-﻿using System;
+﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using MyPanelCarWashing.Models;
-using MyPanelCarWashing.Services;
-using MyPanelCarWashing.ViewModels;
+using System.Windows.Input;
 
 namespace MyPanelCarWashing
 {
     public partial class AddOrderWindow : Window
     {
-        private int _shiftId;
-        private DataService _dataService;
-        private List<ServiceViewModel> _services;
+        public CarWashOrder NewOrder { get; set; }
+        public List<ServiceViewModel> Services { get; set; }
+        public string SelectedBodyType { get; set; }
+        private Shift _currentShift;
 
-        public AddOrderWindow(int shiftId, DataService dataService)
+        public AddOrderWindow(Shift currentShift)
         {
             InitializeComponent();
-            _shiftId = shiftId;
-            _dataService = dataService;
-            DatePicker.SelectedDate = DateTime.Now;
-            TimeBox.Text = DateTime.Now.ToString("HH:mm");
+            _currentShift = currentShift;
+            NewOrder = new CarWashOrder
+            {
+                Time = DateTime.Now,
+                ShiftId = currentShift.Id
+            };
+
             LoadServices();
+            DataContext = this;
         }
 
         private void LoadServices()
         {
-            var services = _dataService.GetAllServices();
-            _services = services.Select(s => new ServiceViewModel
+            var allServices = Core.DB.GetAllServices();
+            Services = allServices.Select(s => new ServiceViewModel
             {
                 Id = s.Id,
                 Name = s.Name,
                 Price = s.Price,
                 IsSelected = false
             }).ToList();
-
-            ServicesListBox.ItemsSource = _services;
         }
 
-        private void OkButton_Click(object sender, RoutedEventArgs e)
+        private void BodyType_Click(object sender, MouseButtonEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(CarNumberBox.Text))
+            var border = sender as System.Windows.Controls.Border;
+            if (border?.Tag != null)
             {
-                MessageBox.Show("Введите номер автомобиля", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                SelectedBodyType = border.Tag.ToString();
+                NewOrder.Notes = $"Тип кузова: {SelectedBodyType}";
+                // Обновляем привязку
+                OnPropertyChanged(nameof(SelectedBodyType));
             }
+        }
 
-            var selectedServices = _services.Where(s => s.IsSelected).ToList();
-            if (!selectedServices.Any())
-            {
-                MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            DateTime orderTime;
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
             try
             {
-                var timeString = TimeBox.Text;
-                var date = DatePicker.SelectedDate ?? DateTime.Now;
-                var timeParts = timeString.Split(':');
-                if (timeParts.Length == 2)
+                // Проверка обязательных полей
+                if (string.IsNullOrWhiteSpace(NewOrder.CarModel))
                 {
-                    orderTime = new DateTime(date.Year, date.Month, date.Day,
-                        int.Parse(timeParts[0]), int.Parse(timeParts[1]), 0);
+                    MessageBox.Show("Введите марку и модель автомобиля", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
-                else
+
+                if (string.IsNullOrWhiteSpace(NewOrder.CarNumber))
                 {
-                    orderTime = DateTime.Now;
+                    MessageBox.Show("Введите государственный номер", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
+
+                var selectedServices = Services.Where(s => s.IsSelected).ToList();
+                if (!selectedServices.Any())
+                {
+                    MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Добавляем заказ
+                var serviceIds = selectedServices.Select(s => s.Id).ToList();
+                Core.DB.AddOrder(NewOrder, serviceIds);
+
+                DialogResult = true;
+                MessageBox.Show($"Заказ добавлен\nСумма: {NewOrder.TotalPrice:C}", "Успешно",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                Close();
             }
-            catch
+            catch (Exception ex)
             {
-                orderTime = DateTime.Now;
+                MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
-
-            var order = new CarWashOrder
-            {
-                CarNumber = CarNumberBox.Text,
-                CarModel = CarModelBox.Text,
-                Time = orderTime,
-                ShiftId = _shiftId,
-                Notes = NotesBox.Text
-            };
-
-            var serviceIds = selectedServices.Select(s => s.Id).ToList();
-            _dataService.AddOrder(order, serviceIds);
-
-            DialogResult = true;
-            Close();
         }
 
-        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
             Close();
+        }
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            var binding = GetBindingExpression(DataContextProperty);
+            binding?.UpdateTarget();
         }
     }
 }

@@ -22,7 +22,7 @@ namespace MyPanelCarWashing
 
                 if (user != null)
                 {
-                    var mainWindow = new MainWindow(user);
+                    var mainWindow = new MainWindow();
                     mainWindow.Show();
                     this.Close();
                 }

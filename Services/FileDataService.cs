@@ -9,8 +9,15 @@ public static class FileDataService
 
     public static void SaveData(AppData data)
     {
-        var json = JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
-        File.WriteAllText(dataPath, json);
+        try
+        {
+            var json = JsonConvert.SerializeObject(data, Formatting.Indented);
+            File.WriteAllText(dataPath, json);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Ошибка сохранения данных: {ex.Message}");
+        }
     }
 
     public static AppData LoadData()
@@ -23,8 +30,8 @@ public static class FileDataService
             defaultData.Users.Add(new User
             {
                 Id = defaultData.GetNextUserId(),
-                Login = "admin",
-                Password = "admin",
+                Login = "1",
+                Password = "1",
                 FullName = "Главный администратор",
                 IsAdmin = true
             });

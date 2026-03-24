@@ -1,231 +1,165 @@
-﻿using System;
+﻿using MyPanelCarWashing.Models;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using MyPanelCarWashing.Models;
-using MyPanelCarWashing.Services;
+using System.Windows.Input;
 
 namespace MyPanelCarWashing
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private User _currentUser;
-        private DataService _dataService;
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private List<CarWashOrder> _ordersList;
         private Shift _currentShift;
 
-        // Конструктор по умолчанию (без параметров) - нужен для XAML
+        public List<CarWashOrder> OrdersList
+        {
+            get
+            {
+                var Result = _ordersList;
+
+                if (SearchFilter != "")
+                {
+                    Result = Result.Where(o => o.CarNumber.IndexOf(SearchFilter, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                o.CarModel.IndexOf(SearchFilter, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                }
+
+                return Result.Skip((CurrentPage - 1) * 6).Take(6).ToList();
+            }
+            set
+            {
+                _ordersList = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("OrdersList"));
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
-            _dataService = new DataService();
-            Loaded += MainWindow_Loaded;
+            DataContext = this;
+
+            // Получаем или создаем смену на сегодня
+            _currentShift = Core.DB.GetShiftByDate(DateTime.Now);
+            LoadOrders();
         }
 
-        // Конструктор с пользователем - вызывается из LoginWindow
-        public MainWindow(User user) : this()
+        private void LoadOrders()
         {
-            _currentUser = user;
-            this.Title = $"Панель управления мойкой - {_currentUser.FullName}";
+            OrdersList = _currentShift.Orders.ToList();
+
+            // Обновляем CurrentPage для корректной пагинации
+            _currentPage = 1;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("CurrentPage"));
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private int _currentPage = 1;
+        public int CurrentPage
         {
-            DatePicker.SelectedDate = DateTime.Today;
-            LoadShift(DateTime.Today);
-            LoadAllShifts();
-            LoadMonthlyReport(DateTime.Now.Year, DateTime.Now.Month);
-        }
-
-        private void LoadShift(DateTime date)
-        {
-            if (_currentUser == null)
+            get => _currentPage;
+            set
             {
-                _currentUser = new User { Id = 1, FullName = "Тестовый пользователь" };
-            }
-
-            _currentShift = _dataService.GetShiftByDate(date);
-
-            // Загружаем сотрудников смены
-            var allUsers = _dataService.GetAllUsers();
-            var employees = _currentShift.EmployeeIds
-                .Select(id => allUsers.FirstOrDefault(u => u.Id == id)?.FullName ?? "Неизвестный")
-                .ToList();
-            EmployeesList.ItemsSource = employees;
-
-            // Загружаем заказы
-            OrdersGrid.ItemsSource = _currentShift.Orders.ToList();
-
-            UpdateTotals();
-        }
-
-        private void UpdateTotals()
-        {
-            if (TotalCarsText != null && TotalRevenueText != null)
-            {
-                TotalCarsText.Text = $"Машин за смену: {_currentShift?.Orders?.Count ?? 0}";
-                var totalRevenue = _currentShift?.Orders?.Sum(o => o.TotalPrice) ?? 0;
-                TotalRevenueText.Text = $"Выручка: {totalRevenue:C}";
-            }
-        }
-
-        private void LoadAllShifts()
-        {
-            var allShifts = _dataService.GetAllShifts();
-            var allUsers = _dataService.GetAllUsers();
-
-            var displayShifts = allShifts.Select(s => new
-            {
-                Дата = s.Date.ToString("dd.MM.yyyy"),
-                ВремяНачала = s.StartTime?.ToString("HH:mm") ?? "—",
-                ВремяОкончания = s.EndTime?.ToString("HH:mm") ?? "—",
-                Сотрудники = string.Join(", ", s.EmployeeIds.Select(id => allUsers.FirstOrDefault(u => u.Id == id)?.FullName ?? "—")),
-                КоличествоМашин = s.Orders?.Count ?? 0,
-                Выручка = s.Orders?.Sum(o => o.TotalPrice) ?? 0,
-                Завершена = s.IsClosed ? "Да" : "Нет"
-            }).ToList();
-
-            AllShiftsGrid.ItemsSource = displayShifts;
-        }
-
-        private void LoadMonthlyReport(int year, int month)
-        {
-            var report = _dataService.GetMonthlyReport(year, month);
-
-            MonthlyReportGrid.ItemsSource = report.Select(r => new
-            {
-                r.Year,
-                r.Month,
-                r.MonthName,
-                r.TotalCars,
-                r.TotalRevenue
-            }).ToList();
-        }
-
-        private void DatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (DatePicker.SelectedDate.HasValue)
-            {
-                LoadShift(DatePicker.SelectedDate.Value);
-            }
-        }
-
-        private void AddEmployee_Click(object sender, RoutedEventArgs e)
-        {
-            if (!string.IsNullOrWhiteSpace(NewEmployeeBox.Text))
-            {
-                var allUsers = _dataService.GetAllUsers();
-                var employee = allUsers.FirstOrDefault(u => u.FullName == NewEmployeeBox.Text);
-
-                if (employee == null)
+                if (value > 0 && _ordersList != null)
                 {
-                    employee = new User
+                    int totalPages = (int)Math.Ceiling((double)_ordersList.Count() / 6);
+                    if (value <= totalPages && totalPages > 0)
                     {
-                        Login = NewEmployeeBox.Text.Replace(" ", "").ToLower(),
-                        Password = "123",
-                        FullName = NewEmployeeBox.Text,
-                        IsAdmin = false
-                    };
-                    _dataService.AddUser(employee);
+                        _currentPage = value;
+                        Invalidate();
+                    }
+                    else if (value == 1 && totalPages == 0)
+                    {
+                        _currentPage = value;
+                        Invalidate();
+                    }
                 }
-
-                _dataService.AddEmployeeToShift(_currentShift.Id, employee.Id);
-                NewEmployeeBox.Clear();
-                LoadShift(_currentShift.Date);
-            }
-            else
-            {
-                MessageBox.Show("Введите имя сотрудника", "Предупреждение",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
-        private void AddOrder_Click(object sender, RoutedEventArgs e)
+        private string _searchFilter = "";
+        public string SearchFilter
         {
-            var orderWindow = new AddOrderWindow(_currentShift.Id, _dataService);
-            if (orderWindow.ShowDialog() == true)
+            get => _searchFilter;
+            set
             {
-                LoadShift(_currentShift.Date);
-                UpdateTotals();
+                _searchFilter = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("OrdersList"));
             }
         }
 
-        private void SelectServices_Click(object sender, RoutedEventArgs e)
+        private void Invalidate()
         {
-            var button = sender as Button;
-            var order = button?.Tag as CarWashOrder;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("OrdersList"));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("CurrentPage"));
+        }
 
-            if (order != null)
+        private void AddButton_Click(object sender, RoutedEventArgs e)
+        {
+            var addWin = new AddOrderWindow(_currentShift);
+            if (addWin.ShowDialog() == true)
             {
-                var servicesWindow = new EditOrderServicesWindow(order.Id, _dataService);
-                if (servicesWindow.ShowDialog() == true)
+                LoadOrders();
+            }
+        }
+
+        private void EditItem_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedOrder = OrdersListView.SelectedItem as CarWashOrder;
+            if (selectedOrder != null)
+            {
+                var editWin = new EditOrderServicesWindow(selectedOrder);
+                if (editWin.ShowDialog() == true)
                 {
-                    LoadShift(_currentShift.Date);
-                    UpdateTotals();
+                    LoadOrders();
                 }
             }
         }
 
-        private void FinishShift_Click(object sender, RoutedEventArgs e)
+        private void DeleteItem_Click(object sender, RoutedEventArgs e)
         {
-            var totalRevenue = _currentShift?.Orders?.Sum(o => o.TotalPrice) ?? 0;
-            var totalCars = _currentShift?.Orders?.Count ?? 0;
-
-            var notesDialog = new Window
+            var selectedOrder = OrdersListView.SelectedItem as CarWashOrder;
+            if (selectedOrder != null)
             {
-                Title = "Завершение смены",
-                Width = 400,
-                Height = 250,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = this
-            };
-
-            var stackPanel = new StackPanel { Margin = new Thickness(10) };
-
-            stackPanel.Children.Add(new TextBlock
-            {
-                Text = $"Смена {_currentShift.Date:dd.MM.yyyy} завершена.\nМашин: {totalCars}\nВыручка: {totalRevenue:C}\n\nВведите заметки по смене:",
-                Margin = new Thickness(0, 0, 0, 10),
-                TextWrapping = TextWrapping.Wrap
-            });
-
-            var notesBox = new TextBox
-            {
-                Height = 80,
-                TextWrapping = TextWrapping.Wrap,
-                AcceptsReturn = true,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-            stackPanel.Children.Add(notesBox);
-
-            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-            var okButton = new Button { Content = "OK", Width = 80, Margin = new Thickness(5), IsDefault = true };
-            var cancelButton = new Button { Content = "Отмена", Width = 80, Margin = new Thickness(5), IsCancel = true };
-
-            okButton.Click += (s, args) => { notesDialog.DialogResult = true; notesDialog.Close(); };
-            cancelButton.Click += (s, args) => { notesDialog.DialogResult = false; notesDialog.Close(); };
-
-            buttonPanel.Children.Add(okButton);
-            buttonPanel.Children.Add(cancelButton);
-            stackPanel.Children.Add(buttonPanel);
-
-            notesDialog.Content = stackPanel;
-
-            if (notesDialog.ShowDialog() == true)
-            {
-                _dataService.CloseShift(_currentShift.Id, notesBox.Text);
-
-                MessageBox.Show("Смена сохранена", "Успех",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-
-                LoadAllShifts();
-                LoadMonthlyReport(DateTime.Now.Year, DateTime.Now.Month);
-
-                if (DatePicker.SelectedDate?.Date == _currentShift.Date.Date)
+                if (MessageBox.Show("Удалить заказ?", "Подтверждение",
+                    MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                 {
-                    LoadShift(DateTime.Today);
+                    try
+                    {
+                        _currentShift.Orders.Remove(selectedOrder);
+                        Core.DB.SaveData();
+                        LoadOrders();
+                        MessageBox.Show("Заказ удален", "Успешно",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 }
             }
         }
+
+        private void EmployeesButton_Click(object sender, RoutedEventArgs e)
+        {
+            var empWin = new EmployeeCardWindow();
+            empWin.ShowDialog();
+        }
+
+        private void ExitButton_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
+        private void SearchFilterTextBox_KeyUp(object sender, KeyEventArgs e)
+        {
+            SearchFilter = SearchFilterTextBox.Text;
+        }
+
+        private void PrevPage_Click(object sender, RoutedEventArgs e) => CurrentPage--;
+        private void NextPage_Click(object sender, RoutedEventArgs e) => CurrentPage++;
     }
 }
