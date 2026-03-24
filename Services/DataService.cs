@@ -162,7 +162,41 @@ namespace MyPanelCarWashing.Services
                 }
             };
         }
+        // Добавить в класс DataService
+        public bool IsShiftStarted(DateTime date)
+        {
+            return _data.Shifts.Any(s => s.Date.Date == date.Date && !s.IsClosed);
+        }
+
+        public Shift GetActiveShift()
+        {
+            return _data.Shifts.FirstOrDefault(s => !s.IsClosed);
+        }
+
+        public void StartShift(DateTime date, List<int> employeeIds)
+        {
+            var existingShift = _data.Shifts.FirstOrDefault(s => s.Date.Date == date.Date && !s.IsClosed);
+            if (existingShift != null)
+                return;
+
+            var shift = new Shift
+            {
+                Id = _data.GetNextShiftId(),
+                Date = date,
+                StartTime = DateTime.Now,
+                IsClosed = false,
+                EmployeeIds = employeeIds,
+                Orders = new List<CarWashOrder>()
+            };
+            _data.Shifts.Add(shift);
+            SaveData();
+        }
+        public Shift GetShiftById(int shiftId)
+        {
+            return _data.Shifts.FirstOrDefault(s => s.Id == shiftId);
+        }
     }
+
 
     public class MonthlyReport
     {

@@ -7,7 +7,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Styles/AppStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-
+            
             <!-- Конвертер для роли -->
             <local:BoolToRoleConverter x:Key="BoolToRoleConverter"/>
         </ResourceDictionary>

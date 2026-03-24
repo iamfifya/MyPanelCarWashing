@@ -1,42 +1,38 @@
 ﻿using System;
 using System.Windows;
-using MyPanelCarWashing.Services;
 
 namespace MyPanelCarWashing
 {
     public partial class LoginWindow : Window
     {
-        private DataService _dataService;
-
         public LoginWindow()
         {
             InitializeComponent();
-            _dataService = new DataService();
         }
 
         private void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                var user = _dataService.AuthenticateUser(LoginBox.Text, PasswordBox.Password);
+            var login = LoginBox.Text;
+            var password = PasswordBox.Password;
 
-                if (user != null)
-                {
-                    var mainWindow = new MainWindow();
-                    mainWindow.Show();
-                    this.Close();
-                }
-                else
-                {
-                    MessageBox.Show("Неверный логин или пароль", "Ошибка входа",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            catch (Exception ex)
+            var user = Core.DB.AuthenticateUser(login, password);
+
+            if (user != null)
             {
-                MessageBox.Show($"Ошибка при входе:\n{ex.Message}", "Ошибка",
+                var mainWindow = new MainWindow(user);
+                mainWindow.Show();
+                Close();
+            }
+            else
+            {
+                MessageBox.Show("Неверный логин или пароль!", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void ExitButton_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
     }
 }
