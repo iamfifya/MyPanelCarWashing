@@ -71,7 +71,7 @@
                     Background="#E74C3C" Foreground="White" BorderThickness="0"
                     Cursor="Hand" HorizontalAlignment="Right"/>
         </StackPanel>
-        
+
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -79,7 +79,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            
+
             <GroupBox Grid.Column="0" Header="🔧 Бокс 1" 
                       Foreground="#2C3E50" FontWeight="Bold" Margin="0,0,5,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -101,7 +101,7 @@
                     </ItemsControl>
                 </ScrollViewer>
             </GroupBox>
-            
+
             <GroupBox Grid.Column="1" Header="🔧 Бокс 2" 
                       Foreground="#2C3E50" FontWeight="Bold" Margin="5,0,5,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -123,7 +123,7 @@
                     </ItemsControl>
                 </ScrollViewer>
             </GroupBox>
-            
+
             <GroupBox Grid.Column="2" Header="🔧 Бокс 3" 
                       Foreground="#2C3E50" FontWeight="Bold" Margin="5,0,0,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -145,35 +145,35 @@
                     </ItemsControl>
                 </ScrollViewer>
             </GroupBox>
-            
+
             <StackPanel Grid.Column="3" Orientation="Vertical" Width="280" Margin="15,0,0,0" Background="White" VerticalAlignment="Top">
                 <TextBlock Text="👥 Статистика мойщиков:" FontSize="14" FontWeight="Bold" Foreground="#2C3E50" Margin="0,0,0,10"/>
-                
+
                 <ItemsControl ItemsSource="{Binding WashersStats}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Background="#F8F9FA" CornerRadius="5" Padding="10" Margin="0,0,0,8" BorderBrush="#E9ECEF" BorderThickness="1">
                                 <StackPanel>
                                     <TextBlock Text="{Binding WasherName}" FontSize="13" FontWeight="Bold" Foreground="#2C3E50" Margin="0,0,0,5"/>
-                                    
+
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        
+
                                         <StackPanel Grid.Column="0" Orientation="Horizontal">
                                             <TextBlock Text="🚗 " FontSize="11"/>
                                             <TextBlock FontSize="11" Text="{Binding CarsCount, StringFormat={}{0} маш.}" Foreground="#7F8C8D"/>
                                         </StackPanel>
-                                        
+
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                                             <TextBlock Text="📊 " FontSize="11"/>
                                             <TextBlock FontSize="11" FontWeight="Bold" Foreground="#E67E22" 
                                                        Text="{Binding Percentage, StringFormat={}{0:F1}%}" />
                                         </StackPanel>
                                     </Grid>
-                                    
+
                                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                                         <TextBlock Text="💰 " FontSize="11"/>
                                         <TextBlock FontSize="12" FontWeight="Bold" Text="{Binding Earnings, StringFormat={}{0:N0} ₽}" Foreground="#27AE60"/>
@@ -183,23 +183,22 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                
+
                 <Separator Margin="0,10,0,10" Height="1" Background="#BDC3C7"/>
-                
+
                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                     <TextBlock Text="🏢 Компания (65%): " FontSize="13" FontWeight="Bold" Foreground="#2C3E50"/>
                     <TextBlock Text="{Binding CompanyEarnings, StringFormat={}{0:N0} ₽}" FontSize="13" FontWeight="Bold" Foreground="#27AE60"/>
                 </StackPanel>
-                
+
                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                     <TextBlock Text="💵 Общая выручка: " FontSize="13" FontWeight="Bold" Foreground="#2C3E50"/>
                     <TextBlock Text="{Binding TotalRevenue, StringFormat={}{0:N0} ₽}" FontSize="13" FontWeight="Bold" Foreground="#3498DB"/>
                 </StackPanel>
+                <Border Grid.Row="3" Background="#34495E" CornerRadius="5" Padding="15" Margin="0,15,0,0">
+                    <TextBlock Text="{Binding TotalOrdersInfo}" FontSize="14" FontWeight="Bold" Foreground="White" TextWrapping="WrapWithOverflow"/>
+                </Border>
             </StackPanel>
         </Grid>
-        
-        <Border Grid.Row="3" Background="#34495E" CornerRadius="5" Padding="15" Margin="0,15,0,0">
-            <TextBlock Text="{Binding TotalOrdersInfo}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-        </Border>
     </Grid>
 </Window>
