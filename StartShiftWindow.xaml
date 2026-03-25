@@ -6,9 +6,9 @@
         xmlns:local="clr-namespace:MyPanelCarWashing"
         mc:Ignorable="d"
         Title="Начать смену"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Width="450" Height="450"
+        Width="600" Height="950"
         Background="White">
     
     <Grid Margin="15">
@@ -21,18 +21,19 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="🚗 Новая смена" FontSize="24" FontWeight="Bold" 
-                   Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,20" Grid.Row="0"/>
+        <TextBlock Text="Новая смена" FontSize="24" FontWeight="Bold" 
+                   Foreground="Black" HorizontalAlignment="Center" Margin="0,0,0,20" Grid.Row="0"/>
 
-        <Label Content="📅 Дата смены:" Grid.Row="1" Margin="0,5" FontWeight="SemiBold"/>
+        <Label Content="Дата смены:" FontSize="15" Grid.Row="1" Margin="0,5" FontWeight="SemiBold"/>
         <DatePicker x:Name="ShiftDatePicker" Grid.Row="2" Margin="0,5" Height="30" 
                     SelectedDate="{Binding SelectedDate, Mode=TwoWay}"
-                    DisplayDateStart="{Binding MinDate, Mode=OneWay}"/>
+                    DisplayDateStart="{Binding MinDate, Mode=OneWay}"
+                    Background="White"/>
 
-        <Label Content="👥 Выберите сотрудников:" Grid.Row="3" Margin="0,10,0,5" FontWeight="SemiBold"/>
+        <Label Content="Выберите сотрудников:" FontSize="15" Grid.Row="3" Margin="0,10,0,5" FontWeight="SemiBold"/>
         
         <!-- Используем ItemsControl вместо ListBox для полного контроля -->
-        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" Foreground="Black">
             <ItemsControl ItemsSource="{Binding Employees}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -40,9 +41,9 @@
                             <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                       Margin="5">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding FullName}" FontSize="13" Margin="5,0"/>
+                                    <TextBlock Text="{Binding FullName}" FontSize="15" Margin="5,0" Foreground="Black"/>
                                     <TextBlock Text="{Binding IsAdmin, Converter={StaticResource BoolToRoleConverter}}" 
-                                               FontSize="10" Foreground="#7F8C8D" VerticalAlignment="Center"/>
+                                               FontSize="9" Foreground="Gray" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </CheckBox>
                         </Border>

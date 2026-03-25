@@ -54,24 +54,16 @@ namespace MyPanelCarWashing.Services
         // Смены
         public Shift GetShiftByDate(DateTime date)
         {
-            var shift = _data.Shifts.FirstOrDefault(s => s.Date.Date == date.Date && !s.IsClosed);
+            // Ищем открытую смену на указанную дату
+            var openShift = _data.Shifts.FirstOrDefault(s => s.Date.Date == date.Date && !s.IsClosed);
 
-            if (shift == null)
+            if (openShift != null)
             {
-                shift = new Shift
-                {
-                    Id = _data.GetNextShiftId(),
-                    Date = date,
-                    StartTime = DateTime.Now,
-                    IsClosed = false,
-                    EmployeeIds = new List<int>(),
-                    Orders = new List<CarWashOrder>()
-                };
-                _data.Shifts.Add(shift);
-                SaveData();
+                return openShift;
             }
 
-            return shift;
+            // Если нет открытой смены, возвращаем null
+            return null;
         }
 
         public List<Shift> GetAllShifts()

@@ -69,27 +69,32 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Проверяем, нет ли уже открытой смены на эту дату
-                var existingShift = Core.DB.GetShiftByDate(SelectedDate);
-                if (existingShift != null && !existingShift.IsClosed)
+                // Получаем все смены
+                var allShifts = Core.DB.GetAllShifts();
+
+                // Проверяем, есть ли открытая смена на эту дату
+                var existingOpenShift = allShifts.FirstOrDefault(s => s.Date.Date == SelectedDate.Date && !s.IsClosed);
+
+                if (existingOpenShift != null)
                 {
-                    var result = MessageBox.Show($"На {SelectedDate:dd.MM.yyyy} уже есть открытая смена.\nЗакрыть её и начать новую?",
+                    // Если есть открытая смена, предлагаем закрыть её
+                    var result = MessageBox.Show($"На {SelectedDate:dd.MM.yyyy} уже есть открытая смена!\n\n" +
+                        $"Время начала: {existingOpenShift.StartTime:HH:mm}\n" +
+                        $"Закрыть её и начать новую?",
                         "Предупреждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        // Закрываем старую смену
-                        existingShift.EndTime = DateTime.Now;
-                        existingShift.IsClosed = true;
-                    }
-                    else
+                    if (result != MessageBoxResult.Yes)
                     {
                         return;
                     }
-                }
 
-                // Получаем все смены
-                var allShifts = Core.DB.GetAllShifts();
+                    // Закрываем старую смену
+                    existingOpenShift.EndTime = DateTime.Now;
+                    existingOpenShift.IsClosed = true;
+
+                    // Удаляем старую смену из списка
+                    allShifts.Remove(existingOpenShift);
+                }
 
                 // Создаем новую смену
                 var newShift = new Shift
@@ -101,9 +106,6 @@ namespace MyPanelCarWashing
                     EmployeeIds = selectedEmployees.Select(emp => emp.Id).ToList(),
                     Orders = new List<CarWashOrder>()
                 };
-
-                // Удаляем существующую открытую смену на эту дату
-                allShifts.RemoveAll(s => s.Date.Date == SelectedDate.Date && !s.IsClosed);
 
                 // Добавляем новую смену
                 allShifts.Add(newShift);

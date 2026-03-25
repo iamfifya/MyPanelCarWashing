@@ -80,6 +80,7 @@
     </ApplicationDefinition>
     <Compile Include="BoolToRoleConverter.cs" />
     <Compile Include="Core.cs" />
+    <Compile Include="IntToBoolConverter.cs" />
     <Compile Include="Models\EmployeeShiftReport.cs" />
     <Compile Include="Models\ShiftReport.cs" />
     <Compile Include="Services\DataService.cs" />

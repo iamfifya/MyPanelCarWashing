@@ -8,8 +8,9 @@
                 <ResourceDictionary Source="Styles/AppStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
-            <!-- Конвертер для роли -->
+            <!-- Конвертеры -->
             <local:BoolToRoleConverter x:Key="BoolToRoleConverter"/>
+            <local:IntToBoolConverter x:Key="IntToBoolConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

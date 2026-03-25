@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MyPanelCarWashing"
         mc:Ignorable="d"
         Title="Отчеты по сменам"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="800" MinHeight="500"
         Width="900" Height="600"

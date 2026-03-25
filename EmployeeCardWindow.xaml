@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MyPanelCarWashing"
         mc:Ignorable="d"
         Title="Сотрудники"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="600" MinHeight="400"
         Width="800" Height="500"
@@ -29,7 +29,7 @@
                 <Separator Width="20" Visibility="Collapsed"/>
                 <Label Content="🔍 Поиск:" VerticalContentAlignment="Center" Margin="5,0,0,0"/>
                 <TextBox Width="200" x:Name="SearchFilterTextBox" KeyUp="SearchFilterTextBox_KeyUp" 
-                         VerticalContentAlignment="Center" Margin="5" Padding="5"/>
+                         VerticalContentAlignment="Center" Margin="5" Padding="5" Foreground="Black"/>
             </StackPanel>
         </Border>
 
@@ -38,7 +38,8 @@
                   ItemsSource="{Binding EmployeesList}"
                   x:Name="EmployeesListView"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                  Cursor="Hand">
+                  Cursor="Hand"
+                  Background="#F0F0F0">
 
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
@@ -58,9 +59,9 @@
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="ID" Width="50" DisplayMemberBinding="{Binding Id}"/>
-                    <GridViewColumn Header="ФИО" Width="200" DisplayMemberBinding="{Binding FullName}"/>
+                    <GridViewColumn Header="ФИО" Width="300" DisplayMemberBinding="{Binding FullName}"/>
                     <GridViewColumn Header="Логин" Width="150" DisplayMemberBinding="{Binding Login}"/>
-                    <GridViewColumn Header="Роль" Width="100">
+                    <GridViewColumn Header="Должность" Width="200">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding IsAdmin, Converter={StaticResource BoolToRoleConverter}}"/>

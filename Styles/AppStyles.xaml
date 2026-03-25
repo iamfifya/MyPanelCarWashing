@@ -92,6 +92,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="#BDC3C7"/>
         <Setter Property="Background" Value="WhiteSmoke"/>
+        <Setter Property="Foreground" Value="Black"/>
         <Setter Property="Padding" Value="5"/>
         <Setter Property="Height" Value="28"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -122,6 +123,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="#BDC3C7"/>
         <Setter Property="Background" Value="WhiteSmoke"/>
+        <Setter Property="Foreground" Value="Black"/>
         <Setter Property="Padding" Value="5"/>
         <Setter Property="Height" Value="28"/>
         <Setter Property="Template">
@@ -131,7 +133,7 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="3">
-                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Foreground="Black"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsFocused" Value="True">
@@ -155,6 +157,7 @@
     <!-- Стиль для DatePicker -->
     <Style TargetType="DatePicker">
         <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="Background" Value="White"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Height" Value="28"/>
     </Style>

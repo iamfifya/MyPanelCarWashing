@@ -1,9 +1,5 @@
 ﻿using MyPanelCarWashing.Services;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MyPanelCarWashing
 {
@@ -15,13 +11,20 @@ namespace MyPanelCarWashing
         {
             get
             {
-                if (_dataService == null)
-                    _dataService = new DataService();
-                return _dataService;
+                try
+                {
+                    if (_dataService == null)
+                        _dataService = new DataService();
+                    return _dataService;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Ошибка Core.DB: {ex.Message}");
+                    throw;
+                }
             }
         }
 
-        // Добавьте метод для принудительной перезагрузки данных
         public static void RefreshData()
         {
             _dataService = new DataService();

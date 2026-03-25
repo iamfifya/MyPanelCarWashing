@@ -4,53 +4,63 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using System.Windows.Input;
+using System.Windows.Controls;
 
 namespace MyPanelCarWashing
 {
     public partial class AddOrderWindow : Window
     {
-        public CarWashOrder NewOrder { get; set; }
-        public List<ServiceViewModel> Services { get; set; }
-        public string SelectedBodyType { get; set; }
         private Shift _currentShift;
+        private List<ServiceViewModel> _services;
 
         public AddOrderWindow(Shift currentShift)
         {
             InitializeComponent();
             _currentShift = currentShift;
-            NewOrder = new CarWashOrder
-            {
-                Time = DateTime.Now,
-                ShiftId = currentShift.Id
-            };
+
+            // Устанавливаем сегодняшнюю дату
+            OrderDatePicker.SelectedDate = DateTime.Now;
+            OrderTimeTextBox.Text = DateTime.Now.ToString("HH:mm");
 
             LoadServices();
-            DataContext = this;
+            LoadWashers();
         }
 
         private void LoadServices()
         {
             var allServices = Core.DB.GetAllServices();
-            Services = allServices.Select(s => new ServiceViewModel
+            _services = allServices.Select(s => new ServiceViewModel
             {
                 Id = s.Id,
                 Name = s.Name,
                 Price = s.Price,
                 IsSelected = false
             }).ToList();
+
+            ServicesListBox.ItemsSource = _services;
         }
 
-        private void BodyType_Click(object sender, MouseButtonEventArgs e)
+        private void LoadWashers()
         {
-            var border = sender as System.Windows.Controls.Border;
-            if (border?.Tag != null)
+            var washers = Core.DB.GetAllUsers().ToList();
+            WasherComboBox.ItemsSource = washers;
+            if (washers.Any())
+                WasherComboBox.SelectedIndex = 0;
+        }
+
+        private void ServicesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            CalculateTotalPrice();
+        }
+
+        private void CalculateTotalPrice()
+        {
+            decimal total = 0;
+            foreach (ServiceViewModel service in ServicesListBox.SelectedItems)
             {
-                SelectedBodyType = border.Tag.ToString();
-                NewOrder.Notes = $"Тип кузова: {SelectedBodyType}";
-                // Обновляем привязку
-                OnPropertyChanged(nameof(SelectedBodyType));
+                total += service.Price;
             }
+            TotalPriceTextBlock.Text = $"💰 Итого: {total:C}";
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -58,21 +68,55 @@ namespace MyPanelCarWashing
             try
             {
                 // Проверка обязательных полей
-                if (string.IsNullOrWhiteSpace(NewOrder.CarModel))
+                if (string.IsNullOrWhiteSpace(CarModelTextBox.Text))
                 {
                     MessageBox.Show("Введите марку и модель автомобиля", "Ошибка",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                if (string.IsNullOrWhiteSpace(NewOrder.CarNumber))
+                if (string.IsNullOrWhiteSpace(CarNumberTextBox.Text))
                 {
                     MessageBox.Show("Введите государственный номер", "Ошибка",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                var selectedServices = Services.Where(s => s.IsSelected).ToList();
+                // Получаем тип кузова
+                string bodyType = (BodyTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Седан";
+
+                // Проверка времени
+                DateTime? selectedDate = OrderDatePicker.SelectedDate;
+                if (!selectedDate.HasValue)
+                {
+                    MessageBox.Show("Выберите дату", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (!DateTime.TryParse($"{selectedDate.Value:yyyy-MM-dd} {OrderTimeTextBox.Text}", out DateTime orderDateTime))
+                {
+                    MessageBox.Show("Введите корректное время в формате HH:MM (например 14:30)", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Определяем номер бокса
+                int boxNumber = 1;
+                if (Box2Radio.IsChecked == true) boxNumber = 2;
+                if (Box3Radio.IsChecked == true) boxNumber = 3;
+
+                // Получаем выбранного мойщика
+                var selectedWasher = WasherComboBox.SelectedItem as User;
+                if (selectedWasher == null)
+                {
+                    MessageBox.Show("Выберите мойщика", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Получаем выбранные услуги
+                var selectedServices = ServicesListBox.SelectedItems.Cast<ServiceViewModel>().ToList();
                 if (!selectedServices.Any())
                 {
                     MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка",
@@ -80,13 +124,31 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Добавляем заказ
+                // Создаем заказ
+                var newOrder = new CarWashOrder
+                {
+                    CarModel = CarModelTextBox.Text,
+                    CarNumber = CarNumberTextBox.Text,
+                    CarBodyType = bodyType,
+                    Time = orderDateTime,
+                    BoxNumber = boxNumber,
+                    WasherId = selectedWasher.Id,
+                    ShiftId = _currentShift.Id
+                };
+
                 var serviceIds = selectedServices.Select(s => s.Id).ToList();
-                Core.DB.AddOrder(NewOrder, serviceIds);
+                Core.DB.AddOrder(newOrder, serviceIds);
+
+                MessageBox.Show($"Заказ добавлен!\n\n" +
+                    $"🚗 {newOrder.CarModel} ({newOrder.CarNumber})\n" +
+                    $"🚘 {newOrder.CarBodyType}\n" +
+                    $"🚘 Бокс {newOrder.BoxNumber}\n" +
+                    $"👤 Мойщик: {selectedWasher.FullName}\n" +
+                    $"⏰ Время: {newOrder.Time:HH:mm dd.MM.yyyy}\n" +
+                    $"💰 Сумма: {newOrder.TotalPrice:C}",
+                    "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
-                MessageBox.Show($"Заказ добавлен\nСумма: {NewOrder.TotalPrice:C}", "Успешно",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
                 Close();
             }
             catch (Exception ex)
@@ -100,12 +162,6 @@ namespace MyPanelCarWashing
         {
             DialogResult = false;
             Close();
-        }
-
-        private void OnPropertyChanged(string propertyName)
-        {
-            var binding = GetBindingExpression(DataContextProperty);
-            binding?.UpdateTarget();
         }
     }
 }
