@@ -21,5 +21,9 @@ namespace MyPanelCarWashing.Models
 
         public string ServicesCount => ServiceIds.Count > 0 ? $"{ServiceIds.Count} услуг" : "нет услуг";
         public string BoxName => $"Бокс {BoxNumber}";
+
+        // Заработок - только эти свойства, без дубликатов!
+        public decimal WasherEarnings => TotalPrice * 0.35m; // 35% мойщику
+        public decimal CompanyEarnings => TotalPrice * 0.65m; // 65% компании
     }
 }

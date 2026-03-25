@@ -22,7 +22,7 @@ namespace MyPanelCarWashing
             set
             {
                 _reports = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Reports"));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Reports)));
             }
         }
 
@@ -32,7 +32,7 @@ namespace MyPanelCarWashing
             set
             {
                 _selectedReport = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("SelectedReport"));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedReport)));
             }
         }
 
@@ -49,8 +49,8 @@ namespace MyPanelCarWashing
             {
                 string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
 
-                // Отладочный вывод
-                System.Diagnostics.Debug.WriteLine($"Путь к отчетам: {reportsPath}");
+                System.Diagnostics.Debug.WriteLine($"=== Загрузка отчетов ===");
+                System.Diagnostics.Debug.WriteLine($"Путь: {reportsPath}");
                 System.Diagnostics.Debug.WriteLine($"Папка существует: {Directory.Exists(reportsPath)}");
 
                 if (!Directory.Exists(reportsPath))
@@ -69,31 +69,28 @@ namespace MyPanelCarWashing
                 {
                     try
                     {
-                        System.Diagnostics.Debug.WriteLine($"Загрузка файла: {file}");
+                        System.Diagnostics.Debug.WriteLine($"Загрузка: {Path.GetFileName(file)}");
                         var json = File.ReadAllText(file);
                         var report = Newtonsoft.Json.JsonConvert.DeserializeObject<ShiftReport>(json);
                         if (report != null)
                         {
                             reports.Add(report);
-                            System.Diagnostics.Debug.WriteLine($"Загружен отчет за {report.Date:yyyy-MM-dd}");
+                            System.Diagnostics.Debug.WriteLine($"  Загружен отчет за {report.Date:dd.MM.yyyy}, машин: {report.TotalCars}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Ошибка загрузки {file}: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"  Ошибка загрузки {file}: {ex.Message}");
                     }
                 }
 
                 Reports = reports.OrderByDescending(r => r.Date).ToList();
 
+                System.Diagnostics.Debug.WriteLine($"Всего загружено отчетов: {Reports.Count}");
+
                 if (Reports.Any())
                 {
                     ReportsListBox.ItemsSource = Reports;
-                    System.Diagnostics.Debug.WriteLine($"Загружено отчетов: {Reports.Count}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("Отчеты не найдены");
                 }
             }
             catch (Exception ex)
@@ -101,24 +98,42 @@ namespace MyPanelCarWashing
                 System.Diagnostics.Debug.WriteLine($"Ошибка загрузки отчетов: {ex.Message}");
                 MessageBox.Show($"Ошибка загрузки отчетов: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+                Reports = new List<ShiftReport>();
             }
         }
 
         private void ReportSelectionChanged(object sender, SelectionChangedEventArgs args)
         {
             SelectedReport = ReportsListBox.SelectedItem as ShiftReport;
+            System.Diagnostics.Debug.WriteLine($"Выбран отчет за {SelectedReport?.Date:dd.MM.yyyy}");
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs args)
         {
             LoadReports();
+            MessageBox.Show("Список отчетов обновлен", "Обновление",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void OpenFolderButton_Click(object sender, RoutedEventArgs args)
+        {
+            string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+            if (Directory.Exists(reportsPath))
+            {
+                System.Diagnostics.Process.Start("explorer.exe", reportsPath);
+            }
+            else
+            {
+                MessageBox.Show("Папка Reports не найдена", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private void ExportButton_Click(object sender, RoutedEventArgs args)
         {
             if (SelectedReport == null)
             {
-                MessageBox.Show("Выберите отчет для экспорта", "Внимание", 
+                MessageBox.Show("Выберите отчет для экспорта", "Внимание",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -141,20 +156,22 @@ namespace MyPanelCarWashing
                     }
                     else
                     {
-                        content = "Дата;Начало;Конец;Машин;Выручка;Сотрудники\n";
+                        // CSV формат
+                        content = "Дата;Начало;Конец;Машин;Выручка;Мойщикам(35%);Компании(65%);Сотрудники\n";
                         content += $"{SelectedReport.Date:dd.MM.yyyy};{SelectedReport.StartTime:HH:mm};{SelectedReport.EndTime:HH:mm};";
-                        content += $"{SelectedReport.TotalCars};{SelectedReport.TotalRevenue};";
-                        content += string.Join(";", SelectedReport.EmployeesWork.Select(e => $"{e.EmployeeName}({e.CarsWashed})"));
+                        content += $"{SelectedReport.TotalCars};{SelectedReport.TotalRevenue:C};";
+                        content += $"{SelectedReport.TotalWasherEarnings:C};{SelectedReport.TotalCompanyEarnings:C};";
+                        content += string.Join(";", SelectedReport.EmployeesWork.Select(e => $"{e.EmployeeName}({e.CarsWashed} маш., {e.Earnings:C})"));
                     }
-                    
+
                     File.WriteAllText(saveDialog.FileName, content);
-                    MessageBox.Show("Отчет успешно экспортирован", "Успешно", 
+                    MessageBox.Show("Отчет успешно экспортирован", "Успешно",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка", 
+                MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

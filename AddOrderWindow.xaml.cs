@@ -12,6 +12,7 @@ namespace MyPanelCarWashing
     {
         private Shift _currentShift;
         private List<ServiceViewModel> _services;
+        private List<User> _washers;
 
         public AddOrderWindow(Shift currentShift)
         {
@@ -42,9 +43,21 @@ namespace MyPanelCarWashing
 
         private void LoadWashers()
         {
-            var washers = Core.DB.GetAllUsers().ToList();
-            WasherComboBox.ItemsSource = washers;
-            if (washers.Any())
+            // Загружаем только сотрудников, которые есть в текущей смене
+            if (_currentShift != null && _currentShift.EmployeeIds != null && _currentShift.EmployeeIds.Any())
+            {
+                var allUsers = Core.DB.GetAllUsers();
+                _washers = allUsers.Where(u => _currentShift.EmployeeIds.Contains(u.Id)).ToList();
+            }
+            else
+            {
+                _washers = new List<User>();
+                MessageBox.Show("В смене нет сотрудников! Добавьте сотрудников в смену.", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            WasherComboBox.ItemsSource = _washers;
+            if (_washers.Any())
                 WasherComboBox.SelectedIndex = 0;
         }
 
@@ -94,12 +107,16 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                if (!DateTime.TryParse($"{selectedDate.Value:yyyy-MM-dd} {OrderTimeTextBox.Text}", out DateTime orderDateTime))
+                string timeStr = OrderTimeTextBox.Text.Trim();
+                if (!System.Text.RegularExpressions.Regex.IsMatch(timeStr, @"^([0-1][0-9]|2[0-3]):[0-5][0-9]$"))
                 {
                     MessageBox.Show("Введите корректное время в формате HH:MM (например 14:30)", "Ошибка",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+
+                DateTime orderDateTime = new DateTime(selectedDate.Value.Year, selectedDate.Value.Month, selectedDate.Value.Day,
+                    int.Parse(timeStr.Split(':')[0]), int.Parse(timeStr.Split(':')[1]), 0);
 
                 // Определяем номер бокса
                 int boxNumber = 1;
@@ -145,7 +162,9 @@ namespace MyPanelCarWashing
                     $"🚘 Бокс {newOrder.BoxNumber}\n" +
                     $"👤 Мойщик: {selectedWasher.FullName}\n" +
                     $"⏰ Время: {newOrder.Time:HH:mm dd.MM.yyyy}\n" +
-                    $"💰 Сумма: {newOrder.TotalPrice:C}",
+                    $"💰 Сумма: {newOrder.TotalPrice:C}\n" +
+                    $"👤 Мойщику (35%): {newOrder.WasherEarnings:C}\n" +
+                    $"🏢 Компании (65%): {newOrder.CompanyEarnings:C}",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MyPanelCarWashing"
         mc:Ignorable="d"
-        Title="Главная страница"
+        Title="Панель управления автомойкой"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="1200" MinHeight="700"
@@ -212,18 +212,75 @@
             </Border>
         </Grid>
 
-        <!-- Нижняя панель с информацией -->
+        <!-- Нижняя панель с информацией и статистикой -->
         <Border Grid.Row="2" Background="#F0F0F0" Padding="10" CornerRadius="5">
             <Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                    <TextBlock Text="{Binding CurrentShiftInfo}" FontSize="12" VerticalAlignment="Center"/>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Информация о смене -->
+                <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Left">
+                    <TextBlock Text="{Binding CurrentShiftInfo}" FontSize="12" Foreground="#2C3E50"/>
+                    <TextBlock Text="{Binding TotalOrdersInfo}" FontSize="12" FontWeight="Bold" 
+                               Foreground="#27AE60" Margin="0,5,0,0"/>
                 </StackPanel>
                 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding TotalOrdersInfo}" FontSize="12" FontWeight="Bold" 
-                               Foreground="#27AE60" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+                <!-- Разделитель -->
+                <Border Grid.Column="1" Width="1" Background="#BDC3C7" Margin="20,0"/>
+                
+                <!-- Статистика по мойщикам -->
+                <!-- Нижняя панель с информацией и статистикой -->
+<!-- Нижняя панель с информацией и статистикой -->
+<Border Grid.Row="2" Background="#F0F0F0" Padding="10" CornerRadius="5">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- Информация о смене -->
+        <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Left">
+            <TextBlock Text="{Binding CurrentShiftInfo}" FontSize="12" Foreground="#2C3E50"/>
+            <TextBlock Text="{Binding TotalOrdersInfo}" FontSize="12" FontWeight="Bold" 
+                       Foreground="#27AE60" Margin="0,5,0,0"/>
+        </StackPanel>
+        
+        <!-- Разделитель -->
+        <Border Grid.Column="1" Width="1" Background="#BDC3C7" Margin="20,0"/>
+        
+        <!-- Статистика по мойщикам -->
+        <StackPanel Grid.Column="2" Orientation="Vertical" HorizontalAlignment="Right">
+            <TextBlock Text="👥 Заработок мойщиков:" FontSize="12" FontWeight="Bold" 
+                       Foreground="#2C3E50" Margin="0,0,0,5"/>
+            <ItemsControl ItemsSource="{Binding WashersStats}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock FontSize="11">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0}: {1} машин | {2:C} (35%)">
+                                    <Binding Path="WasherName"/>
+                                    <Binding Path="CarsCount"/>
+                                    <Binding Path="Earnings"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Separator Margin="0,5,0,5" Height="1" Background="#BDC3C7"/>
+            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                <TextBlock Text="💰 Компания: " FontSize="12" FontWeight="Bold" Foreground="#27AE60"/>
+                <TextBlock Text="{Binding CompanyEarnings, StringFormat={}{0:C}}" FontSize="12" 
+                           FontWeight="Bold" Foreground="#27AE60"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Border>
+    </Grid>
+</Border>
     </Grid>
 </Window>

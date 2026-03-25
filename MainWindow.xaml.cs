@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace MyPanelCarWashing
@@ -17,15 +16,36 @@ namespace MyPanelCarWashing
         private Shift _currentShift;
         private User _currentUser;
         private string _searchFilter = "";
+        private List<WasherStat> _washersStats;
+        private decimal _companyEarnings;
 
         public string CurrentShiftInfo { get; private set; }
         public string TotalOrdersInfo { get; private set; }
+
+        public List<WasherStat> WashersStats
+        {
+            get => _washersStats;
+            set
+            {
+                _washersStats = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WashersStats)));
+            }
+        }
+
+        public decimal CompanyEarnings
+        {
+            get => _companyEarnings;
+            set
+            {
+                _companyEarnings = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarnings)));
+            }
+        }
 
         public MainWindow(User user)
         {
             InitializeComponent();
             _currentUser = user;
-
             LoadData();
         }
 
@@ -35,21 +55,20 @@ namespace MyPanelCarWashing
             {
                 _currentShift = Core.DB.GetShiftByDate(DateTime.Now);
 
+                System.Diagnostics.Debug.WriteLine($"=== LoadData вызван ===");
+                System.Diagnostics.Debug.WriteLine($"_currentShift: {_currentShift != null}");
+
                 if (_currentShift != null && !_currentShift.IsClosed)
                 {
                     if (_currentShift.Orders != null)
                     {
                         _allOrders = _currentShift.Orders.ToList();
+                        System.Diagnostics.Debug.WriteLine($"Загружено заказов: {_allOrders.Count}");
                     }
                     else
                     {
                         _allOrders = new List<CarWashOrder>();
                     }
-                }
-                else if (_currentShift != null && _currentShift.IsClosed)
-                {
-                    _allOrders = new List<CarWashOrder>();
-                    _currentShift = null;
                 }
                 else
                 {
@@ -57,7 +76,7 @@ namespace MyPanelCarWashing
                 }
 
                 ApplyFilterAndDisplay();
-                UpdateInfo();
+                UpdateInfo(); // <- Это должно быть здесь!
             }
             catch (Exception ex)
             {
@@ -130,21 +149,69 @@ namespace MyPanelCarWashing
             if (_currentShift != null && !_currentShift.IsClosed)
             {
                 CurrentShiftInfo = $"📅 Смена: {_currentShift.Date:dd.MM.yyyy} | Начало: {_currentShift.StartTime:HH:mm}";
-                TotalOrdersInfo = $"🚗 Всего машин: {_allOrders.Count} | 💰 Выручка: {_allOrders.Sum(o => o.TotalPrice):C}";
+
+                var totalRevenue = _allOrders.Sum(o => o.TotalPrice);
+                var totalWasherEarnings = _allOrders.Sum(o => o.WasherEarnings);
+                CompanyEarnings = _allOrders.Sum(o => o.CompanyEarnings);
+
+                TotalOrdersInfo = $"🚗 Всего машин: {_allOrders.Count} | 💰 Выручка: {totalRevenue:C} | " +
+                                  $"👤 Мойщикам: {totalWasherEarnings:C} | 🏢 Компании: {CompanyEarnings:C}";
             }
             else if (_currentShift != null && _currentShift.IsClosed)
             {
                 CurrentShiftInfo = $"📅 Смена закрыта: {_currentShift.Date:dd.MM.yyyy}";
                 TotalOrdersInfo = $"🚗 Итого за смену: {_allOrders.Count} машин | 💰 {_allOrders.Sum(o => o.TotalPrice):C}";
+                CompanyEarnings = 0;
             }
             else
             {
                 CurrentShiftInfo = "⏰ Нет активной смены. Начните смену!";
                 TotalOrdersInfo = "";
+                CompanyEarnings = 0;
             }
 
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("CurrentShiftInfo"));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("TotalOrdersInfo"));
+            UpdateWashersStats();
+
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentShiftInfo)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalOrdersInfo)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WashersStats)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarnings)));
+        }
+
+        private void UpdateWashersStats()
+        {
+            System.Diagnostics.Debug.WriteLine("=== UpdateWashersStats вызван ===");
+            System.Diagnostics.Debug.WriteLine($"_currentShift: {_currentShift != null}");
+            System.Diagnostics.Debug.WriteLine($"_currentShift.IsClosed: {_currentShift?.IsClosed}");
+            System.Diagnostics.Debug.WriteLine($"_allOrders.Count: {_allOrders.Count}");
+
+            if (_currentShift == null || _currentShift.IsClosed || !_allOrders.Any())
+            {
+                System.Diagnostics.Debug.WriteLine("Условие сработало - WashersStats = пустой список");
+                WashersStats = new List<WasherStat>();
+                return;
+            }
+
+            var allUsers = Core.DB.GetAllUsers();
+
+            var stats = _allOrders
+                .GroupBy(o => o.WasherId)
+                .Select(g => new WasherStat
+                {
+                    WasherName = allUsers.FirstOrDefault(u => u.Id == g.Key)?.FullName ?? "Неизвестный",
+                    CarsCount = g.Count(),
+                    Earnings = g.Sum(o => o.WasherEarnings)
+                })
+                .OrderByDescending(s => s.Earnings)
+                .ToList();
+
+            System.Diagnostics.Debug.WriteLine($"Найдено мойщиков: {stats.Count}");
+            foreach (var stat in stats)
+            {
+                System.Diagnostics.Debug.WriteLine($"  {stat.WasherName}: {stat.CarsCount} машин, {stat.Earnings:C}");
+            }
+
+            WashersStats = stats;
         }
 
         private void SearchFilterTextBox_KeyUp(object sender, KeyEventArgs e)
@@ -165,7 +232,7 @@ namespace MyPanelCarWashing
             var addWin = new AddOrderWindow(_currentShift);
             if (addWin.ShowDialog() == true)
             {
-                LoadData();
+                LoadData(); // Это перезагрузит все данные
             }
         }
 
@@ -177,140 +244,12 @@ namespace MyPanelCarWashing
 
         private void StartShiftButton_Click(object sender, RoutedEventArgs e)
         {
-            var existingShift = Core.DB.GetShiftByDate(DateTime.Now);
-
-            if (existingShift != null && !existingShift.IsClosed)
-            {
-                var result = MessageBox.Show($"На сегодня уже есть открытая смена!\n\n" +
-                    $"Время начала: {existingShift.StartTime:HH:mm}\n" +
-                    $"Сотрудников: {existingShift.EmployeeIds.Count}\n\n" +
-                    $"Закрыть существующую смену и начать новую?",
-                    "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    // Закрываем старую смену и сохраняем отчет
-                    CloseExistingShift(existingShift);
-                }
-                else
-                {
-                    return;
-                }
-            }
-
-            // Открываем окно для новой смены
             var startWin = new StartShiftWindow();
             if (startWin.ShowDialog() == true)
             {
                 LoadData();
-                MessageBox.Show("Смена успешно начата!", "Успешно",
+                MessageBox.Show($"Смена на {startWin.SelectedDate:dd.MM.yyyy} успешно начата!", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-
-        private void CloseExistingShift(Shift shift)
-        {
-            try
-            {
-                shift.EndTime = DateTime.Now;
-                shift.IsClosed = true;
-
-                var orders = shift.Orders ?? new List<CarWashOrder>();
-
-                var report = new ShiftReport
-                {
-                    Id = Guid.NewGuid().GetHashCode(),
-                    Date = shift.Date,
-                    StartTime = shift.StartTime.Value,
-                    EndTime = shift.EndTime.Value,
-                    TotalCars = orders.Count,
-                    TotalRevenue = orders.Sum(o => o.TotalPrice),
-                    Notes = "Смена закрыта принудительно для начала новой"
-                };
-
-                var allUsers = Core.DB.GetAllUsers();
-
-                foreach (var empId in shift.EmployeeIds)
-                {
-                    var employee = allUsers.FirstOrDefault(u => u.Id == empId);
-                    if (employee != null)
-                    {
-                        var employeeOrders = orders.Count(o => o.WasherId == empId);
-                        var employeeRevenue = orders.Where(o => o.WasherId == empId).Sum(o => o.TotalPrice);
-
-                        report.EmployeesWork.Add(new EmployeeWorkReport
-                        {
-                            EmployeeId = empId,
-                            EmployeeName = employee.FullName,
-                            CarsWashed = employeeOrders,
-                            TotalAmount = employeeRevenue
-                        });
-                    }
-                }
-
-                // Сохраняем отчет
-                SaveShiftReport(report);
-
-                // Обновляем данные в файле
-                var allShifts = Core.DB.GetAllShifts();
-                var existingShift = allShifts.FirstOrDefault(s => s.Id == shift.Id);
-                if (existingShift != null)
-                {
-                    existingShift.EndTime = shift.EndTime;
-                    existingShift.IsClosed = true;
-                }
-
-                var appData = FileDataService.LoadData();
-                appData.Shifts = allShifts;
-                FileDataService.SaveData(appData);
-
-                // Обновляем Core.DB
-                Core.RefreshData();
-
-                MessageBox.Show($"Старая смена закрыта!\n\n" +
-                    $"📅 Дата: {report.Date:dd.MM.yyyy}\n" +
-                    $"🚗 Машин: {report.TotalCars}\n" +
-                    $"💰 Выручка: {report.TotalRevenue:C}\n\n" +
-                    $"📁 Отчет сохранен в папке Reports",
-                    "Смена закрыта", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при закрытии смены: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void OpenStartShiftWindow()
-        {
-            var startWin = new StartShiftWindow();
-            if (startWin.ShowDialog() == true)
-            {
-                LoadData();
-                MessageBox.Show("Смена успешно начата!", "Успешно",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-
-        private void SaveShiftReport(ShiftReport report)
-        {
-            try
-            {
-                string reportsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-                if (!System.IO.Directory.Exists(reportsPath))
-                    System.IO.Directory.CreateDirectory(reportsPath);
-
-                string fileName = $"ShiftReport_{report.Date:yyyy-MM-dd_HHmmss}.json";
-                string filePath = System.IO.Path.Combine(reportsPath, fileName);
-
-                var json = Newtonsoft.Json.JsonConvert.SerializeObject(report, Newtonsoft.Json.Formatting.Indented);
-                System.IO.File.WriteAllText(filePath, json);
-
-                System.Diagnostics.Debug.WriteLine($"Отчет сохранен: {filePath}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ошибка сохранения отчета: {ex.Message}");
             }
         }
 
@@ -330,10 +269,16 @@ namespace MyPanelCarWashing
                 return;
             }
 
+            var totalRevenue = _allOrders.Sum(o => o.TotalPrice);
+            var totalWasherEarnings = _allOrders.Sum(o => o.WasherEarnings);
+            var totalCompanyEarnings = _allOrders.Sum(o => o.CompanyEarnings);
+
             var result = MessageBox.Show($"Закрыть смену?\n\n" +
                 $"📅 Дата: {_currentShift.Date:dd.MM.yyyy}\n" +
                 $"🚗 Всего машин: {_allOrders.Count}\n" +
-                $"💰 Общая выручка: {_allOrders.Sum(o => o.TotalPrice):C}\n\n" +
+                $"💰 Общая выручка: {totalRevenue:C}\n" +
+                $"👤 Мойщикам (35%): {totalWasherEarnings:C}\n" +
+                $"🏢 Компании (65%): {totalCompanyEarnings:C}\n\n" +
                 $"Это действие нельзя отменить!",
                 "Подтверждение закрытия смены",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -352,7 +297,9 @@ namespace MyPanelCarWashing
                     StartTime = _currentShift.StartTime.Value,
                     EndTime = _currentShift.EndTime.Value,
                     TotalCars = _allOrders.Count,
-                    TotalRevenue = _allOrders.Sum(o => o.TotalPrice),
+                    TotalRevenue = totalRevenue,
+                    TotalWasherEarnings = totalWasherEarnings,
+                    TotalCompanyEarnings = totalCompanyEarnings,
                     Notes = "Смена закрыта штатно"
                 };
 
@@ -363,15 +310,17 @@ namespace MyPanelCarWashing
                     var employee = allUsers.FirstOrDefault(u => u.Id == empId);
                     if (employee != null)
                     {
-                        var employeeOrders = _allOrders.Count(o => o.WasherId == empId);
-                        var employeeRevenue = _allOrders.Where(o => o.WasherId == empId).Sum(o => o.TotalPrice);
+                        var employeeOrders = _allOrders.Where(o => o.WasherId == empId).ToList();
+                        var employeeRevenue = employeeOrders.Sum(o => o.TotalPrice);
+                        var employeeEarnings = employeeOrders.Sum(o => o.WasherEarnings);
 
                         report.EmployeesWork.Add(new EmployeeWorkReport
                         {
                             EmployeeId = empId,
                             EmployeeName = employee.FullName,
-                            CarsWashed = employeeOrders,
-                            TotalAmount = employeeRevenue
+                            CarsWashed = employeeOrders.Count,
+                            TotalAmount = employeeRevenue,
+                            Earnings = employeeEarnings
                         });
                     }
                 }
@@ -397,7 +346,9 @@ namespace MyPanelCarWashing
                 MessageBox.Show($"Смена успешно закрыта!\n\n" +
                     $"📅 Дата: {report.Date:dd.MM.yyyy}\n" +
                     $"🚗 Машин: {report.TotalCars}\n" +
-                    $"💰 Выручка: {report.TotalRevenue:C}\n\n" +
+                    $"💰 Выручка: {report.TotalRevenue:C}\n" +
+                    $"👤 Мойщикам (35%): {report.TotalWasherEarnings:C}\n" +
+                    $"🏢 Компании (65%): {report.TotalCompanyEarnings:C}\n\n" +
                     $"📁 Отчет сохранен в папке Reports",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -405,6 +356,28 @@ namespace MyPanelCarWashing
             {
                 MessageBox.Show($"Ошибка при закрытии смены: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveShiftReport(ShiftReport report)
+        {
+            try
+            {
+                string reportsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+                if (!System.IO.Directory.Exists(reportsPath))
+                    System.IO.Directory.CreateDirectory(reportsPath);
+
+                string fileName = $"ShiftReport_{report.Date:yyyy-MM-dd_HHmmss}.json";
+                string filePath = System.IO.Path.Combine(reportsPath, fileName);
+
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(report, Newtonsoft.Json.Formatting.Indented);
+                System.IO.File.WriteAllText(filePath, json);
+
+                System.Diagnostics.Debug.WriteLine($"Отчет сохранен: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка сохранения отчета: {ex.Message}");
             }
         }
 
@@ -429,5 +402,12 @@ namespace MyPanelCarWashing
         public string ServicesList { get; set; }
         public decimal TotalPrice { get; set; }
         public int BoxNumber { get; set; }
+    }
+
+    public class WasherStat
+    {
+        public string WasherName { get; set; }
+        public int CarsCount { get; set; }
+        public decimal Earnings { get; set; }
     }
 }
