@@ -55,11 +55,11 @@
                                             </TextBlock.Text>
                                         </TextBlock>
                                         <TextBlock Text="{Binding TotalCars, StringFormat=🚗 Машин: {0}}"/>
-                                        <TextBlock Text="{Binding TotalRevenue, StringFormat=💰 {0:C}}" 
+                                        <TextBlock Text="{Binding TotalRevenue, StringFormat=💰 {0:N0} ₽}" 
                                                    Foreground="#27AE60"/>
-                                        <TextBlock Text="{Binding TotalWasherEarnings, StringFormat=👤 Мойщикам: {0:C}}" 
+                                        <TextBlock Text="{Binding TotalWasherEarnings, StringFormat=👤 Мойщикам: {0:N0} ₽}" 
                                                    Foreground="#8E44AD" FontSize="11"/>
-                                        <TextBlock Text="{Binding TotalCompanyEarnings, StringFormat=🏢 Компании: {0:C}}" 
+                                        <TextBlock Text="{Binding TotalCompanyEarnings, StringFormat=🏢 Компании: {0:N0} ₽}" 
                                                    Foreground="#E67E22" FontSize="11"/>
                                     </StackPanel>
                                 </Border>
@@ -101,11 +101,11 @@
                                 </TextBlock>
                                 <TextBlock Text="{Binding SelectedReport.TotalCars, StringFormat=🚗 Всего машин: {0}}" 
                                            Margin="0,3,0,0"/>
-                                <TextBlock Text="{Binding SelectedReport.TotalRevenue, StringFormat=💰 Общая выручка: {0:C}}" 
+                                <TextBlock Text="{Binding SelectedReport.TotalRevenue, StringFormat=💰 Общая выручка: {0:N0} ₽}" 
                                            FontWeight="Bold" Foreground="#27AE60" Margin="0,3,0,0"/>
-                                <TextBlock Text="{Binding SelectedReport.TotalWasherEarnings, StringFormat=👤 Мойщикам (35%): {0:C}}" 
+                                <TextBlock Text="{Binding SelectedReport.TotalWasherEarnings, StringFormat=👤 Мойщикам (35%): {0:N0} ₽}" 
                                            Foreground="#8E44AD" Margin="0,3,0,0"/>
-                                <TextBlock Text="{Binding SelectedReport.TotalCompanyEarnings, StringFormat=🏢 Компании (65%): {0:C}}" 
+                                <TextBlock Text="{Binding SelectedReport.TotalCompanyEarnings, StringFormat=🏢 Компании (65%): {0:N0} ₽}" 
                                            Foreground="#E67E22" Margin="0,3,0,0"/>
                                 <TextBlock Text="{Binding SelectedReport.Notes, StringFormat=📝 Примечание: {0}}" 
                                            FontSize="12" Foreground="#7F8C8D" Margin="0,10,0,0" TextWrapping="Wrap"/>
@@ -129,9 +129,9 @@
                                             <TextBlock Text="{Binding EmployeeName}" FontWeight="SemiBold"/>
                                             <TextBlock Grid.Column="1" Text="{Binding CarsWashed, StringFormat=🚗 {0} маш.}" 
                                                        Margin="10,0"/>
-                                            <TextBlock Grid.Column="2" Text="{Binding TotalAmount, StringFormat=💰 {0:C}}" 
+                                            <TextBlock Grid.Column="2" Text="{Binding TotalAmount, StringFormat=💰 {0:N0} ₽}" 
                                                        Foreground="#27AE60" Margin="10,0"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding Earnings, StringFormat=👤 {0:C}}" 
+                                            <TextBlock Grid.Column="3" Text="{Binding Earnings, StringFormat=👤 {0:N0} ₽}" 
                                                        Foreground="#8E44AD" Margin="10,0" FontWeight="Bold"/>
                                         </Grid>
                                     </Border>

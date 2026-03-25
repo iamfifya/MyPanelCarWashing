@@ -93,7 +93,7 @@
                                         <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" FontSize="11" Foreground="#95A5A6"/>
                                         <TextBlock Text="{Binding WasherName}" FontSize="11" Foreground="#3498DB"/>
                                         <TextBlock Text="{Binding ServicesList}" FontSize="10" Foreground="#95A5A6"/>
-                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:C}}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -115,7 +115,7 @@
                                         <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" FontSize="11" Foreground="#95A5A6"/>
                                         <TextBlock Text="{Binding WasherName}" FontSize="11" Foreground="#3498DB"/>
                                         <TextBlock Text="{Binding ServicesList}" FontSize="10" Foreground="#95A5A6"/>
-                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:C}}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -137,7 +137,7 @@
                                         <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" FontSize="11" Foreground="#95A5A6"/>
                                         <TextBlock Text="{Binding WasherName}" FontSize="11" Foreground="#3498DB"/>
                                         <TextBlock Text="{Binding ServicesList}" FontSize="10" Foreground="#95A5A6"/>
-                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:C}}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -176,7 +176,7 @@
                                     
                                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                                         <TextBlock Text="💰 " FontSize="11"/>
-                                        <TextBlock FontSize="12" FontWeight="Bold" Text="{Binding Earnings, StringFormat={}{0:C}}" Foreground="#27AE60"/>
+                                        <TextBlock FontSize="12" FontWeight="Bold" Text="{Binding Earnings, StringFormat={}{0:N0} ₽}" Foreground="#27AE60"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -188,12 +188,12 @@
                 
                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                     <TextBlock Text="🏢 Компания (65%): " FontSize="13" FontWeight="Bold" Foreground="#2C3E50"/>
-                    <TextBlock Text="{Binding CompanyEarnings, StringFormat={}{0:C}}" FontSize="13" FontWeight="Bold" Foreground="#27AE60"/>
+                    <TextBlock Text="{Binding CompanyEarnings, StringFormat={}{0:N0} ₽}" FontSize="13" FontWeight="Bold" Foreground="#27AE60"/>
                 </StackPanel>
                 
                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                     <TextBlock Text="💵 Общая выручка: " FontSize="13" FontWeight="Bold" Foreground="#2C3E50"/>
-                    <TextBlock Text="{Binding TotalRevenue, StringFormat={}{0:C}}" FontSize="13" FontWeight="Bold" Foreground="#3498DB"/>
+                    <TextBlock Text="{Binding TotalRevenue, StringFormat={}{0:N0} ₽}" FontSize="13" FontWeight="Bold" Foreground="#3498DB"/>
                 </StackPanel>
             </StackPanel>
         </Grid>
