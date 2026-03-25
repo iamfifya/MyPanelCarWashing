@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MyPanelCarWashing"
         mc:Ignorable="d"
         Title="Начать смену"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Width="450" Height="450"
         Background="White">

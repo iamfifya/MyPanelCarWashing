@@ -59,6 +59,7 @@ namespace MyPanelCarWashing
             InitializeComponent();
             _currentUser = user;
             LoadData();
+            this.DataContext = this;
         }
 
         private void LoadData()
@@ -205,14 +206,23 @@ namespace MyPanelCarWashing
 
             var allUsers = Core.DB.GetAllUsers();
 
+            // Считаем общую выручку смены, чтобы вычислить долю каждого мойщика
+            var totalShiftRevenue = _allOrders.Sum(o => o.TotalPrice);
+
             var stats = _allOrders
                 .GroupBy(o => o.WasherId)
-                .Select(g => new WasherStat
-                {
-                    WasherName = allUsers.FirstOrDefault(u => u.Id == g.Key)?.FullName ?? "Неизвестный",
-                    CarsCount = g.Count(),
-                    Earnings = g.Sum(o => o.WasherEarnings),
-                    TotalRevenue = g.Sum(o => o.TotalPrice)
+                .Select(g => {
+                    var washerRevenue = g.Sum(o => o.TotalPrice);
+                    return new WasherStat
+                    {
+                        WasherName = allUsers.FirstOrDefault(u => u.Id == g.Key)?.FullName ?? "Неизвестный",
+                        CarsCount = g.Count(),
+                        Earnings = g.Sum(o => o.WasherEarnings),
+                        TotalRevenue = washerRevenue,
+
+                        // ВЫСЧИТЫВАЕМ ПРОЦЕНТ: (Выручка мойщика / Общая выручка) * 100
+                        Percentage = totalShiftRevenue > 0 ? (washerRevenue / totalShiftRevenue) * 100m : 0m
+                    };
                 })
                 .OrderByDescending(s => s.Earnings)
                 .ToList();
@@ -416,5 +426,8 @@ namespace MyPanelCarWashing
         public int CarsCount { get; set; }
         public decimal Earnings { get; set; }
         public decimal TotalRevenue { get; set; }
+
+        // ДОБАВЛЯЕМ НОВОЕ СВОЙСТВО:
+        public decimal Percentage { get; set; }
     }
 }
