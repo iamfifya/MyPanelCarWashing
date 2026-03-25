@@ -167,10 +167,14 @@ namespace MyPanelCarWashing.Services
 
         public void StartShift(DateTime date, List<int> employeeIds)
         {
+            // Удаляем существующую открытую смену на эту дату
             var existingShift = _data.Shifts.FirstOrDefault(s => s.Date.Date == date.Date && !s.IsClosed);
             if (existingShift != null)
-                return;
+            {
+                _data.Shifts.Remove(existingShift);
+            }
 
+            // Создаем новую смену
             var shift = new Shift
             {
                 Id = _data.GetNextShiftId(),

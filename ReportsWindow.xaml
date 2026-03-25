@@ -34,15 +34,15 @@
                     <TextBlock Text="📁 Список отчетов" FontSize="16" FontWeight="Bold" 
                                Margin="0,0,0,10"/>
                     <ListBox x:Name="ReportsListBox" Height="400" 
-                             SelectionChanged="ReportSelectionChanged">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="White" CornerRadius="5" Padding="10" Margin="5">
-                                    <StackPanel>
-                                        <TextBlock FontWeight="Bold">
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="📅 {0:dd.MM.yyyy}">
-                                                    <Binding Path="Date"/>
+                             SelectionChanged="ReportSelectionChanged" Foreground="Black">
+                        <ListBox.ItemTemplate > 
+                            <DataTemplate >
+                                <Border Background="White" CornerRadius="3" Padding="1" Margin="1" >
+                                    <StackPanel >
+                                        <TextBlock FontWeight="Bold" Height="90" Foreground="Black" >
+                                            <TextBlock.Text >
+                                                <MultiBinding StringFormat="📅 {0:dd.MM.yyyy}" >
+                                                    <Binding Path="Date" />
                                                 </MultiBinding>
                                             </TextBlock.Text>
                                         </TextBlock>

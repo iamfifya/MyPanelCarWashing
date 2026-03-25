@@ -189,13 +189,23 @@ namespace MyPanelCarWashing
 
                 if (result == MessageBoxResult.Yes)
                 {
+                    // Закрываем старую смену и сохраняем отчет
                     CloseExistingShift(existingShift);
-                    OpenStartShiftWindow();
                 }
-                return;
+                else
+                {
+                    return;
+                }
             }
 
-            OpenStartShiftWindow();
+            // Открываем окно для новой смены
+            var startWin = new StartShiftWindow();
+            if (startWin.ShowDialog() == true)
+            {
+                LoadData();
+                MessageBox.Show("Смена успешно начата!", "Успешно",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         private void CloseExistingShift(Shift shift)
@@ -238,27 +248,30 @@ namespace MyPanelCarWashing
                     }
                 }
 
+                // Сохраняем отчет
                 SaveShiftReport(report);
 
+                // Обновляем данные в файле
                 var allShifts = Core.DB.GetAllShifts();
-                var existingShiftItem = allShifts.FirstOrDefault(s => s.Id == shift.Id);
-                if (existingShiftItem != null)
+                var existingShift = allShifts.FirstOrDefault(s => s.Id == shift.Id);
+                if (existingShift != null)
                 {
-                    existingShiftItem.EndTime = shift.EndTime;
-                    existingShiftItem.IsClosed = true;
+                    existingShift.EndTime = shift.EndTime;
+                    existingShift.IsClosed = true;
                 }
 
                 var appData = FileDataService.LoadData();
                 appData.Shifts = allShifts;
                 FileDataService.SaveData(appData);
 
+                // Обновляем Core.DB
                 Core.RefreshData();
 
                 MessageBox.Show($"Старая смена закрыта!\n\n" +
                     $"📅 Дата: {report.Date:dd.MM.yyyy}\n" +
                     $"🚗 Машин: {report.TotalCars}\n" +
                     $"💰 Выручка: {report.TotalRevenue:C}\n\n" +
-                    $"Теперь можно начать новую смену.",
+                    $"📁 Отчет сохранен в папке Reports",
                     "Смена закрыта", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
