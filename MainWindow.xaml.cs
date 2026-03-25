@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -18,6 +19,7 @@ namespace MyPanelCarWashing
         private string _searchFilter = "";
         private List<WasherStat> _washersStats;
         private decimal _companyEarnings;
+        private decimal _totalRevenue;
 
         public string CurrentShiftInfo { get; private set; }
         public string TotalOrdersInfo { get; private set; }
@@ -39,6 +41,16 @@ namespace MyPanelCarWashing
             {
                 _companyEarnings = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarnings)));
+            }
+        }
+
+        public decimal TotalRevenue
+        {
+            get => _totalRevenue;
+            set
+            {
+                _totalRevenue = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalRevenue)));
             }
         }
 
@@ -76,7 +88,7 @@ namespace MyPanelCarWashing
                 }
 
                 ApplyFilterAndDisplay();
-                UpdateInfo(); // <- Это должно быть здесь!
+                UpdateInfo();
             }
             catch (Exception ex)
             {
@@ -150,23 +162,25 @@ namespace MyPanelCarWashing
             {
                 CurrentShiftInfo = $"📅 Смена: {_currentShift.Date:dd.MM.yyyy} | Начало: {_currentShift.StartTime:HH:mm}";
 
-                var totalRevenue = _allOrders.Sum(o => o.TotalPrice);
+                TotalRevenue = _allOrders.Sum(o => o.TotalPrice);
                 var totalWasherEarnings = _allOrders.Sum(o => o.WasherEarnings);
                 CompanyEarnings = _allOrders.Sum(o => o.CompanyEarnings);
 
-                TotalOrdersInfo = $"🚗 Всего машин: {_allOrders.Count} | 💰 Выручка: {totalRevenue:C} | " +
-                                  $"👤 Мойщикам: {totalWasherEarnings:C} | 🏢 Компании: {CompanyEarnings:C}";
+                TotalOrdersInfo = $"🚗 Всего машин: {_allOrders.Count} | 💰 Выручка: {TotalRevenue:C} | " +
+                    $"👤 Мойщикам: {totalWasherEarnings:C} | 🏢 Компании: {CompanyEarnings:C}";
             }
             else if (_currentShift != null && _currentShift.IsClosed)
             {
                 CurrentShiftInfo = $"📅 Смена закрыта: {_currentShift.Date:dd.MM.yyyy}";
-                TotalOrdersInfo = $"🚗 Итого за смену: {_allOrders.Count} машин | 💰 {_allOrders.Sum(o => o.TotalPrice):C}";
+                TotalRevenue = _allOrders.Sum(o => o.TotalPrice);
+                TotalOrdersInfo = $"🚗 Итого за смену: {_allOrders.Count} машин | 💰 {TotalRevenue:C}";
                 CompanyEarnings = 0;
             }
             else
             {
                 CurrentShiftInfo = "⏰ Нет активной смены. Начните смену!";
                 TotalOrdersInfo = "";
+                TotalRevenue = 0;
                 CompanyEarnings = 0;
             }
 
@@ -176,18 +190,15 @@ namespace MyPanelCarWashing
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalOrdersInfo)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WashersStats)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarnings)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalRevenue)));
         }
 
         private void UpdateWashersStats()
         {
             System.Diagnostics.Debug.WriteLine("=== UpdateWashersStats вызван ===");
-            System.Diagnostics.Debug.WriteLine($"_currentShift: {_currentShift != null}");
-            System.Diagnostics.Debug.WriteLine($"_currentShift.IsClosed: {_currentShift?.IsClosed}");
-            System.Diagnostics.Debug.WriteLine($"_allOrders.Count: {_allOrders.Count}");
 
             if (_currentShift == null || _currentShift.IsClosed || !_allOrders.Any())
             {
-                System.Diagnostics.Debug.WriteLine("Условие сработало - WashersStats = пустой список");
                 WashersStats = new List<WasherStat>();
                 return;
             }
@@ -200,16 +211,11 @@ namespace MyPanelCarWashing
                 {
                     WasherName = allUsers.FirstOrDefault(u => u.Id == g.Key)?.FullName ?? "Неизвестный",
                     CarsCount = g.Count(),
-                    Earnings = g.Sum(o => o.WasherEarnings)
+                    Earnings = g.Sum(o => o.WasherEarnings),
+                    TotalRevenue = g.Sum(o => o.TotalPrice)
                 })
                 .OrderByDescending(s => s.Earnings)
                 .ToList();
-
-            System.Diagnostics.Debug.WriteLine($"Найдено мойщиков: {stats.Count}");
-            foreach (var stat in stats)
-            {
-                System.Diagnostics.Debug.WriteLine($"  {stat.WasherName}: {stat.CarsCount} машин, {stat.Earnings:C}");
-            }
 
             WashersStats = stats;
         }
@@ -232,7 +238,7 @@ namespace MyPanelCarWashing
             var addWin = new AddOrderWindow(_currentShift);
             if (addWin.ShowDialog() == true)
             {
-                LoadData(); // Это перезагрузит все данные
+                LoadData();
             }
         }
 
@@ -363,15 +369,15 @@ namespace MyPanelCarWashing
         {
             try
             {
-                string reportsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-                if (!System.IO.Directory.Exists(reportsPath))
-                    System.IO.Directory.CreateDirectory(reportsPath);
+                string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+                if (!Directory.Exists(reportsPath))
+                    Directory.CreateDirectory(reportsPath);
 
                 string fileName = $"ShiftReport_{report.Date:yyyy-MM-dd_HHmmss}.json";
-                string filePath = System.IO.Path.Combine(reportsPath, fileName);
+                string filePath = Path.Combine(reportsPath, fileName);
 
                 var json = Newtonsoft.Json.JsonConvert.SerializeObject(report, Newtonsoft.Json.Formatting.Indented);
-                System.IO.File.WriteAllText(filePath, json);
+                File.WriteAllText(filePath, json);
 
                 System.Diagnostics.Debug.WriteLine($"Отчет сохранен: {filePath}");
             }
@@ -409,5 +415,6 @@ namespace MyPanelCarWashing
         public string WasherName { get; set; }
         public int CarsCount { get; set; }
         public decimal Earnings { get; set; }
+        public decimal TotalRevenue { get; set; }
     }
 }

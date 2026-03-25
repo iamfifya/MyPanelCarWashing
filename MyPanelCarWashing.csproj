@@ -83,6 +83,7 @@
     <Compile Include="IntToBoolConverter.cs" />
     <Compile Include="Models\EmployeeShiftReport.cs" />
     <Compile Include="Models\ShiftReport.cs" />
+    <Compile Include="PercentageConverter.cs" />
     <Compile Include="Services\DataService.cs" />
     <Compile Include="Services\FileDataService.cs" />
     <Compile Include="AddEditEmployeeWindow.xaml.cs">

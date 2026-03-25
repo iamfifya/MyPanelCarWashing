@@ -1,7 +1,8 @@
 ﻿<Application x:Class="MyPanelCarWashing.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:MyPanelCarWashing">
+             xmlns:local="clr-namespace:MyPanelCarWashing"
+             StartupUri="LoginWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -11,6 +12,7 @@
             <!-- Конвертеры -->
             <local:BoolToRoleConverter x:Key="BoolToRoleConverter"/>
             <local:IntToBoolConverter x:Key="IntToBoolConverter"/>
+            <local:PercentageConverter x:Key="PercentageConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
