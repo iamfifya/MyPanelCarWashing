@@ -12,6 +12,7 @@
     
     <!-- Ресурсы -->
     <Window.Resources>
+        <local:PercentageConverter x:Key="PercentageConverter"/>
         
         <!-- Стили для карточек заказов -->
         <Style x:Key="OrderCardStyle" TargetType="Border">
@@ -178,7 +179,7 @@
             <!-- Статистика по мойщикам (ПРАВАЯ ПАНЕЛЬ) -->
             <StackPanel Grid.Column="3" Orientation="Vertical" 
                         Width="280" Margin="15,0,0,0"
-                        Background="White" 
+                        Background="White"
                         VerticalAlignment="Top">
                 <TextBlock Text="👥 Статистика мойщиков:" 
                            FontSize="14" FontWeight="Bold"
