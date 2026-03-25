@@ -180,5 +180,10 @@ namespace MyPanelCarWashing
         {
             Close();
         }
+        private void MonthlyReportButton_Click(object sender, RoutedEventArgs e)
+        {
+            var monthlyReportWin = new MonthlyReportWindow();
+            monthlyReportWin.ShowDialog();
+        }
     }
 }

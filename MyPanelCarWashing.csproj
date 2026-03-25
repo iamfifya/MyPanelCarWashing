@@ -82,7 +82,11 @@
     <Compile Include="Core.cs" />
     <Compile Include="IntToBoolConverter.cs" />
     <Compile Include="Models\EmployeeShiftReport.cs" />
+    <Compile Include="Models\MonthlyReport.cs" />
     <Compile Include="Models\ShiftReport.cs" />
+    <Compile Include="MonthlyReportWindow.xaml.cs">
+      <DependentUpon>MonthlyReportWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="PercentageConverter.cs" />
     <Compile Include="Services\DataService.cs" />
     <Compile Include="Services\FileDataService.cs" />
@@ -115,6 +119,10 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="MonthlyReportWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Styles\AppStyles.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
