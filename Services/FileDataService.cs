@@ -32,7 +32,7 @@ public static class FileDataService
                 Id = defaultData.GetNextUserId(),
                 Login = "1",
                 Password = "1",
-                FullName = "Главный администратор",
+                FullName = "Диркеторов Директор Директорович",
                 IsAdmin = true
             });
 

@@ -10,9 +10,9 @@ namespace MyPanelCarWashing
         {
             if (value is bool isAdmin)
             {
-                return isAdmin ? "Администратор" : "Сотрудник";
+                return isAdmin ? "Администратор" : "Мойщик";
             }
-            return "Сотрудник";
+            return "Мойщик";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
