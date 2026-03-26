@@ -1,16 +1,16 @@
-﻿<Window x:Class="MyPanelCarWashing.AddOrderWindow"
+﻿<Window x:Class="MyPanelCarWashing.EditOrderWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MyPanelCarWashing"
         mc:Ignorable="d"
-        Title="Добавление заказа"
+        Title="Редактирование заказа"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Width="550" Height="800"
         Background="White">
-    
+
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="15">
             <Grid.RowDefinitions>
@@ -35,10 +35,9 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Text="Новый заказ" FontSize="24" FontWeight="Bold" 
+            <TextBlock Text="Редактирование заказа" FontSize="24" FontWeight="Bold" 
                        Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,15" Grid.Row="0"/>
 
             <!-- Марка и модель -->
@@ -52,7 +51,7 @@
             <!-- Тип кузова -->
             <Label Content="Тип кузова:" Grid.Row="5" Margin="0,5" FontWeight="SemiBold"/>
             <ComboBox x:Name="BodyTypeComboBox" Grid.Row="6" Margin="0,5" Height="50" Foreground="Black">
-                <ComboBoxItem Content="Седан" IsSelected="True"/>
+                <ComboBoxItem Content="Седан"/>
                 <ComboBoxItem Content="Хэтчбек"/>
                 <ComboBoxItem Content="Универсал"/>
                 <ComboBoxItem Content="Внедорожник"/>
@@ -68,7 +67,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <local:CustomDatePicker x:Name="OrderDatePicker" SelectedDate="{Binding SelectedDate, Mode=TwoWay}" Height="50"/>
+                <local:CustomDatePicker x:Name="OrderDatePicker" Grid.Column="0" Height="50"/>
                 <TextBlock Grid.Column="1" Text=" " VerticalAlignment="Center" Margin="5,0"/>
                 <TextBox x:Name="OrderTimeTextBox" Grid.Column="2" Height="50" Width="80" Text="12:00"/>
             </Grid>
@@ -76,15 +75,15 @@
             <!-- Выбор бокса -->
             <Label Content="🚘 Выберите бокс:" Grid.Row="9" Margin="0,5" FontWeight="SemiBold"/>
             <StackPanel Grid.Row="10" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5">
-                <RadioButton x:Name="Box1Radio" Content="Бокс 1" GroupName="BoxNumber" IsChecked="True" Margin="10,5" FontSize="14" Foreground="Black"/>
+                <RadioButton x:Name="Box1Radio" Content="Бокс 1" GroupName="BoxNumber" Margin="10,5" FontSize="14" Foreground="Black"/>
                 <RadioButton x:Name="Box2Radio" Content="Бокс 2" GroupName="BoxNumber" Margin="10,5" FontSize="14" Foreground="Black"/>
                 <RadioButton x:Name="Box3Radio" Content="Бокс 3" GroupName="BoxNumber" Margin="10,5" FontSize="14" Foreground="Black"/>
             </StackPanel>
 
-<!-- Выбор мойщика -->
-<Label Content="👤 Выберите мойщика:" Grid.Row="11" Margin="0,5" FontWeight="SemiBold"/>
-<ComboBox x:Name="WasherComboBox" Grid.Row="12" Margin="0,5" Height="30" 
-          DisplayMemberPath="FullName"/>
+            <!-- Выбор мойщика -->
+            <Label Content="👤 Выберите мойщика:" Grid.Row="11" Margin="0,5" FontWeight="SemiBold"/>
+            <ComboBox x:Name="WasherComboBox" Grid.Row="12" Margin="0,5" Height="30" 
+                      DisplayMemberPath="FullName"/>
 
             <!-- Выбор услуг -->
             <Label Content="🛠️ Выберите услуги:" Grid.Row="13" Margin="0,10,0,5" FontWeight="SemiBold"/>
@@ -141,7 +140,6 @@
                                HorizontalAlignment="Center" Text="💰 Итого: 0 ₽"/>
                 </StackPanel>
             </Border>
-
 
             <!-- Кнопки -->
             <StackPanel Grid.Row="20" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">

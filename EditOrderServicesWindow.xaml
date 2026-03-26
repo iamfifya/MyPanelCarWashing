@@ -7,6 +7,7 @@
         mc:Ignorable="d"
         Title="Редактирование услуг"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
         ResizeMode="NoResize"
         Width="450" Height="500"
         Background="White">

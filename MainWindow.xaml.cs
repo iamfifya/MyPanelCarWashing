@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace MyPanelCarWashing
@@ -23,6 +24,7 @@ namespace MyPanelCarWashing
 
         public string CurrentShiftInfo { get; private set; }
         public string TotalOrdersInfo { get; private set; }
+
 
         public List<WasherStat> WashersStats
         {
@@ -120,7 +122,9 @@ namespace MyPanelCarWashing
                 Time = o.Time,
                 WasherName = GetWasherName(o.WasherId),
                 ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                TotalPrice = o.TotalPrice,
+                FinalPrice = o.FinalPrice,
+                ExtraCost = o.ExtraCost,
+                ExtraCostReason = o.ExtraCostReason,
                 BoxNumber = o.BoxNumber
             }).ToList();
 
@@ -131,7 +135,9 @@ namespace MyPanelCarWashing
                 Time = o.Time,
                 WasherName = GetWasherName(o.WasherId),
                 ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                TotalPrice = o.TotalPrice,
+                FinalPrice = o.FinalPrice,
+                ExtraCost = o.ExtraCost,
+                ExtraCostReason = o.ExtraCostReason,
                 BoxNumber = o.BoxNumber
             }).ToList();
 
@@ -142,7 +148,9 @@ namespace MyPanelCarWashing
                 Time = o.Time,
                 WasherName = GetWasherName(o.WasherId),
                 ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                TotalPrice = o.TotalPrice,
+                FinalPrice = o.FinalPrice,
+                ExtraCost = o.ExtraCost,
+                ExtraCostReason = o.ExtraCostReason,
                 BoxNumber = o.BoxNumber
             }).ToList();
 
@@ -412,16 +420,102 @@ namespace MyPanelCarWashing
             var servicesWin = new ServiceManagementWindow();
             servicesWin.ShowDialog();
         }
+        private void EditOrderMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as MenuItem;
+            var contextMenu = menuItem?.Parent as ContextMenu;
+            var groupBox = contextMenu?.PlacementTarget as GroupBox;
+
+            if (groupBox == null) return;
+
+            // Определяем, какой ItemsControl используется в GroupBox
+            ItemsControl itemsControl = null;
+            if (groupBox.Header.ToString().Contains("Бокс 1"))
+                itemsControl = Box1ItemsControl;
+            else if (groupBox.Header.ToString().Contains("Бокс 2"))
+                itemsControl = Box2ItemsControl;
+            else if (groupBox.Header.ToString().Contains("Бокс 3"))
+                itemsControl = Box3ItemsControl;
+
+            if (itemsControl == null) return;
+
+            var selectedOrder = itemsControl.ItemsSource?.Cast<OrderDisplayItem>().FirstOrDefault();
+            if (selectedOrder == null)
+            {
+                // Альтернативный способ - через клик на карточке
+                return;
+            }
+
+            // Находим оригинальный заказ
+            var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == selectedOrder.CarNumber &&
+                                                                o.Time == selectedOrder.Time);
+            if (originalOrder != null)
+            {
+                var editWin = new EditOrderWindow(originalOrder, _currentShift);
+                if (editWin.ShowDialog() == true)
+                {
+                    LoadData(); // Обновляем данные
+                }
+            }
+        }
+
+        private void DeleteOrderMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as MenuItem;
+            var contextMenu = menuItem?.Parent as ContextMenu;
+            var groupBox = contextMenu?.PlacementTarget as GroupBox;
+
+            if (groupBox == null) return;
+
+            ItemsControl itemsControl = null;
+            if (groupBox.Header.ToString().Contains("Бокс 1"))
+                itemsControl = Box1ItemsControl;
+            else if (groupBox.Header.ToString().Contains("Бокс 2"))
+                itemsControl = Box2ItemsControl;
+            else if (groupBox.Header.ToString().Contains("Бокс 3"))
+                itemsControl = Box3ItemsControl;
+
+            if (itemsControl == null) return;
+
+            var selectedOrder = itemsControl.ItemsSource?.Cast<OrderDisplayItem>().FirstOrDefault();
+            if (selectedOrder != null)
+            {
+                var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == selectedOrder.CarNumber &&
+                                                                    o.Time == selectedOrder.Time);
+                if (originalOrder != null && _currentShift != null)
+                {
+                    if (MessageBox.Show($"Удалить заказ?\n\n{originalOrder.CarModel} ({originalOrder.CarNumber})", "Подтверждение",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            _currentShift.Orders.Remove(originalOrder);
+                            Core.DB.SaveData();
+                            LoadData();
+                            MessageBox.Show("Заказ удален", "Успешно",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public class OrderDisplayItem
     {
-        public string CarModel { get; set; }
         public string CarNumber { get; set; }
+        public string CarModel { get; set; }
         public DateTime Time { get; set; }
         public string WasherName { get; set; }
         public string ServicesList { get; set; }
-        public decimal TotalPrice { get; set; }
+        public decimal FinalPrice { get; set; }
+        public decimal ExtraCost { get; set; }
+        public string ExtraCostReason { get; set; }
         public int BoxNumber { get; set; }
     }
 

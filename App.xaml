@@ -15,6 +15,7 @@
             <local:ActiveToStatusConverter x:Key="ActiveToStatusConverter"/>
             <local:ActiveToColorConverter x:Key="ActiveToColorConverter"/>
             <local:ActiveToBackgroundConverter x:Key="ActiveToBackgroundConverter"/>
+            <local:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

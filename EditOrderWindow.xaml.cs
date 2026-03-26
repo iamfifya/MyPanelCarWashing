@@ -8,26 +8,60 @@ using System.Windows.Controls;
 
 namespace MyPanelCarWashing
 {
-    public partial class AddOrderWindow : Window
+    public partial class EditOrderWindow : Window
     {
+        private CarWashOrder _order;
         private Shift _currentShift;
         private List<ServiceViewModel> _services;
         private List<User> _washers;
         private decimal _servicesTotal;
         private decimal _extraCost;
 
-        public AddOrderWindow(Shift currentShift)
+        public EditOrderWindow(CarWashOrder order, Shift currentShift)
         {
             InitializeComponent();
+            _order = order;
             _currentShift = currentShift;
 
-            OrderDatePicker.SelectedDate = DateTime.Now;
-            OrderTimeTextBox.Text = DateTime.Now.ToString("HH:mm");
-
+            LoadOrderData();
             LoadServices();
             LoadWashers();
 
             ExtraCostTextBox.TextChanged += ExtraCostTextBox_TextChanged;
+        }
+
+        private void LoadOrderData()
+        {
+            // Заполняем поля данными заказа
+            CarModelTextBox.Text = _order.CarModel;
+            CarNumberTextBox.Text = _order.CarNumber;
+
+            // Устанавливаем тип кузова
+            string bodyType = _order.CarBodyType;
+            foreach (ComboBoxItem item in BodyTypeComboBox.Items)
+            {
+                if (item.Content.ToString() == bodyType)
+                {
+                    BodyTypeComboBox.SelectedItem = item;
+                    break;
+                }
+            }
+
+            // Устанавливаем дату и время
+            OrderDatePicker.SelectedDate = _order.Time;
+            OrderTimeTextBox.Text = _order.Time.ToString("HH:mm");
+
+            // Устанавливаем бокс
+            switch (_order.BoxNumber)
+            {
+                case 1: Box1Radio.IsChecked = true; break;
+                case 2: Box2Radio.IsChecked = true; break;
+                case 3: Box3Radio.IsChecked = true; break;
+            }
+
+            // Дополнительная стоимость
+            ExtraCostTextBox.Text = _order.ExtraCost.ToString();
+            ExtraCostReasonTextBox.Text = _order.ExtraCostReason;
         }
 
         private void LoadServices()
@@ -38,11 +72,37 @@ namespace MyPanelCarWashing
                 Id = s.Id,
                 Name = s.Name,
                 Price = s.Price,
-                IsSelected = false
+                IsSelected = _order.ServiceIds.Contains(s.Id) // Устанавливаем IsSelected
             }).ToList();
 
             ServicesListBox.ItemsSource = _services;
+
+            // Подписываемся на событие выделения
             ServicesListBox.SelectionChanged += ServicesListBox_SelectionChanged;
+
+            // Выделяем элементы в ListBox
+            for (int i = 0; i < _services.Count; i++)
+            {
+                if (_services[i].IsSelected)
+                {
+                    ServicesListBox.SelectedItems.Add(_services[i]);
+                }
+            }
+
+            CalculateTotal();
+        }
+
+        private void ServicesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Синхронизируем свойство IsSelected с выделением в ListBox
+            if (_services != null)
+            {
+                foreach (ServiceViewModel service in _services)
+                {
+                    service.IsSelected = ServicesListBox.SelectedItems.Contains(service);
+                }
+                CalculateTotal();
+            }
         }
 
         private void LoadWashers()
@@ -55,18 +115,16 @@ namespace MyPanelCarWashing
             else
             {
                 _washers = new List<User>();
-                MessageBox.Show("В смене нет сотрудников! Добавьте сотрудников в смену.", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
             }
 
             WasherComboBox.ItemsSource = _washers;
-            if (_washers.Any())
-                WasherComboBox.SelectedIndex = 0;
-        }
 
-        private void ServicesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            CalculateTotal();
+            // Выбираем текущего мойщика
+            var currentWasher = _washers.FirstOrDefault(w => w.Id == _order.WasherId);
+            if (currentWasher != null)
+                WasherComboBox.SelectedItem = currentWasher;
+            else if (_washers.Any())
+                WasherComboBox.SelectedIndex = 0;
         }
 
         private void ExtraCostTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -78,17 +136,17 @@ namespace MyPanelCarWashing
         {
             try
             {
-                // Сумма услуг - берем из выделенных элементов
+                // Проверяем, что _services не null
+                if (_services == null) return;
+
+                // Сумма услуг - берем из свойства IsSelected
                 _servicesTotal = 0;
 
-                if (ServicesListBox != null && ServicesListBox.SelectedItems != null)
+                foreach (ServiceViewModel service in _services)
                 {
-                    foreach (ServiceViewModel service in ServicesListBox.SelectedItems)
+                    if (service.IsSelected)
                     {
-                        if (service != null)
-                        {
-                            _servicesTotal += service.Price;
-                        }
+                        _servicesTotal += service.Price;
                     }
                 }
 
@@ -176,8 +234,16 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем выбранные услуги из выделенных элементов
-                var selectedServices = ServicesListBox.SelectedItems.Cast<ServiceViewModel>().ToList();
+                // Проверяем, что _services не null
+                if (_services == null)
+                {
+                    MessageBox.Show("Ошибка загрузки услуг", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Получаем выбранные услуги из свойства IsSelected
+                var selectedServices = _services.Where(s => s.IsSelected).ToList();
                 if (!selectedServices.Any())
                 {
                     MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка",
@@ -196,22 +262,46 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Создаем заказ
-                var newOrder = new CarWashOrder
-                {
-                    CarModel = CarModelTextBox.Text,
-                    CarNumber = CarNumberTextBox.Text,
-                    CarBodyType = bodyType,
-                    Time = orderDateTime,
-                    BoxNumber = boxNumber,
-                    WasherId = selectedWasher.Id,
-                    ShiftId = _currentShift.Id,
-                    ExtraCost = extraCost,
-                    ExtraCostReason = extraReason
-                };
+                // Обновляем заказ
+                _order.CarModel = CarModelTextBox.Text;
+                _order.CarNumber = CarNumberTextBox.Text;
+                _order.CarBodyType = bodyType;
+                _order.Time = orderDateTime;
+                _order.BoxNumber = boxNumber;
+                _order.WasherId = selectedWasher.Id;
+                _order.ExtraCost = extraCost;
+                _order.ExtraCostReason = extraReason;
 
                 var serviceIds = selectedServices.Select(s => s.Id).ToList();
-                Core.DB.AddOrder(newOrder, serviceIds);
+
+                // Обновляем услуги заказа
+                Core.DB.UpdateOrderServices(_order.Id, serviceIds);
+
+                // Обновляем TotalPrice (сумма услуг)
+                _order.TotalPrice = _servicesTotal;
+
+                // Сохраняем изменения в заказе
+                var appData = FileDataService.LoadData();
+                var shift = appData.Shifts.FirstOrDefault(s => s.Id == _order.ShiftId);
+                if (shift != null)
+                {
+                    var existingOrder = shift.Orders.FirstOrDefault(o => o.Id == _order.Id);
+                    if (existingOrder != null)
+                    {
+                        existingOrder.CarModel = _order.CarModel;
+                        existingOrder.CarNumber = _order.CarNumber;
+                        existingOrder.CarBodyType = _order.CarBodyType;
+                        existingOrder.Time = _order.Time;
+                        existingOrder.BoxNumber = _order.BoxNumber;
+                        existingOrder.WasherId = _order.WasherId;
+                        existingOrder.ExtraCost = _order.ExtraCost;
+                        existingOrder.ExtraCostReason = _order.ExtraCostReason;
+                        existingOrder.TotalPrice = _order.TotalPrice;
+                        existingOrder.ServiceIds = serviceIds;
+                    }
+                }
+                FileDataService.SaveData(appData);
+                Core.RefreshData();
 
                 // Формируем сообщение
                 string extraMessage = "";
@@ -220,16 +310,16 @@ namespace MyPanelCarWashing
                     extraMessage = $"\n➕ Дополнительно: {extraCost:N0} ₽\n📝 Причина: {extraReason}";
                 }
 
-                MessageBox.Show($"Заказ добавлен!\n\n" +
-                    $"🚗 {newOrder.CarModel} ({newOrder.CarNumber})\n" +
-                    $"🚘 {newOrder.CarBodyType}\n" +
-                    $"🚘 Бокс {newOrder.BoxNumber}\n" +
+                MessageBox.Show($"Заказ обновлен!\n\n" +
+                    $"🚗 {_order.CarModel} ({_order.CarNumber})\n" +
+                    $"🚘 {_order.CarBodyType}\n" +
+                    $"🚘 Бокс {_order.BoxNumber}\n" +
                     $"👤 Мойщик: {selectedWasher.FullName}\n" +
-                    $"⏰ Время: {newOrder.Time:HH:mm dd.MM.yyyy}\n" +
-                    $"💰 Услуги: {newOrder.BasePrice:N0} ₽{extraMessage}\n" +
-                    $"💵 Итоговая сумма: {newOrder.FinalPrice:N0} ₽\n" +
-                    $"👤 Мойщику (35%): {newOrder.WasherEarnings:N0} ₽\n" +
-                    $"🏢 Компании (65%): {newOrder.CompanyEarnings:N0} ₽",
+                    $"⏰ Время: {_order.Time:HH:mm dd.MM.yyyy}\n" +
+                    $"💰 Услуги: {_order.TotalPrice:N0} ₽{extraMessage}\n" +
+                    $"💵 Итоговая сумма: {_order.FinalPrice:N0} ₽\n" +
+                    $"👤 Мойщику (35%): {_order.WasherEarnings:N0} ₽\n" +
+                    $"🏢 Компании (65%): {_order.CompanyEarnings:N0} ₽",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;

@@ -129,6 +129,17 @@ namespace MyPanelCarWashing
             }
         }
 
+        
+
+        private void CloseButton_Click(object sender, RoutedEventArgs args)
+        {
+            Close();
+        }
+        private void MonthlyReportButton_Click(object sender, RoutedEventArgs e)
+        {
+            var monthlyReportWin = new MonthlyReportWindow();
+            monthlyReportWin.ShowDialog();
+        }
         private void ExportButton_Click(object sender, RoutedEventArgs args)
         {
             if (SelectedReport == null)
@@ -142,31 +153,37 @@ namespace MyPanelCarWashing
             {
                 var saveDialog = new Microsoft.Win32.SaveFileDialog
                 {
-                    Filter = "JSON файлы (*.json)|*.json|CSV файлы (*.csv)|*.csv",
-                    DefaultExt = "json",
+                    Filter = "Excel файлы (*.xlsx)|*.xlsx|CSV файлы (*.csv)|*.csv|JSON файлы (*.json)|*.json",
+                    DefaultExt = "xlsx",
                     FileName = $"ShiftReport_{SelectedReport.Date:yyyy-MM-dd}"
                 };
 
                 if (saveDialog.ShowDialog() == true)
                 {
-                    string content;
-                    if (saveDialog.FilterIndex == 1)
-                    {
-                        content = Newtonsoft.Json.JsonConvert.SerializeObject(SelectedReport, Newtonsoft.Json.Formatting.Indented);
-                    }
-                    else
-                    {
-                        // CSV формат
-                        content = "Дата;Начало;Конец;Машин;Выручка;Мойщикам(35%);Компании(65%);Сотрудники\n";
-                        content += $"{SelectedReport.Date:dd.MM.yyyy};{SelectedReport.StartTime:HH:mm};{SelectedReport.EndTime:HH:mm};";
-                        content += $"{SelectedReport.TotalCars};{SelectedReport.TotalRevenue:C};";
-                        content += $"{SelectedReport.TotalWasherEarnings:C};{SelectedReport.TotalCompanyEarnings:C};";
-                        content += string.Join(";", SelectedReport.EmployeesWork.Select(e => $"{e.EmployeeName}({e.CarsWashed} маш., {e.Earnings:C})"));
-                    }
+                    string extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLower();
 
-                    File.WriteAllText(saveDialog.FileName, content);
-                    MessageBox.Show("Отчет успешно экспортирован", "Успешно",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (extension == ".xlsx")
+                    {
+                        // Экспорт в Excel
+                        ExcelExporter.ExportShiftReport(SelectedReport, saveDialog.FileName);
+                        MessageBox.Show($"Отчет успешно экспортирован в Excel\n\n{saveDialog.FileName}",
+                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else if (extension == ".csv")
+                    {
+                        // Экспорт в CSV
+                        ExportToCsv(SelectedReport, saveDialog.FileName);
+                        MessageBox.Show($"Отчет успешно экспортирован в CSV\n\n{saveDialog.FileName}",
+                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else if (extension == ".json")
+                    {
+                        // Экспорт в JSON
+                        var json = Newtonsoft.Json.JsonConvert.SerializeObject(SelectedReport, Newtonsoft.Json.Formatting.Indented);
+                        System.IO.File.WriteAllText(saveDialog.FileName, json);
+                        MessageBox.Show($"Отчет успешно экспортирован в JSON\n\n{saveDialog.FileName}",
+                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
             }
             catch (Exception ex)
@@ -176,14 +193,29 @@ namespace MyPanelCarWashing
             }
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs args)
+        private void ExportToCsv(ShiftReport report, string filePath)
         {
-            Close();
-        }
-        private void MonthlyReportButton_Click(object sender, RoutedEventArgs e)
-        {
-            var monthlyReportWin = new MonthlyReportWindow();
-            monthlyReportWin.ShowDialog();
+            var lines = new System.Collections.Generic.List<string>();
+
+            // Заголовки
+            lines.Add("Дата;Время начала;Время окончания;Машин;Выручка;Мойщикам;Компании;Примечание");
+            lines.Add($"{report.Date:dd.MM.yyyy};{report.StartTime:HH:mm};{report.EndTime:HH:mm};" +
+                      $"{report.TotalCars};{report.TotalRevenue};{report.TotalWasherEarnings};" +
+                      $"{report.TotalCompanyEarnings};{report.Notes}");
+
+            // Пустая строка
+            lines.Add("");
+
+            // Заголовки сотрудников
+            lines.Add("Сотрудник;Машин;Выручка;Заработок (35%)");
+
+            // Данные сотрудников
+            foreach (var emp in report.EmployeesWork)
+            {
+                lines.Add($"{emp.EmployeeName};{emp.CarsWashed};{emp.TotalAmount};{emp.Earnings}");
+            }
+
+            System.IO.File.WriteAllLines(filePath, lines, System.Text.Encoding.UTF8);
         }
     }
 }

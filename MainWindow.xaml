@@ -10,7 +10,7 @@
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         Background="White">
-    
+
     <Window.Resources>
         <Style x:Key="OrderCardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
@@ -21,7 +21,7 @@
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
     </Window.Resources>
-    
+
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -29,7 +29,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        
+
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
             <TextBlock Text="Главная страница" FontSize="24" FontWeight="Bold" 
                        Foreground="#2C3E50" VerticalAlignment="Center"/>
@@ -37,7 +37,7 @@
             <TextBlock Text="{Binding CurrentShiftInfo}" FontSize="16" 
                        Foreground="#7F8C8D" VerticalAlignment="Center"/>
         </StackPanel>
-        
+
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15">
             <Button x:Name="AddButton" Content="➕ Добавить заказ" 
                     Click="AddButton_Click" Padding="15,8" Margin="0,0,10,0"
@@ -61,13 +61,13 @@
                     Click="ReportsButton_Click" Padding="15,8" Margin="0,0,10,0"
                     Background="#F39C12" Foreground="White" BorderThickness="0"
                     Cursor="Hand"/>
-            
+
             <TextBox x:Name="SearchFilterTextBox" 
                      Text="🔍 Поиск по гос. номеру или модели..."
                      KeyUp="SearchFilterTextBox_KeyUp"
                      Padding="10,8" MinWidth="250" Margin="20,0,0,0"
                      Background="White" BorderBrush="#BDC3C7"/>
-            
+
             <Button x:Name="ExitButton" Content="🚪 Выход" 
                     Click="ExitButton_Click" Padding="15,8"
                     Background="#E74C3C" Foreground="White" BorderThickness="0"
@@ -84,7 +84,17 @@
 
             <GroupBox Grid.Column="0" Header="🔧 Бокс 1" 
                       Foreground="#2C3E50" FontWeight="Bold" Margin="0,0,5,0">
+                <GroupBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="✏ Редактировать заказ" Click="EditOrderMenuItem_Click"/>
+                        <MenuItem Header="🗑 Удалить заказ" Click="DeleteOrderMenuItem_Click"/>
+                    </ContextMenu>
+                </GroupBox.ContextMenu>
+                <GroupBox.InputBindings>
+                     
+                </GroupBox.InputBindings>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    
                     <ItemsControl x:Name="Box1ItemsControl">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -95,7 +105,12 @@
                                         <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" FontSize="11" Foreground="#95A5A6"/>
                                         <TextBlock Text="{Binding WasherName}" FontSize="11" Foreground="#3498DB"/>
                                         <TextBlock Text="{Binding ServicesList}" FontSize="10" Foreground="#95A5A6"/>
-                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding FinalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding ExtraCost, StringFormat=➕ {0:N0} ₽}" 
+                                                   FontSize="10" Foreground="#E67E22" Margin="0,2,0,0"
+                                                   Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
+                                        <TextBlock Text="{Binding ExtraCostReason}" FontSize="9" Foreground="#E67E22" 
+                                                   TextWrapping="Wrap" Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -106,6 +121,15 @@
 
             <GroupBox Grid.Column="1" Header="🔧 Бокс 2" 
                       Foreground="#2C3E50" FontWeight="Bold" Margin="5,0,5,0">
+                <GroupBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="✏ Редактировать заказ" Click="EditOrderMenuItem_Click"/>
+                        <MenuItem Header="🗑 Удалить заказ" Click="DeleteOrderMenuItem_Click"/>
+                    </ContextMenu>
+                </GroupBox.ContextMenu>
+                <GroupBox.InputBindings>
+                     
+                </GroupBox.InputBindings>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl x:Name="Box2ItemsControl">
                         <ItemsControl.ItemTemplate>
@@ -117,7 +141,12 @@
                                         <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" FontSize="11" Foreground="#95A5A6"/>
                                         <TextBlock Text="{Binding WasherName}" FontSize="11" Foreground="#3498DB"/>
                                         <TextBlock Text="{Binding ServicesList}" FontSize="10" Foreground="#95A5A6"/>
-                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding FinalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding ExtraCost, StringFormat=➕ {0:N0} ₽}" 
+                                                   FontSize="10" Foreground="#E67E22" Margin="0,2,0,0"
+                                                   Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
+                                        <TextBlock Text="{Binding ExtraCostReason}" FontSize="9" Foreground="#E67E22" 
+                                                   TextWrapping="Wrap" Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -128,6 +157,15 @@
 
             <GroupBox Grid.Column="2" Header="🔧 Бокс 3" 
                       Foreground="#2C3E50" FontWeight="Bold" Margin="5,0,0,0">
+                <GroupBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="✏ Редактировать заказ" Click="EditOrderMenuItem_Click"/>
+                        <MenuItem Header="🗑 Удалить заказ" Click="DeleteOrderMenuItem_Click"/>
+                    </ContextMenu>
+                </GroupBox.ContextMenu>
+                <GroupBox.InputBindings>
+                     
+                </GroupBox.InputBindings>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl x:Name="Box3ItemsControl">
                         <ItemsControl.ItemTemplate>
@@ -139,7 +177,12 @@
                                         <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" FontSize="11" Foreground="#95A5A6"/>
                                         <TextBlock Text="{Binding WasherName}" FontSize="11" Foreground="#3498DB"/>
                                         <TextBlock Text="{Binding ServicesList}" FontSize="10" Foreground="#95A5A6"/>
-                                        <TextBlock Text="{Binding TotalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding FinalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
+                                        <TextBlock Text="{Binding ExtraCost, StringFormat=➕ {0:N0} ₽}" 
+                                                   FontSize="10" Foreground="#E67E22" Margin="0,2,0,0"
+                                                   Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
+                                        <TextBlock Text="{Binding ExtraCostReason}" FontSize="9" Foreground="#E67E22" 
+                                                   TextWrapping="Wrap" Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>

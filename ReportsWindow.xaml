@@ -7,11 +7,12 @@
         mc:Ignorable="d"
         Title="Отчеты по сменам"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
         ResizeMode="CanResize"
-        MinWidth="800" MinHeight="500"
-        Width="900" Height="600"
+        MinWidth="900" MinHeight="550"
+        Width="1000" Height="650"
         Background="White">
-    
+
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -24,7 +25,7 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="350"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
@@ -32,36 +33,44 @@
             <Border Grid.Column="0" Background="#F8F9FA" CornerRadius="10" Padding="10">
                 <StackPanel>
                     <TextBlock Text="📁 Список отчетов" FontSize="16" FontWeight="Bold" 
-                               Margin="0,0,0,10"/>
+                   Margin="0,0,0,10"/>
                     <ListBox x:Name="ReportsListBox" Height="400" 
-                             SelectionChanged="ReportSelectionChanged">
+                 SelectionChanged="ReportSelectionChanged"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="White" CornerRadius="5" Padding="10" Margin="5">
-                                    <StackPanel>
-                                        <TextBlock FontWeight="Bold">
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="📅 {0:dd.MM.yyyy}">
-                                                    <Binding Path="Date"/>
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                        <TextBlock>
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="🕐 {0:HH:mm} - {1:HH:mm}">
-                                                    <Binding Path="StartTime"/>
-                                                    <Binding Path="EndTime"/>
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                        <TextBlock Text="{Binding TotalCars, StringFormat=🚗 Машин: {0}}"/>
-                                        <TextBlock Text="{Binding TotalRevenue, StringFormat=💰 {0:N0} ₽}" 
-                                                   Foreground="#27AE60"/>
-                                        <TextBlock Text="{Binding TotalWasherEarnings, StringFormat=👤 Мойщикам: {0:N0} ₽}" 
-                                                   Foreground="#8E44AD" FontSize="11"/>
-                                        <TextBlock Text="{Binding TotalCompanyEarnings, StringFormat=🏢 Компании: {0:N0} ₽}" 
-                                                   Foreground="#E67E22" FontSize="11"/>
-                                    </StackPanel>
+                                <Border Background="White" CornerRadius="5" Padding="5,3" Margin="2,1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Дата -->
+                                        <TextBlock Margin="5,0,5,0" Grid.Column="0" FontWeight="Bold" 
+                                       Text="{Binding Date, StringFormat=📅 {0:dd.MM.yyyy}}" 
+                                       FontSize="11" VerticalAlignment="Center"/>
+
+                                        <!-- Машины -->
+                                        <TextBlock Margin="5,0,5,0" Grid.Column="1" 
+                                       Text="{Binding TotalCars, StringFormat=🚗 {0}}" 
+                                       HorizontalAlignment="Center" FontSize="11" 
+                                       VerticalAlignment="Center"/>
+
+                                        <!-- Выручка -->
+                                        <TextBlock Margin="5,0,5,0" Grid.Column="2" 
+                                       Text="{Binding TotalRevenue, StringFormat=💰 {0:N0} ₽}" 
+                                       Foreground="#27AE60" FontSize="11" 
+                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -75,24 +84,24 @@
                     <StackPanel>
                         <TextBlock Text="📋 Детали отчета" FontSize="16" FontWeight="Bold" 
                                    HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                        
+
                         <Border Background="White" CornerRadius="8" Padding="15" Margin="0,5">
                             <StackPanel>
-                                <TextBlock>
+                                <TextBlock TextWrapping="Wrap">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="📅 Дата: {0:dd.MM.yyyy}">
                                             <Binding Path="SelectedReport.Date"/>
                                         </MultiBinding>
                                     </TextBlock.Text>
                                 </TextBlock>
-                                <TextBlock Margin="0,3,0,0">
+                                <TextBlock Margin="0,3,0,0" TextWrapping="Wrap">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="🕐 Начало: {0:HH:mm:ss}">
                                             <Binding Path="SelectedReport.StartTime"/>
                                         </MultiBinding>
                                     </TextBlock.Text>
                                 </TextBlock>
-                                <TextBlock Margin="0,3,0,0">
+                                <TextBlock Margin="0,3,0,0" TextWrapping="Wrap">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="🕒 Конец: {0:HH:mm:ss}">
                                             <Binding Path="SelectedReport.EndTime"/>
@@ -102,11 +111,11 @@
                                 <TextBlock Text="{Binding SelectedReport.TotalCars, StringFormat=🚗 Всего машин: {0}}" 
                                            Margin="0,3,0,0"/>
                                 <TextBlock Text="{Binding SelectedReport.TotalRevenue, StringFormat=💰 Общая выручка: {0:N0} ₽}" 
-                                           FontWeight="Bold" Foreground="#27AE60" Margin="0,3,0,0"/>
+                                           FontWeight="Bold" Foreground="#27AE60" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                 <TextBlock Text="{Binding SelectedReport.TotalWasherEarnings, StringFormat=👤 Мойщикам (35%): {0:N0} ₽}" 
-                                           Foreground="#8E44AD" Margin="0,3,0,0"/>
+                                           Foreground="#8E44AD" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                 <TextBlock Text="{Binding SelectedReport.TotalCompanyEarnings, StringFormat=🏢 Компании (65%): {0:N0} ₽}" 
-                                           Foreground="#E67E22" Margin="0,3,0,0"/>
+                                           Foreground="#E67E22" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                 <TextBlock Text="{Binding SelectedReport.Notes, StringFormat=📝 Примечание: {0}}" 
                                            FontSize="12" Foreground="#7F8C8D" Margin="0,10,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
@@ -114,7 +123,7 @@
 
                         <TextBlock Text="👥 Работа сотрудников" FontSize="14" FontWeight="Bold" 
                                    Margin="0,15,0,5"/>
-                        
+
                         <ItemsControl ItemsSource="{Binding SelectedReport.EmployeesWork}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -126,13 +135,13 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding EmployeeName}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding EmployeeName}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                             <TextBlock Grid.Column="1" Text="{Binding CarsWashed, StringFormat=🚗 {0} маш.}" 
-                                                       Margin="10,0"/>
+                                                       Margin="10,0" TextWrapping="Wrap"/>
                                             <TextBlock Grid.Column="2" Text="{Binding TotalAmount, StringFormat=💰 {0:N0} ₽}" 
-                                                       Foreground="#27AE60" Margin="10,0"/>
+                                                       Foreground="#27AE60" Margin="10,0" TextWrapping="Wrap"/>
                                             <TextBlock Grid.Column="3" Text="{Binding Earnings, StringFormat=👤 {0:N0} ₽}" 
-                                                       Foreground="#8E44AD" Margin="10,0" FontWeight="Bold"/>
+                                                       Foreground="#8E44AD" Margin="10,0" FontWeight="Bold" TextWrapping="Wrap"/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -145,15 +154,15 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20">
             <Button Content="📅 Месячный отчет" Click="MonthlyReportButton_Click" 
-        Width="150" Height="35" Margin="5" Background="#9B59B6" Foreground="White"/>
+                    Width="150" Height="35" Margin="5" Background="#9B59B6" Foreground="White"/>
             <Button Content="🔄 Обновить" Click="RefreshButton_Click" 
-                     Width="150" Height="35" Margin="5" Background="#3498DB" Foreground="White"/>
+                    Width="150" Height="35" Margin="5" Background="#3498DB" Foreground="White"/>
             <Button Content="📁 Открыть папку" Click="OpenFolderButton_Click" 
                     Width="120" Height="35" Margin="5" Background="#27AE60" Foreground="White"/>
             <Button Content="📄 Экспорт" Click="ExportButton_Click" 
-                     Width="150" Height="35" Margin="5" Background="#F39C12" Foreground="White"/>
+                    Width="150" Height="35" Margin="5" Background="#F39C12" Foreground="White"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" 
-                     Width="150" Height="35" Margin="5" Background="#E74C3C" Foreground="White"/>
+                    Width="150" Height="35" Margin="5" Background="#E74C3C" Foreground="White"/>
         </StackPanel>
     </Grid>
 </Window>

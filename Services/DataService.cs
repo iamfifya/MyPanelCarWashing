@@ -91,6 +91,7 @@ namespace MyPanelCarWashing.Services
             order.TotalPrice = _data.Services
                 .Where(s => serviceIds.Contains(s.Id))
                 .Sum(s => s.Price);
+            // TotalPrice остается как сумма услуг, FinalPrice используется для расчетов
 
             var shift = _data.Shifts.FirstOrDefault(s => s.Id == order.ShiftId);
             if (shift != null)
