@@ -25,9 +25,8 @@
                    Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,20" Grid.Row="0"/>
 
         <Label Content="📅 Дата смены:" Grid.Row="1" Margin="0,5" FontWeight="SemiBold"/>
-        <DatePicker x:Name="ShiftDatePicker" Grid.Row="2" Margin="0,5" Height="30" 
-                    SelectedDate="{Binding SelectedDate, Mode=TwoWay}"
-                    DisplayDateStart="{Binding MinDate, Mode=OneWay}"/>
+        <local:CustomDatePicker x:Name="ShiftDatePicker" Grid.Row="2" Margin="0,5" Height="30" 
+                        SelectedDate="{Binding SelectedDate, Mode=TwoWay}"/>
 
         <Label Content="👥 Выберите сотрудников:" Grid.Row="3" Margin="0,10,0,5" FontWeight="SemiBold"/>
         

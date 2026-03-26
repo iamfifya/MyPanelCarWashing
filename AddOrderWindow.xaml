@@ -62,7 +62,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <DatePicker x:Name="OrderDatePicker" Grid.Column="0" Height="50" Background="White" />
+                <local:CustomDatePicker x:Name="OrderDatePicker" SelectedDate="{Binding SelectedDate, Mode=TwoWay}" Height="50"/>
                 <TextBlock Grid.Column="1" Text=" " VerticalAlignment="Center" Margin="5,0"/>
                 <TextBox x:Name="OrderTimeTextBox" Grid.Column="2" Height="50" Width="80" Text="12:00"/>
             </Grid>
