@@ -407,6 +407,11 @@ namespace MyPanelCarWashing
         {
             Application.Current.Shutdown();
         }
+        private void ServicesButton_Click(object sender, RoutedEventArgs e)
+        {
+            var servicesWin = new ServiceManagementWindow();
+            servicesWin.ShowDialog();
+        }
     }
 
     public class OrderDisplayItem

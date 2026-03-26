@@ -78,6 +78,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="ActiveToBackgroundConverter.cs" />
+    <Compile Include="ActiveToStatusConverter.cs" />
+    <Compile Include="AddEditServiceWindow.xaml.cs">
+      <DependentUpon>AddEditServiceWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="BoolToRoleConverter.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="IntToBoolConverter.cs" />
@@ -88,6 +93,9 @@
       <DependentUpon>MonthlyReportWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="PercentageConverter.cs" />
+    <Compile Include="ServiceManagementWindow.xaml.cs">
+      <DependentUpon>ServiceManagementWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Services\DataService.cs" />
     <Compile Include="Services\FileDataService.cs" />
     <Compile Include="AddEditEmployeeWindow.xaml.cs">
@@ -119,7 +127,15 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="AddEditServiceWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MonthlyReportWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ServiceManagementWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

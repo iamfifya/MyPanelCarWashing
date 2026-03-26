@@ -12,6 +12,9 @@
             <local:BoolToRoleConverter x:Key="BoolToRoleConverter"/>
             <local:IntToBoolConverter x:Key="IntToBoolConverter"/>
             <local:PercentageConverter x:Key="PercentageConverter"/>
+            <local:ActiveToStatusConverter x:Key="ActiveToStatusConverter"/>
+            <local:ActiveToColorConverter x:Key="ActiveToColorConverter"/>
+            <local:ActiveToBackgroundConverter x:Key="ActiveToBackgroundConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
