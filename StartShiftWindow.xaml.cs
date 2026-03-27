@@ -1,4 +1,5 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,6 +12,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
+        private readonly DataService _dataService;
         private DateTime _selectedDate;
         private List<EmployeeSelection> _employees;
 
@@ -36,9 +38,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public StartShiftWindow()
+        public StartShiftWindow(DataService dataService)
         {
             InitializeComponent();
+            _dataService = dataService;
             DataContext = this;
             SelectedDate = DateTime.Now.Date;
             LoadEmployees();
@@ -46,7 +49,7 @@ namespace MyPanelCarWashing
 
         private void LoadEmployees()
         {
-            var allEmployees = Core.DB.GetAllUsers();
+            var allEmployees = _dataService.GetAllUsers();
             Employees = allEmployees.Select(e => new EmployeeSelection
             {
                 Id = e.Id,
@@ -69,10 +72,7 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем все смены
-                var allShifts = Core.DB.GetAllShifts();
-
-                // Проверяем, есть ли открытая смена на выбранную дату
+                var allShifts = _dataService.GetAllShifts();
                 var existingOpenShift = allShifts.FirstOrDefault(s => s.Date.Date == SelectedDate.Date && !s.IsClosed);
 
                 if (existingOpenShift != null)
@@ -88,14 +88,10 @@ namespace MyPanelCarWashing
                         return;
                     }
 
-                    // Закрываем старую смену
                     CloseExistingShift(existingOpenShift);
-
-                    // Удаляем старую смену из списка
                     allShifts.Remove(existingOpenShift);
                 }
 
-                // Создаем новую смену
                 var newShift = new Shift
                 {
                     Id = allShifts.Any() ? allShifts.Max(s => s.Id) + 1 : 1,
@@ -106,16 +102,11 @@ namespace MyPanelCarWashing
                     Orders = new List<CarWashOrder>()
                 };
 
-                // Добавляем новую смену
                 allShifts.Add(newShift);
 
-                // Сохраняем
                 var appData = FileDataService.LoadData();
                 appData.Shifts = allShifts;
                 FileDataService.SaveData(appData);
-
-                // Обновляем Core.DB
-                Core.RefreshData();
 
                 MessageBox.Show($"Смена на {SelectedDate:dd.MM.yyyy} успешно открыта!\n\n" +
                     $"Сотрудников: {selectedEmployees.Count}\n" +
@@ -141,7 +132,7 @@ namespace MyPanelCarWashing
                 shift.IsClosed = true;
 
                 var orders = shift.Orders ?? new List<CarWashOrder>();
-                var totalRevenue = orders.Sum(o => o.TotalPrice);
+                var totalRevenue = orders.Sum(o => o.FinalPrice);
                 var totalWasherEarnings = orders.Sum(o => o.WasherEarnings);
                 var totalCompanyEarnings = orders.Sum(o => o.CompanyEarnings);
 
@@ -158,7 +149,7 @@ namespace MyPanelCarWashing
                     Notes = "Смена закрыта для начала новой"
                 };
 
-                var allUsers = Core.DB.GetAllUsers();
+                var allUsers = _dataService.GetAllUsers();
 
                 foreach (var empId in shift.EmployeeIds)
                 {
@@ -166,7 +157,7 @@ namespace MyPanelCarWashing
                     if (employee != null)
                     {
                         var employeeOrders = orders.Where(o => o.WasherId == empId).ToList();
-                        var employeeRevenue = employeeOrders.Sum(o => o.TotalPrice);
+                        var employeeRevenue = employeeOrders.Sum(o => o.FinalPrice);
                         var employeeEarnings = employeeOrders.Sum(o => o.WasherEarnings);
 
                         report.EmployeesWork.Add(new EmployeeWorkReport
@@ -202,8 +193,6 @@ namespace MyPanelCarWashing
 
                 var json = Newtonsoft.Json.JsonConvert.SerializeObject(report, Newtonsoft.Json.Formatting.Indented);
                 System.IO.File.WriteAllText(filePath, json);
-
-                System.Diagnostics.Debug.WriteLine($"Отчет сохранен: {filePath}");
             }
             catch (Exception ex)
             {

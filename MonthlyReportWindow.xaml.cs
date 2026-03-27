@@ -1,4 +1,5 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,6 +13,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
+        private readonly DataService _dataService;
         private DateTime _selectedDate;
         private MonthlyReport _currentMonthlyReport;
 
@@ -25,9 +27,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public MonthlyReportWindow()
+        public MonthlyReportWindow(DataService dataService)
         {
             InitializeComponent();
+            _dataService = dataService;
             DataContext = this;
             SelectedDate = DateTime.Now;
             MonthPicker.SelectedDate = DateTime.Now;

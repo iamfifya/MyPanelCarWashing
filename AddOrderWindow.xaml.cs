@@ -1,4 +1,5 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -10,15 +11,17 @@ namespace MyPanelCarWashing
 {
     public partial class AddOrderWindow : Window
     {
+        private readonly DataService _dataService;
         private Shift _currentShift;
         private List<ServiceViewModel> _services;
         private List<User> _washers;
         private decimal _servicesTotal;
         private decimal _extraCost;
 
-        public AddOrderWindow(Shift currentShift)
+        public AddOrderWindow(DataService dataService, Shift currentShift)
         {
             InitializeComponent();
+            _dataService = dataService;
             _currentShift = currentShift;
 
             OrderDatePicker.SelectedDate = DateTime.Now;
@@ -32,7 +35,7 @@ namespace MyPanelCarWashing
 
         private void LoadServices()
         {
-            var allServices = Core.DB.GetAllServices();
+            var allServices = _dataService.GetAllServices();
             _services = allServices.Select(s => new ServiceViewModel
             {
                 Id = s.Id,
@@ -49,7 +52,7 @@ namespace MyPanelCarWashing
         {
             if (_currentShift != null && _currentShift.EmployeeIds != null && _currentShift.EmployeeIds.Any())
             {
-                var allUsers = Core.DB.GetAllUsers();
+                var allUsers = _dataService.GetAllUsers();
                 _washers = allUsers.Where(u => _currentShift.EmployeeIds.Contains(u.Id)).ToList();
             }
             else
@@ -78,7 +81,6 @@ namespace MyPanelCarWashing
         {
             try
             {
-                // Сумма услуг - берем из выделенных элементов
                 _servicesTotal = 0;
 
                 if (ServicesListBox != null && ServicesListBox.SelectedItems != null)
@@ -92,7 +94,6 @@ namespace MyPanelCarWashing
                     }
                 }
 
-                // Дополнительная стоимость
                 if (ExtraCostTextBox != null && !string.IsNullOrWhiteSpace(ExtraCostTextBox.Text))
                 {
                     if (!decimal.TryParse(ExtraCostTextBox.Text, out _extraCost))
@@ -124,7 +125,6 @@ namespace MyPanelCarWashing
         {
             try
             {
-                // Проверка обязательных полей
                 if (string.IsNullOrWhiteSpace(CarModelTextBox.Text))
                 {
                     MessageBox.Show("Введите марку и модель автомобиля", "Ошибка",
@@ -139,10 +139,8 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем тип кузова
                 string bodyType = (BodyTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Седан";
 
-                // Проверка времени
                 DateTime? selectedDate = OrderDatePicker.SelectedDate;
                 if (!selectedDate.HasValue)
                 {
@@ -162,12 +160,10 @@ namespace MyPanelCarWashing
                 DateTime orderDateTime = new DateTime(selectedDate.Value.Year, selectedDate.Value.Month, selectedDate.Value.Day,
                     int.Parse(timeStr.Split(':')[0]), int.Parse(timeStr.Split(':')[1]), 0);
 
-                // Определяем номер бокса
                 int boxNumber = 1;
                 if (Box2Radio.IsChecked == true) boxNumber = 2;
                 if (Box3Radio.IsChecked == true) boxNumber = 3;
 
-                // Получаем выбранного мойщика
                 var selectedWasher = WasherComboBox.SelectedItem as User;
                 if (selectedWasher == null)
                 {
@@ -176,7 +172,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем выбранные услуги из выделенных элементов
                 var selectedServices = ServicesListBox.SelectedItems.Cast<ServiceViewModel>().ToList();
                 if (!selectedServices.Any())
                 {
@@ -185,7 +180,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем дополнительную стоимость и причину
                 decimal extraCost = _extraCost;
                 string extraReason = ExtraCostReasonTextBox.Text.Trim();
 
@@ -196,7 +190,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Создаем заказ
                 var newOrder = new CarWashOrder
                 {
                     CarModel = CarModelTextBox.Text,
@@ -211,9 +204,8 @@ namespace MyPanelCarWashing
                 };
 
                 var serviceIds = selectedServices.Select(s => s.Id).ToList();
-                Core.DB.AddOrder(newOrder, serviceIds);
+                _dataService.AddOrder(newOrder, serviceIds);
 
-                // Формируем сообщение
                 string extraMessage = "";
                 if (extraCost > 0)
                 {
@@ -226,7 +218,7 @@ namespace MyPanelCarWashing
                     $"🚘 Бокс {newOrder.BoxNumber}\n" +
                     $"👤 Мойщик: {selectedWasher.FullName}\n" +
                     $"⏰ Время: {newOrder.Time:HH:mm dd.MM.yyyy}\n" +
-                    $"💰 Услуги: {newOrder.BasePrice:N0} ₽{extraMessage}\n" +
+                    $"💰 Услуги: {newOrder.TotalPrice:N0} ₽{extraMessage}\n" +
                     $"💵 Итоговая сумма: {newOrder.FinalPrice:N0} ₽\n" +
                     $"👤 Мойщику (35%): {newOrder.WasherEarnings:N0} ₽\n" +
                     $"🏢 Компании (65%): {newOrder.CompanyEarnings:N0} ₽",

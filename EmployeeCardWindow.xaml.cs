@@ -1,10 +1,10 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace MyPanelCarWashing
@@ -13,8 +13,10 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
+        private readonly DataService _dataService;
         private List<User> _allEmployees;
         private List<User> _employeesList;
+        private string _searchFilter = "";
 
         public List<User> EmployeesList
         {
@@ -22,27 +24,21 @@ namespace MyPanelCarWashing
             set
             {
                 _employeesList = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("EmployeesList"));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EmployeesList)));
             }
         }
 
-        public EmployeeCardWindow()
+        public EmployeeCardWindow(DataService dataService)
         {
             InitializeComponent();
+            _dataService = dataService;
             DataContext = this;
-        }
-
-        // Переопределяем метод OnActivated, который вызывается каждый раз при активации окна
-        protected override void OnActivated(EventArgs e)
-        {
-            base.OnActivated(e);
-            LoadEmployees(); // Загружаем свежие данные при каждом показе окна
+            LoadEmployees();
         }
 
         private void LoadEmployees()
         {
-            // Получаем свежие данные из файла
-            _allEmployees = Core.DB.GetAllUsers();
+            _allEmployees = _dataService.GetAllUsers();
             ApplyFilter();
         }
 
@@ -57,15 +53,8 @@ namespace MyPanelCarWashing
             }
 
             EmployeesList = filtered.ToList();
-
-            // Принудительно обновляем ListView
-            if (EmployeesListView != null)
-            {
-                EmployeesListView.Items.Refresh();
-            }
         }
 
-        private string _searchFilter = "";
         private void SearchFilterTextBox_KeyUp(object sender, KeyEventArgs e)
         {
             _searchFilter = SearchFilterTextBox.Text;
@@ -74,10 +63,10 @@ namespace MyPanelCarWashing
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
-            var addWin = new AddEditEmployeeWindow(null);
+            var addWin = new AddEditEmployeeWindow(_dataService, null);
             if (addWin.ShowDialog() == true)
             {
-                LoadEmployees(); // Обновляем список после добавления
+                LoadEmployees();
             }
         }
 
@@ -86,10 +75,10 @@ namespace MyPanelCarWashing
             var selectedEmployee = EmployeesListView.SelectedItem as User;
             if (selectedEmployee != null)
             {
-                var editWin = new AddEditEmployeeWindow(selectedEmployee);
+                var editWin = new AddEditEmployeeWindow(_dataService, selectedEmployee);
                 if (editWin.ShowDialog() == true)
                 {
-                    LoadEmployees(); // Обновляем список после редактирования
+                    LoadEmployees();
                 }
             }
         }
@@ -99,7 +88,6 @@ namespace MyPanelCarWashing
             var selectedEmployee = EmployeesListView.SelectedItem as User;
             if (selectedEmployee != null)
             {
-                // Защита от удаления главного админа
                 if (selectedEmployee.IsAdmin && selectedEmployee.Login == "admin")
                 {
                     MessageBox.Show("Нельзя удалить главного администратора!", "Предупреждение",
@@ -109,32 +97,28 @@ namespace MyPanelCarWashing
 
                 var result = MessageBox.Show($"Удалить сотрудника {selectedEmployee.FullName}?\n\nЭто действие нельзя отменить.",
                     "Подтверждение удаления",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
+                    MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
                 {
                     try
                     {
-                        // Получаем свежие данные
-                        var allUsers = Core.DB.GetAllUsers();
+                        var allUsers = _dataService.GetAllUsers();
+                        var userToDelete = allUsers.FirstOrDefault(u => u.Id == selectedEmployee.Id);
 
-                        // Удаляем сотрудника
-                        allUsers.RemoveAll(u => u.Id == selectedEmployee.Id);
+                        if (userToDelete != null)
+                        {
+                            allUsers.Remove(userToDelete);
 
-                        // Сохраняем изменения
-                        var appData = FileDataService.LoadData();
-                        appData.Users = allUsers;
-                        FileDataService.SaveData(appData);
+                            var appData = FileDataService.LoadData();
+                            appData.Users = allUsers;
+                            FileDataService.SaveData(appData);
 
-                        // Обновляем Core.DB
-                        Core.RefreshData();
+                            LoadEmployees();
 
-                        // Обновляем список
-                        LoadEmployees();
-
-                        MessageBox.Show($"Сотрудник {selectedEmployee.FullName} успешно удален", "Успешно",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Сотрудник {selectedEmployee.FullName} успешно удален", "Успешно",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -153,8 +137,6 @@ namespace MyPanelCarWashing
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
             LoadEmployees();
-            MessageBox.Show("Список обновлен", "Обновление",
-                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

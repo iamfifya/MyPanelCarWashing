@@ -1,9 +1,11 @@
-﻿using MyPanelCarWashing.Services;
+using MyPanelCarWashing.Services;
 using System;
 
 namespace MyPanelCarWashing
 {
-    class Core
+    // Статический класс для обратной совместимости
+    // В новых окнах используйте DI через конструктор
+    public static class Core
     {
         private static DataService _dataService;
 
@@ -11,17 +13,9 @@ namespace MyPanelCarWashing
         {
             get
             {
-                try
-                {
-                    if (_dataService == null)
-                        _dataService = new DataService();
-                    return _dataService;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Ошибка Core.DB: {ex.Message}");
-                    throw;
-                }
+                if (_dataService == null)
+                    _dataService = new DataService();
+                return _dataService;
             }
         }
 

@@ -1,4 +1,4 @@
-﻿<Window x:Class="MyPanelCarWashing.MonthlyReportWindow"
+<Window x:Class="MyPanelCarWashing.MonthlyReportWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -32,8 +32,8 @@
             </Grid.ColumnDefinitions>
 
             <Label Grid.Column="0" Content="Выберите месяц:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <local:CustomDatePicker Grid.Column="1" x:Name="MonthPicker" Height="30" 
-                                    SelectedDate="{Binding SelectedDate, Mode=TwoWay}"/>
+            <local:CustomDatePicker x:Name="MonthPicker" Grid.Column="1" Height="30" 
+                        SelectedDate="{Binding SelectedDate, Mode=TwoWay}"/>
             <Button Grid.Column="2" Content="📊 Сформировать отчет" Click="GenerateReportButton_Click" 
                     Width="150" Height="30" Margin="10,0,0,0"/>
         </Grid>

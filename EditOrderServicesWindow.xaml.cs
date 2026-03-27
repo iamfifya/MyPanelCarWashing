@@ -1,4 +1,4 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
 using System;
@@ -13,20 +13,11 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
+        private readonly DataService _dataService;
         private CarWashOrder _order;
-        private DataService _dataService;
         private List<ServiceViewModel> _services;
 
-        // Публичное свойство для доступа из XAML
-        public CarWashOrder CurrentOrder
-        {
-            get => _order;
-            set
-            {
-                _order = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("CurrentOrder"));
-            }
-        }
+        public CarWashOrder CurrentOrder { get; set; }
 
         public List<ServiceViewModel> Services
         {
@@ -34,14 +25,14 @@ namespace MyPanelCarWashing
             set
             {
                 _services = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Services"));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Services)));
             }
         }
 
-        public EditOrderServicesWindow(CarWashOrder order)
+        public EditOrderServicesWindow(DataService dataService, CarWashOrder order)
         {
             InitializeComponent();
-            _dataService = Core.DB;
+            _dataService = dataService;
             CurrentOrder = order;
             DataContext = this;
             LoadServices();
@@ -59,6 +50,16 @@ namespace MyPanelCarWashing
                 Price = s.Price,
                 IsSelected = orderServiceIds.Contains(s.Id)
             }).ToList();
+
+            ServicesListView.ItemsSource = Services;
+
+            for (int i = 0; i < Services.Count; i++)
+            {
+                if (Services[i].IsSelected)
+                {
+                    ServicesListView.SelectedItems.Add(Services[i]);
+                }
+            }
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -78,7 +79,7 @@ namespace MyPanelCarWashing
                 _dataService.UpdateOrderServices(CurrentOrder.Id, serviceIds);
 
                 DialogResult = true;
-                MessageBox.Show($"Услуги обновлены\nНовая сумма: {CurrentOrder.TotalPrice:C}", "Успешно",
+                MessageBox.Show($"Услуги обновлены\nНовая сумма: {CurrentOrder.FinalPrice:N0} ₽", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 Close();
             }

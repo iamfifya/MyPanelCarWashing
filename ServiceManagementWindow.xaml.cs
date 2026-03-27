@@ -1,4 +1,5 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,17 +10,19 @@ namespace MyPanelCarWashing
 {
     public partial class ServiceManagementWindow : Window
     {
+        private readonly DataService _dataService;
         private List<Service> _allServices;
 
-        public ServiceManagementWindow()
+        public ServiceManagementWindow(DataService dataService)
         {
             InitializeComponent();
+            _dataService = dataService;
             LoadServices();
         }
 
         private void LoadServices()
         {
-            _allServices = Core.DB.GetAllServices().ToList();
+            _allServices = _dataService.GetAllServices().ToList();
             ApplyFilter();
         }
 
@@ -47,7 +50,7 @@ namespace MyPanelCarWashing
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
-            var addWin = new AddEditServiceWindow(null);
+            var addWin = new AddEditServiceWindow(_dataService, null);
             if (addWin.ShowDialog() == true)
             {
                 LoadServices();
@@ -66,7 +69,7 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            var editWin = new AddEditServiceWindow(selectedService);
+            var editWin = new AddEditServiceWindow(_dataService, selectedService);
             if (editWin.ShowDialog() == true)
             {
                 LoadServices();
@@ -98,7 +101,6 @@ namespace MyPanelCarWashing
                     {
                         appData.Services.Remove(serviceToDelete);
                         FileDataService.SaveData(appData);
-                        Core.RefreshData();
                         LoadServices();
                         MessageBox.Show("Услуга удалена", "Успешно",
                             MessageBoxButton.OK, MessageBoxImage.Information);

@@ -1,9 +1,10 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MyPanelCarWashing.Models;
+using System.Threading.Tasks;
 
 namespace MyPanelCarWashing.Services
 {
@@ -192,15 +193,19 @@ namespace MyPanelCarWashing.Services
         {
             return _data.Shifts.FirstOrDefault(s => s.Id == shiftId);
         }
-    }
+        public async Task<List<Service>> GetAllServicesAsync()
+        {
+            return await Task.Run(() => _data.Services.Where(s => s.IsActive).ToList());
+        }
 
+        public async Task<Shift> GetShiftByDateAsync(DateTime date)
+        {
+            return await Task.Run(() => _data.Shifts.FirstOrDefault(s => s.Date.Date == date.Date && !s.IsClosed));
+        }
 
-    public class MonthlyReport
-    {
-        public int Year { get; set; }
-        public int Month { get; set; }
-        public int TotalCars { get; set; }
-        public decimal TotalRevenue { get; set; }
-        public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM yyyy");
+        public async Task AddOrderAsync(CarWashOrder order, List<int> serviceIds)
+        {
+            await Task.Run(() => AddOrder(order, serviceIds));
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ namespace MyPanelCarWashing
 {
     public partial class EditOrderWindow : Window
     {
+        private readonly DataService _dataService;
         private CarWashOrder _order;
         private Shift _currentShift;
         private List<ServiceViewModel> _services;
@@ -17,9 +19,10 @@ namespace MyPanelCarWashing
         private decimal _servicesTotal;
         private decimal _extraCost;
 
-        public EditOrderWindow(CarWashOrder order, Shift currentShift)
+        public EditOrderWindow(DataService dataService, CarWashOrder order, Shift currentShift)
         {
             InitializeComponent();
+            _dataService = dataService;
             _order = order;
             _currentShift = currentShift;
 
@@ -32,11 +35,9 @@ namespace MyPanelCarWashing
 
         private void LoadOrderData()
         {
-            // Заполняем поля данными заказа
             CarModelTextBox.Text = _order.CarModel;
             CarNumberTextBox.Text = _order.CarNumber;
 
-            // Устанавливаем тип кузова
             string bodyType = _order.CarBodyType;
             foreach (ComboBoxItem item in BodyTypeComboBox.Items)
             {
@@ -47,11 +48,9 @@ namespace MyPanelCarWashing
                 }
             }
 
-            // Устанавливаем дату и время
             OrderDatePicker.SelectedDate = _order.Time;
             OrderTimeTextBox.Text = _order.Time.ToString("HH:mm");
 
-            // Устанавливаем бокс
             switch (_order.BoxNumber)
             {
                 case 1: Box1Radio.IsChecked = true; break;
@@ -59,28 +58,24 @@ namespace MyPanelCarWashing
                 case 3: Box3Radio.IsChecked = true; break;
             }
 
-            // Дополнительная стоимость
             ExtraCostTextBox.Text = _order.ExtraCost.ToString();
             ExtraCostReasonTextBox.Text = _order.ExtraCostReason;
         }
 
         private void LoadServices()
         {
-            var allServices = Core.DB.GetAllServices();
+            var allServices = _dataService.GetAllServices();
             _services = allServices.Select(s => new ServiceViewModel
             {
                 Id = s.Id,
                 Name = s.Name,
                 Price = s.Price,
-                IsSelected = _order.ServiceIds.Contains(s.Id) // Устанавливаем IsSelected
+                IsSelected = _order.ServiceIds.Contains(s.Id)
             }).ToList();
 
             ServicesListBox.ItemsSource = _services;
-
-            // Подписываемся на событие выделения
             ServicesListBox.SelectionChanged += ServicesListBox_SelectionChanged;
 
-            // Выделяем элементы в ListBox
             for (int i = 0; i < _services.Count; i++)
             {
                 if (_services[i].IsSelected)
@@ -94,7 +89,6 @@ namespace MyPanelCarWashing
 
         private void ServicesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Синхронизируем свойство IsSelected с выделением в ListBox
             if (_services != null)
             {
                 foreach (ServiceViewModel service in _services)
@@ -109,7 +103,7 @@ namespace MyPanelCarWashing
         {
             if (_currentShift != null && _currentShift.EmployeeIds != null && _currentShift.EmployeeIds.Any())
             {
-                var allUsers = Core.DB.GetAllUsers();
+                var allUsers = _dataService.GetAllUsers();
                 _washers = allUsers.Where(u => _currentShift.EmployeeIds.Contains(u.Id)).ToList();
             }
             else
@@ -119,7 +113,6 @@ namespace MyPanelCarWashing
 
             WasherComboBox.ItemsSource = _washers;
 
-            // Выбираем текущего мойщика
             var currentWasher = _washers.FirstOrDefault(w => w.Id == _order.WasherId);
             if (currentWasher != null)
                 WasherComboBox.SelectedItem = currentWasher;
@@ -136,10 +129,8 @@ namespace MyPanelCarWashing
         {
             try
             {
-                // Проверяем, что _services не null
                 if (_services == null) return;
 
-                // Сумма услуг - берем из свойства IsSelected
                 _servicesTotal = 0;
 
                 foreach (ServiceViewModel service in _services)
@@ -150,7 +141,6 @@ namespace MyPanelCarWashing
                     }
                 }
 
-                // Дополнительная стоимость
                 if (ExtraCostTextBox != null && !string.IsNullOrWhiteSpace(ExtraCostTextBox.Text))
                 {
                     if (!decimal.TryParse(ExtraCostTextBox.Text, out _extraCost))
@@ -182,7 +172,6 @@ namespace MyPanelCarWashing
         {
             try
             {
-                // Проверка обязательных полей
                 if (string.IsNullOrWhiteSpace(CarModelTextBox.Text))
                 {
                     MessageBox.Show("Введите марку и модель автомобиля", "Ошибка",
@@ -197,10 +186,8 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем тип кузова
                 string bodyType = (BodyTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Седан";
 
-                // Проверка времени
                 DateTime? selectedDate = OrderDatePicker.SelectedDate;
                 if (!selectedDate.HasValue)
                 {
@@ -220,12 +207,10 @@ namespace MyPanelCarWashing
                 DateTime orderDateTime = new DateTime(selectedDate.Value.Year, selectedDate.Value.Month, selectedDate.Value.Day,
                     int.Parse(timeStr.Split(':')[0]), int.Parse(timeStr.Split(':')[1]), 0);
 
-                // Определяем номер бокса
                 int boxNumber = 1;
                 if (Box2Radio.IsChecked == true) boxNumber = 2;
                 if (Box3Radio.IsChecked == true) boxNumber = 3;
 
-                // Получаем выбранного мойщика
                 var selectedWasher = WasherComboBox.SelectedItem as User;
                 if (selectedWasher == null)
                 {
@@ -234,7 +219,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Проверяем, что _services не null
                 if (_services == null)
                 {
                     MessageBox.Show("Ошибка загрузки услуг", "Ошибка",
@@ -242,7 +226,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем выбранные услуги из свойства IsSelected
                 var selectedServices = _services.Where(s => s.IsSelected).ToList();
                 if (!selectedServices.Any())
                 {
@@ -251,7 +234,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем дополнительную стоимость и причину
                 decimal extraCost = _extraCost;
                 string extraReason = ExtraCostReasonTextBox.Text.Trim();
 
@@ -262,7 +244,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Обновляем заказ
                 _order.CarModel = CarModelTextBox.Text;
                 _order.CarNumber = CarNumberTextBox.Text;
                 _order.CarBodyType = bodyType;
@@ -273,14 +254,10 @@ namespace MyPanelCarWashing
                 _order.ExtraCostReason = extraReason;
 
                 var serviceIds = selectedServices.Select(s => s.Id).ToList();
+                _dataService.UpdateOrderServices(_order.Id, serviceIds);
 
-                // Обновляем услуги заказа
-                Core.DB.UpdateOrderServices(_order.Id, serviceIds);
-
-                // Обновляем TotalPrice (сумма услуг)
                 _order.TotalPrice = _servicesTotal;
 
-                // Сохраняем изменения в заказе
                 var appData = FileDataService.LoadData();
                 var shift = appData.Shifts.FirstOrDefault(s => s.Id == _order.ShiftId);
                 if (shift != null)
@@ -301,9 +278,7 @@ namespace MyPanelCarWashing
                     }
                 }
                 FileDataService.SaveData(appData);
-                Core.RefreshData();
 
-                // Формируем сообщение
                 string extraMessage = "";
                 if (extraCost > 0)
                 {

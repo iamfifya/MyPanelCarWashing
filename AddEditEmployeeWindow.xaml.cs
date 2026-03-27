@@ -1,4 +1,5 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using System;
 using System.Linq;
 using System.Windows;
@@ -7,12 +8,14 @@ namespace MyPanelCarWashing
 {
     public partial class AddEditEmployeeWindow : Window
     {
+        private readonly DataService _dataService;
         public User CurrentEmployee { get; set; }
         public string Title { get; set; }
 
-        public AddEditEmployeeWindow(User employee)
+        public AddEditEmployeeWindow(DataService dataService, User employee)
         {
             InitializeComponent();
+            _dataService = dataService;
 
             if (employee == null)
             {
@@ -32,7 +35,6 @@ namespace MyPanelCarWashing
         {
             try
             {
-                // Проверка обязательных полей
                 if (string.IsNullOrWhiteSpace(CurrentEmployee.FullName))
                 {
                     MessageBox.Show("Введите ФИО сотрудника", "Ошибка",
@@ -47,7 +49,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем пароль из PasswordBox
                 string password = PasswordBox.Password;
 
                 if (CurrentEmployee.Id == 0 && string.IsNullOrWhiteSpace(password))
@@ -57,23 +58,20 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Устанавливаем пароль (если новый или если пароль изменен)
                 if (!string.IsNullOrWhiteSpace(password))
                 {
                     CurrentEmployee.Password = password;
                 }
 
-                // Если это новый сотрудник, добавляем
                 if (CurrentEmployee.Id == 0)
                 {
-                    Core.DB.AddUser(CurrentEmployee);
+                    _dataService.AddUser(CurrentEmployee);
                     MessageBox.Show("Сотрудник добавлен", "Успешно",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    // Обновляем существующего
-                    var allUsers = Core.DB.GetAllUsers();
+                    var allUsers = _dataService.GetAllUsers();
                     var existing = allUsers.FirstOrDefault(u => u.Id == CurrentEmployee.Id);
                     if (existing != null)
                     {
@@ -84,7 +82,11 @@ namespace MyPanelCarWashing
                         {
                             existing.Password = CurrentEmployee.Password;
                         }
-                        Core.DB.SaveData();
+
+                        var appData = FileDataService.LoadData();
+                        appData.Users = allUsers;
+                        FileDataService.SaveData(appData);
+
                         MessageBox.Show("Данные обновлены", "Успешно",
                             MessageBoxButton.OK, MessageBoxImage.Information);
                     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace MyPanelCarWashing.Models
@@ -12,7 +12,7 @@ namespace MyPanelCarWashing.Models
         public decimal TotalWasherEarnings { get; set; }
         public decimal TotalCompanyEarnings { get; set; }
         public List<DailyReportSummary> DailyReports { get; set; } = new List<DailyReportSummary>();
-        public List<EmployeeMonthlyReport> EmployeesReport { get; set; } = new List<EmployeeMonthlyReport>(); // Добавляем
+        public List<EmployeeMonthlyReport> EmployeesReport { get; set; } = new List<EmployeeMonthlyReport>();
 
         public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM yyyy");
     }
@@ -31,8 +31,8 @@ namespace MyPanelCarWashing.Models
         public int EmployeeId { get; set; }
         public string EmployeeName { get; set; }
         public int CarsWashed { get; set; }
-        public decimal TotalAmount { get; set; } // Общая выручка по заказам сотрудника
-        public decimal Earnings { get; set; } // 35% от выручки
+        public decimal TotalAmount { get; set; }
+        public decimal Earnings { get; set; }
         public List<DailyEmployeeReport> DailyWork { get; set; } = new List<DailyEmployeeReport>();
     }
 

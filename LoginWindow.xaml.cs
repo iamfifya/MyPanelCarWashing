@@ -1,37 +1,17 @@
-﻿using System;
-using System.Linq;
+using MyPanelCarWashing.Services;
+using System;
 using System.Windows;
 
 namespace MyPanelCarWashing
 {
     public partial class LoginWindow : Window
     {
-        public LoginWindow()
+        private readonly DataService _dataService;
+
+        public LoginWindow(DataService dataService)
         {
             InitializeComponent();
-
-            // Для отладки - добавляем тестового пользователя, если его нет
-            try
-            {
-                var users = Core.DB.GetAllUsers();
-                if (!users.Any())
-                {
-                    var admin = new Models.User
-                    {
-                        Id = 1,
-                        Login = "admin",
-                        Password = "admin",
-                        FullName = "Администратор",
-                        IsAdmin = true
-                    };
-                    Core.DB.AddUser(admin);
-                    Core.DB.SaveData();
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ошибка инициализации: {ex.Message}");
-            }
+            _dataService = dataService;
         }
 
         private void LoginButton_Click(object sender, RoutedEventArgs e)
@@ -48,11 +28,11 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                var user = Core.DB.AuthenticateUser(login, password);
+                var user = _dataService.AuthenticateUser(login, password);
 
                 if (user != null)
                 {
-                    var mainWindow = new MainWindow(user);
+                    var mainWindow = new MainWindow(_dataService, user);
                     mainWindow.Show();
                     this.Close();
                 }
@@ -64,7 +44,7 @@ namespace MyPanelCarWashing
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка входа: {ex.Message}\n\n{ex.StackTrace}", "Ошибка",
+                MessageBox.Show($"Ошибка входа: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

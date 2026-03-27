@@ -1,4 +1,5 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using System;
 using System.Linq;
 using System.Windows;
@@ -7,12 +8,14 @@ namespace MyPanelCarWashing
 {
     public partial class AddEditServiceWindow : Window
     {
+        private readonly DataService _dataService;
         public Service CurrentService { get; set; }
         public string WindowTitle { get; set; }
 
-        public AddEditServiceWindow(Service service)
+        public AddEditServiceWindow(DataService dataService, Service service)
         {
             InitializeComponent();
+            _dataService = dataService;
 
             if (service == null)
             {
@@ -48,7 +51,6 @@ namespace MyPanelCarWashing
         {
             try
             {
-                // Проверка обязательных полей
                 if (string.IsNullOrWhiteSpace(CurrentService.Name))
                 {
                     MessageBox.Show("Введите название услуги", "Ошибка",
@@ -70,18 +72,15 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Загружаем данные
                 var appData = FileDataService.LoadData();
 
                 if (CurrentService.Id == 0)
                 {
-                    // Новая услуга
                     CurrentService.Id = appData.GetNextServiceId();
                     appData.Services.Add(CurrentService);
                 }
                 else
                 {
-                    // Обновляем существующую
                     var existing = appData.Services.FirstOrDefault(s => s.Id == CurrentService.Id);
                     if (existing != null)
                     {
@@ -93,9 +92,7 @@ namespace MyPanelCarWashing
                     }
                 }
 
-                // Сохраняем
                 FileDataService.SaveData(appData);
-                Core.RefreshData();
 
                 DialogResult = true;
                 Close();
