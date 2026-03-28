@@ -29,3 +29,9 @@ jobs:
     
     - name: Run tests
       run: dotnet test --no-build --verbosity normal
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+      with:
+        nuget-version: '6.x'
+    - name: Restore packages
+      run: nuget restore MyPanelCarWashing.slnx      
