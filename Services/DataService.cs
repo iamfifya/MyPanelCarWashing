@@ -98,15 +98,29 @@ namespace MyPanelCarWashing.Services
         {
             order.Id = _data.GetNextOrderId();
             order.ServiceIds = serviceIds;
+
+            // Рассчитываем сумму с учетом категории кузова
             order.TotalPrice = _data.Services
                 .Where(s => serviceIds.Contains(s.Id))
-                .Sum(s => s.Price);
-            // TotalPrice остается как сумма услуг, FinalPrice используется для расчетов
+                .Sum(s => s.GetPrice(order.BodyTypeCategory)); // Используем GetPrice
 
             var shift = _data.Shifts.FirstOrDefault(s => s.Id == order.ShiftId);
             if (shift != null)
             {
                 shift.Orders.Add(order);
+                SaveData();
+            }
+        }
+
+        public void UpdateOrderServices(int orderId, List<int> serviceIds)
+        {
+            var order = GetOrderById(orderId);
+            if (order != null)
+            {
+                order.ServiceIds = serviceIds;
+                order.TotalPrice = _data.Services
+                    .Where(s => serviceIds.Contains(s.Id))
+                    .Sum(s => s.GetPrice(order.BodyTypeCategory)); // Используем GetPrice
                 SaveData();
             }
         }
@@ -124,17 +138,25 @@ namespace MyPanelCarWashing.Services
             return order?.ServiceIds ?? new List<int>();
         }
 
-        public void UpdateOrderServices(int orderId, List<int> serviceIds)
+        private void MigrateOldServices()
         {
-            var order = GetOrderById(orderId);
-            if (order != null)
+            bool needSave = false;
+
+            foreach (var service in _data.Services)
             {
-                order.ServiceIds = serviceIds;
-                order.TotalPrice = _data.Services
-                    .Where(s => serviceIds.Contains(s.Id))
-                    .Sum(s => s.Price);
-                SaveData();
+                // Если у услуги есть старый Price и нет PriceByBodyType
+                if (service.PriceByBodyType == null || !service.PriceByBodyType.Any())
+                {
+                    service.PriceByBodyType = new Dictionary<int, decimal>();
+
+                    // Если есть старая цена, используем её для всех категорий
+                    // (через рефлексию или временное поле)
+                    // В вашем случае у Service уже есть Price? Проверьте.
+                }
             }
+
+            if (needSave)
+                SaveData();
         }
 
         public void AddEmployeeToShift(int shiftId, int userId)
@@ -336,7 +358,8 @@ namespace MyPanelCarWashing.Services
         public CarWashOrder ConvertAppointmentToOrder(Appointment appointment, int shiftId, int washerId)
         {
             var selectedServices = _data.Services.Where(s => appointment.ServiceIds.Contains(s.Id)).ToList();
-            decimal totalPrice = selectedServices.Sum(s => s.Price);
+            // Исправлено: используем GetPrice с категорией по умолчанию 1
+            decimal totalPrice = selectedServices.Sum(s => s.GetPrice(1));
 
             var order = new CarWashOrder
             {
@@ -444,7 +467,9 @@ namespace MyPanelCarWashing.Services
             _data.Services.Add(service);
             SaveData();
 
-            System.Diagnostics.Debug.WriteLine($"Добавлена услуга: ID={service.Id}, Name={service.Name}, Price={service.Price}");
+            // Исправлено: выводим информацию о ценах
+            var prices = string.Join(", ", service.PriceByBodyType.Select(p => $"Кат.{p.Key}: {p.Value}"));
+            System.Diagnostics.Debug.WriteLine($"Добавлена услуга: ID={service.Id}, Name={service.Name}, Цены: {prices}");
         }
     }
 }

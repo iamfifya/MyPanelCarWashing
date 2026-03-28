@@ -56,7 +56,7 @@ namespace MyPanelCarWashing
                 a.CarNumber,
                 a.BoxNumber,
                 ServicesList = string.Join(", ", a.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                TotalPrice = a.ServiceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.Price ?? 0) + a.ExtraCost,
+                TotalPrice = a.ServiceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.GetPrice(1) ?? 0) + a.ExtraCost,
                 a.IsCompleted,
                 Status = a.IsCompleted ? "✓ Выполнена" : (a.AppointmentDate <= DateTime.Now ? "⚠️ Просрочена" : "⏳ Ожидает")
             }).ToList();

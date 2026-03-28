@@ -17,6 +17,7 @@ namespace MyPanelCarWashing
         private List<User> _washers;
         private decimal _servicesTotal;
         private decimal _extraCost;
+        private int _selectedBodyTypeCategory = 1;
 
         public AddOrderWindow(DataService dataService, Shift currentShift)
         {
@@ -32,7 +33,36 @@ namespace MyPanelCarWashing
 
             ExtraCostTextBox.TextChanged += ExtraCostTextBox_TextChanged;
         }
+        private void BodyTypeCategory_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (BodyTypeCategoryComboBox.SelectedItem is ComboBoxItem item)
+            {
+                if (int.TryParse(item.Tag?.ToString(), out int category))
+                {
+                    _selectedBodyTypeCategory = category;
+                    // Обновляем цены услуг
+                    UpdateServicePrices();
+                    CalculateTotal();
+                }
+            }
+        }
 
+        private void UpdateServicePrices()
+        {
+            if (_services != null)
+            {
+                var allServices = _dataService.GetAllServices();
+                foreach (var serviceVM in _services)
+                {
+                    var originalService = allServices.FirstOrDefault(s => s.Id == serviceVM.Id);
+                    if (originalService != null)
+                    {
+                        serviceVM.Price = originalService.GetPrice(_selectedBodyTypeCategory);
+                    }
+                }
+                ServicesListBox.Items.Refresh();
+            }
+        }
         private void LoadServices()
         {
             var allServices = _dataService.GetAllServices();
@@ -40,7 +70,7 @@ namespace MyPanelCarWashing
             {
                 Id = s.Id,
                 Name = s.Name,
-                Price = s.Price,
+                Price = s.GetPrice(_selectedBodyTypeCategory), // Используем GetPrice
                 IsSelected = false
             }).ToList();
 
@@ -139,7 +169,7 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                string bodyType = (BodyTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Седан";
+                int bodyTypeCategory = _selectedBodyTypeCategory;
 
                 DateTime? selectedDate = OrderDatePicker.SelectedDate;
                 if (!selectedDate.HasValue)
@@ -196,7 +226,7 @@ namespace MyPanelCarWashing
                 {
                     CarModel = CarModelTextBox.Text,
                     CarNumber = CarNumberTextBox.Text,
-                    CarBodyType = bodyType,
+                    BodyTypeCategory = bodyTypeCategory,
                     Time = orderDateTime,
                     BoxNumber = boxNumber,
                     WasherId = selectedWasher.Id,

@@ -16,12 +16,14 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="🛠️ Управление услугами" FontSize="24" FontWeight="Bold" 
-                   Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,15" Grid.Row="0"/>
+        <TextBlock Grid.Row="0" Text="🛠️ Управление услугами" FontSize="24" FontWeight="Bold" 
+                   Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,15"/>
 
         <!-- Кнопки управления и поиск -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10" HorizontalAlignment="Left">
@@ -37,9 +39,40 @@
             <TextBox x:Name="SearchTextBox" Width="200" Height="30" Margin="5" Padding="5"
                      TextChanged="SearchTextBox_TextChanged"/>
         </StackPanel>
+        <!-- Цены по категориям -->
+        <Label Content="Цены по категориям кузова:" Grid.Row="2" Margin="0,5" FontWeight="SemiBold"/>
+
+        <Grid Grid.Row="3" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Margin="5">
+                <Label Content="Категория 1 (Седан)" FontSize="10"/>
+                <TextBox Height="40" x:Name="PriceCategory1TextBox" Text="0" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Margin="5">
+                <Label Content="Категория 2 (Хэтчбек)" FontSize="10"/>
+                <TextBox Height="40" x:Name="PriceCategory2TextBox" Text="0" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Margin="5">
+                <Label Content="Категория 3 (Универсал)" FontSize="10"/>
+                <TextBox Height="40" x:Name="PriceCategory3TextBox" Text="0" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="3" Margin="5">
+                <Label Content="Категория 4 (Внедорожник)" FontSize="10"/>
+                <TextBox Height="40" x:Name="PriceCategory4TextBox" Text="0" />
+            </StackPanel>
+        </Grid>
 
         <!-- Список услуг в виде карточек -->
-        <ListView Grid.Row="2"
+        <ListView Grid.Row="4"
                   x:Name="ServicesListView"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                   Cursor="Hand"
@@ -125,7 +158,7 @@
         </ListView>
 
         <!-- Кнопка закрытия -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
             <Button Content="🔧 Проверить" Click="CheckIntegrityButton_Click" Width="130" Height="35" 
                     Margin="5" Background="#F39C12" Foreground="White"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" Width="100" Height="35" 

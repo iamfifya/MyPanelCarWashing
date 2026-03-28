@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Drawing.Charts;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
@@ -147,7 +148,7 @@ namespace MyPanelCarWashing
             {
                 Id = s.Id,
                 Name = s.Name,
-                Price = s.Price,
+                Price = s.GetPrice(1),
                 IsSelected = _order.ServiceIds.Contains(s.Id)
             }).ToList();
 
@@ -285,7 +286,7 @@ namespace MyPanelCarWashing
 
                             // Рассчитываем сумму
                             var allServices = _dataService.GetAllServices();
-                            order.TotalPrice = serviceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.Price ?? 0);
+                            order.TotalPrice = serviceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.GetPrice(1) ?? 0);
 
                             // Если есть активная смена, добавляем заказ
                             if (_currentShift != null && !_currentShift.IsClosed)

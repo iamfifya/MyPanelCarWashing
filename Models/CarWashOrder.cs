@@ -21,6 +21,7 @@ namespace MyPanelCarWashing.Models
 
         public bool IsAppointment { get; set; } = false; // Признак предварительной записи
         public int? AppointmentId { get; set; } // ID исходной записи
+        public int BodyTypeCategory { get; set; } = 1; // 1-4 категория кузова
 
         public string CarBodyType { get; set; }
         public DateTime Time { get; set; }

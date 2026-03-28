@@ -49,15 +49,14 @@
             <Label Content="Государственный номер:" Grid.Row="3" Margin="0,5" FontWeight="SemiBold"/>
             <TextBox x:Name="CarNumberTextBox" Grid.Row="4" Margin="0,5" Height="50" Padding="5" Foreground="Black"/>
 
-            <!-- Тип кузова -->
-            <Label Content="Тип кузова:" Grid.Row="5" Margin="0,5" FontWeight="SemiBold"/>
-            <ComboBox x:Name="BodyTypeComboBox" Grid.Row="6" Margin="0,5" Height="50" Foreground="Black">
-                <ComboBoxItem Content="Седан" IsSelected="True"/>
-                <ComboBoxItem Content="Хэтчбек"/>
-                <ComboBoxItem Content="Универсал"/>
-                <ComboBoxItem Content="Внедорожник"/>
-                <ComboBoxItem Content="Купе"/>
-                <ComboBoxItem Content="Кабриолет"/>
+            <!-- Тип кузова (категория) -->
+            <Label Content="Категория кузова:" Grid.Row="5" Margin="0,5" FontWeight="SemiBold"/>
+            <ComboBox x:Name="BodyTypeCategoryComboBox" Grid.Row="6" Margin="0,5" Height="50" 
+          SelectionChanged="BodyTypeCategory_SelectionChanged">
+                <ComboBoxItem Content="Категория 1 (Седан/Купе)" Tag="1" IsSelected="True"/>
+                <ComboBoxItem Content="Категория 2 (Хэтчбек)" Tag="2"/>
+                <ComboBoxItem Content="Категория 3 (Универсал)" Tag="3"/>
+                <ComboBoxItem Content="Категория 4 (Внедорожник/Минивэн)" Tag="4"/>
             </ComboBox>
 
             <!-- Время заезда -->

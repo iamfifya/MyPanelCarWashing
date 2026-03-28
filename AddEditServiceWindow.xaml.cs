@@ -8,7 +8,7 @@ namespace MyPanelCarWashing
 {
     public partial class AddEditServiceWindow : Window
     {
-        private DataService _dataService;
+        private readonly DataService _dataService;
         public Service CurrentService { get; set; }
         public string WindowTitle { get; set; }
 
@@ -23,10 +23,10 @@ namespace MyPanelCarWashing
                 {
                     Id = 0,
                     Name = "",
-                    Price = 0,
                     DurationMinutes = 30,
                     Description = "",
-                    IsActive = true
+                    IsActive = true,
+                    PriceByBodyType = new System.Collections.Generic.Dictionary<int, decimal>()
                 };
                 WindowTitle = "➕ Добавление услуги";
             }
@@ -36,15 +36,28 @@ namespace MyPanelCarWashing
                 {
                     Id = service.Id,
                     Name = service.Name,
-                    Price = service.Price,
                     DurationMinutes = service.DurationMinutes,
                     Description = service.Description,
-                    IsActive = service.IsActive
+                    IsActive = service.IsActive,
+                    PriceByBodyType = new System.Collections.Generic.Dictionary<int, decimal>(service.PriceByBodyType)
                 };
                 WindowTitle = "✏ Редактирование услуги";
             }
 
             DataContext = this;
+            LoadPricesToUI();
+        }
+
+        private void LoadPricesToUI()
+        {
+            if (CurrentService.PriceByBodyType.TryGetValue(1, out var p1))
+                PriceCategory1TextBox.Text = p1.ToString();
+            if (CurrentService.PriceByBodyType.TryGetValue(2, out var p2))
+                PriceCategory2TextBox.Text = p2.ToString();
+            if (CurrentService.PriceByBodyType.TryGetValue(3, out var p3))
+                PriceCategory3TextBox.Text = p3.ToString();
+            if (CurrentService.PriceByBodyType.TryGetValue(4, out var p4))
+                PriceCategory4TextBox.Text = p4.ToString();
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -54,13 +67,6 @@ namespace MyPanelCarWashing
                 if (string.IsNullOrWhiteSpace(CurrentService.Name))
                 {
                     MessageBox.Show("Введите название услуги", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                if (CurrentService.Price <= 0)
-                {
-                    MessageBox.Show("Введите корректную цену (больше 0)", "Ошибка",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -86,13 +92,31 @@ namespace MyPanelCarWashing
                     return;
                 }
 
+                // Сохраняем цены для каждой категории
+                CurrentService.PriceByBodyType.Clear();
+
+                if (decimal.TryParse(PriceCategory1TextBox.Text, out var p1) && p1 > 0)
+                    CurrentService.PriceByBodyType[1] = p1;
+                if (decimal.TryParse(PriceCategory2TextBox.Text, out var p2) && p2 > 0)
+                    CurrentService.PriceByBodyType[2] = p2;
+                if (decimal.TryParse(PriceCategory3TextBox.Text, out var p3) && p3 > 0)
+                    CurrentService.PriceByBodyType[3] = p3;
+                if (decimal.TryParse(PriceCategory4TextBox.Text, out var p4) && p4 > 0)
+                    CurrentService.PriceByBodyType[4] = p4;
+
+                // Если нет цен для всех категорий, используем категорию 1 как базовую
+                if (!CurrentService.PriceByBodyType.ContainsKey(1) && CurrentService.PriceByBodyType.Any())
+                {
+                    var firstPrice = CurrentService.PriceByBodyType.First().Value;
+                    CurrentService.PriceByBodyType[1] = firstPrice;
+                }
+
                 if (CurrentService.Id == 0)
                 {
                     // Новая услуга - получаем следующий ID
                     int newId = appData.Services.Any() ? appData.Services.Max(s => s.Id) + 1 : 1;
                     CurrentService.Id = newId;
                     appData.Services.Add(CurrentService);
-
                     System.Diagnostics.Debug.WriteLine($"Добавлена новая услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                 }
                 else
@@ -102,18 +126,16 @@ namespace MyPanelCarWashing
                     if (existing != null)
                     {
                         existing.Name = CurrentService.Name;
-                        existing.Price = CurrentService.Price;
                         existing.DurationMinutes = CurrentService.DurationMinutes;
                         existing.Description = CurrentService.Description;
                         existing.IsActive = CurrentService.IsActive;
-
+                        existing.PriceByBodyType = CurrentService.PriceByBodyType;
                         System.Diagnostics.Debug.WriteLine($"Обновлена услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                     }
                 }
 
                 FileDataService.SaveData(appData);
 
-                // Успешно - закрываем окно
                 DialogResult = true;
                 Close();
             }

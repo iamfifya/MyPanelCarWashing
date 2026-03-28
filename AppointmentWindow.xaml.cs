@@ -59,7 +59,7 @@ namespace MyPanelCarWashing
             {
                 Id = s.Id,
                 Name = s.Name,
-                Price = s.Price,
+                Price = s.GetPrice(1),
                 IsSelected = false // По умолчанию ничего не выбрано
             }).ToList();
 

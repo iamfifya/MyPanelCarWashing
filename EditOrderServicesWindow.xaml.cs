@@ -47,7 +47,7 @@ namespace MyPanelCarWashing
             {
                 Id = s.Id,
                 Name = s.Name,
-                Price = s.Price,
+                Price = s.GetPrice(CurrentOrder.BodyTypeCategory), // Используем GetPrice с категорией заказа
                 IsSelected = orderServiceIds.Contains(s.Id)
             }).ToList();
 

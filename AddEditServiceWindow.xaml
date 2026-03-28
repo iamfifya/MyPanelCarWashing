@@ -8,7 +8,7 @@
         Title="Добавление/Редактирование услуги"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Width="450" Height="700"
+        Width="550" Height="750"
         Background="#F5F6FA">
 
     <Grid Margin="15">
@@ -31,15 +31,42 @@
 
         <Label Content="Название услуги:" Grid.Row="1" Margin="0,5" FontWeight="SemiBold"/>
         <TextBox x:Name="NameTextBox" Text="{Binding CurrentService.Name, UpdateSourceTrigger=PropertyChanged}" 
-                 Grid.Row="2" Margin="0,5" Height="50" Padding="5"/>
+                 Grid.Row="2" Margin="0,5" Height="40" Padding="5"/>
 
-        <Label Content="Цена (₽):" Grid.Row="3" Margin="0,5" FontWeight="SemiBold"/>
-        <TextBox x:Name="PriceTextBox" Text="{Binding CurrentService.Price, UpdateSourceTrigger=PropertyChanged}" 
-                 Grid.Row="4" Margin="0,5" Height="50" Padding="5"/>
+        <Label Content="Цены по категориям кузова:" Grid.Row="3" Margin="0,5" FontWeight="SemiBold"/>
+
+        <Grid Grid.Row="4" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Margin="5">
+                <Label Content="Категория 1 (Седан/Купе)" FontSize="10"/>
+                <TextBox x:Name="PriceCategory1TextBox" Height="35" Padding="5" Text="0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Margin="5">
+                <Label Content="Категория 2 (Хэтчбек)" FontSize="10"/>
+                <TextBox x:Name="PriceCategory2TextBox" Height="35" Padding="5" Text="0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Margin="5">
+                <Label Content="Категория 3 (Универсал)" FontSize="10"/>
+                <TextBox x:Name="PriceCategory3TextBox" Height="35" Padding="5" Text="0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="3" Margin="5">
+                <Label Content="Категория 4 (Внедорожник)" FontSize="10"/>
+                <TextBox x:Name="PriceCategory4TextBox" Height="35" Padding="5" Text="0"/>
+            </StackPanel>
+        </Grid>
 
         <Label Content="Длительность (минуты):" Grid.Row="5" Margin="0,5" FontWeight="SemiBold"/>
         <TextBox x:Name="DurationTextBox" Text="{Binding CurrentService.DurationMinutes, UpdateSourceTrigger=PropertyChanged}" 
-                 Grid.Row="6" Margin="0,5" Height="50" Padding="5"/>
+                 Grid.Row="6" Margin="0,5" Height="40" Padding="5"/>
 
         <Label Content="Описание:" Grid.Row="7" Margin="0,5" FontWeight="SemiBold"/>
         <TextBox x:Name="DescriptionTextBox" Text="{Binding CurrentService.Description, UpdateSourceTrigger=PropertyChanged}" 
