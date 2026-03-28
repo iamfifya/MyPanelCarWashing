@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# DeepSeek - recomended to be ignored, but can be checked in if you have a specific reason to do so
+packages/
+bin/
+obj/
+*.user
+*.suo
