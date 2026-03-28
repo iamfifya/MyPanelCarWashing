@@ -29,7 +29,7 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <AutorunEnabled>true</AutorunEnabled>
-    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationRevision>1</ApplicationRevision>
     <ApplicationVersion>0.1.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -173,7 +173,17 @@
     <Compile Include="AddEditServiceWindow.xaml.cs">
       <DependentUpon>AddEditServiceWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="AppointmentsWindow.xaml.cs">
+      <DependentUpon>AppointmentsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="AppointmentToBackgroundConverter.cs" />
+    <Compile Include="AppointmentToStyleConverter.cs" />
+    <Compile Include="AppointmentWindow.xaml.cs">
+      <DependentUpon>AppointmentWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="BoolToRoleConverter.cs" />
+    <Compile Include="BoolToVisibilityConverter.cs" />
+    <Compile Include="CompletedToStatusConverter.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="CustomDatePicker.xaml.cs">
       <DependentUpon>CustomDatePicker.xaml</DependentUpon>
@@ -183,6 +193,8 @@
     </Compile>
     <Compile Include="ExcelExporter.cs" />
     <Compile Include="IntToBoolConverter.cs" />
+    <Compile Include="ItemStyleConverter.cs" />
+    <Compile Include="Models\Appointment.cs" />
     <Compile Include="Models\EmployeeShiftReport.cs" />
     <Compile Include="Models\MonthlyReport.cs" />
     <Compile Include="Models\ShiftReport.cs" />
@@ -217,6 +229,8 @@
       <DependentUpon>ReportsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Services\Logger.cs" />
+    <Compile Include="StatusToBackgroundConverter.cs" />
+    <Compile Include="StatusToColorConverter.cs" />
     <Compile Include="ViewModels\ServiceViewModel.cs" />
     <Compile Include="StartShiftWindow.xaml.cs">
       <DependentUpon>StartShiftWindow.xaml</DependentUpon>
@@ -227,6 +241,14 @@
     </Compile>
     <Compile Include="ZeroToVisibilityConverter.cs" />
     <Page Include="AddEditServiceWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="AppointmentsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="AppointmentWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -272,6 +294,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="StartShiftWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Styles\OrderCardTemplate.xaml">
+      <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>

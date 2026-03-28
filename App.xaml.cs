@@ -17,7 +17,6 @@ namespace MyPanelCarWashing
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             {
                 var ex = args.ExceptionObject as Exception;
-                Logger.LogError(ex, "Unhandled exception");
                 MessageBox.Show($"Критическая ошибка: {ex?.Message}\n\nПриложение будет закрыто.",
                     "Критическая ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(1);
@@ -25,10 +24,10 @@ namespace MyPanelCarWashing
 
             DispatcherUnhandledException += (sender, args) =>
             {
-                Logger.LogError(args.Exception, "Unhandled UI exception");
-                MessageBox.Show($"Произошла ошибка: {args.Exception.Message}\n\nПриложение продолжит работу.",
-                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                args.Handled = true;
+                // Не показываем ошибку при каждом сбое, только логируем
+                System.Diagnostics.Debug.WriteLine($"Ошибка UI: {args.Exception.Message}");
+                System.Diagnostics.Debug.WriteLine(args.Exception.StackTrace);
+                args.Handled = true; // Помечаем как обработанную, чтобы приложение не падало
             };
 
             // Настройка DI

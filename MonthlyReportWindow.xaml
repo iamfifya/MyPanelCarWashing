@@ -10,7 +10,7 @@
         ResizeMode="CanResize"
         MinWidth="800" MinHeight="600"
         Width="900" Height="700"
-        Background="White" WindowState="Maximized">
+        Background="#F5F6FA" WindowState="Maximized">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>

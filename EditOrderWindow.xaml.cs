@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace MyPanelCarWashing
 {
@@ -60,6 +62,82 @@ namespace MyPanelCarWashing
 
             ExtraCostTextBox.Text = _order.ExtraCost.ToString();
             ExtraCostReasonTextBox.Text = _order.ExtraCostReason;
+
+            // Загружаем статус
+            if (!string.IsNullOrEmpty(_order.Status))
+            {
+                foreach (ComboBoxItem item in StatusComboBox.Items)
+                {
+                    string itemText = (item.Content as string)?.Replace("🟡 ", "").Replace("🟢 ", "").Replace("✅ ", "").Replace("❌ ", "") ?? "";
+                    if (itemText == _order.Status || item.Content.ToString().Contains(_order.Status))
+                    {
+                        StatusComboBox.SelectedItem = item;
+                        break;
+                    }
+                }
+            }
+
+            // Если это запись, настраиваем интерфейс для конвертации
+            if (_order.IsAppointment && _order.AppointmentId.HasValue && _order.Id == 0)
+            {
+                Title = "Редактирование записи (предварительная)";
+
+                // Делаем поля доступными для редактирования
+                CarModelTextBox.IsReadOnly = false;
+                CarNumberTextBox.IsReadOnly = false;
+                BodyTypeComboBox.IsEnabled = true;
+                OrderDatePicker.IsEnabled = true;
+                OrderTimeTextBox.IsReadOnly = false;
+                Box1Radio.IsEnabled = true;
+                Box2Radio.IsEnabled = true;
+                Box3Radio.IsEnabled = true;
+                ServicesListBox.IsEnabled = true;
+                ExtraCostTextBox.IsReadOnly = false;
+                ExtraCostReasonTextBox.IsReadOnly = false;
+
+                // Скрываем статус для записи
+                StatusComboBox.Visibility = Visibility.Collapsed;
+
+                // Показываем кнопку конвертации
+                ConvertToOrderButton.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                Title = "Редактирование заказа";
+                var convertButton = FindName("ConvertToOrderButton") as Button;
+
+                // Если это запись, настраиваем интерфейс для конвертации
+                if (_order.IsAppointment && _order.AppointmentId.HasValue && _order.Id == 0)
+                {
+                    Title = "Редактирование записи (предварительная)";
+
+                    // Делаем поля доступными для редактирования
+                    CarModelTextBox.IsReadOnly = false;
+                    CarNumberTextBox.IsReadOnly = false;
+                    BodyTypeComboBox.IsEnabled = true;
+                    OrderDatePicker.IsEnabled = true;
+                    OrderTimeTextBox.IsReadOnly = false;
+                    Box1Radio.IsEnabled = true;
+                    Box2Radio.IsEnabled = true;
+                    Box3Radio.IsEnabled = true;
+                    ServicesListBox.IsEnabled = true;
+                    ExtraCostTextBox.IsReadOnly = false;
+                    ExtraCostReasonTextBox.IsReadOnly = false;
+
+                    // Скрываем статус для записи
+                    StatusComboBox.Visibility = Visibility.Collapsed;
+
+                    // Показываем кнопку конвертации
+                    if (convertButton != null)
+                        convertButton.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    Title = "Редактирование заказа";
+                    if (convertButton != null)
+                        convertButton.Visibility = Visibility.Collapsed;
+                }
+            }
         }
 
         private void LoadServices()
@@ -168,6 +246,97 @@ namespace MyPanelCarWashing
             }
         }
 
+        private void ConvertToOrderButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Если это запись
+                if (_order.IsAppointment && _order.AppointmentId.HasValue)
+                {
+                    var appointment = _dataService.GetAppointmentById(_order.AppointmentId.Value);
+                    if (appointment != null && !appointment.IsCompleted)
+                    {
+                        var result = MessageBox.Show($"Преобразовать запись в заказ?\n\n" +
+                            $"🚗 {_order.CarModel} ({_order.CarNumber})\n" +
+                            $"📅 {_order.Time:dd.MM.yyyy HH:mm}\n\n" +
+                            $"После преобразования запись будет считаться выполненной, а заказ можно будет редактировать.",
+                            "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            // Получаем выбранные услуги
+                            var selectedServices = _services.Where(s => s.IsSelected).ToList();
+                            var serviceIds = selectedServices.Select(s => s.Id).ToList();
+
+                            // Создаем новый заказ
+                            var order = new CarWashOrder
+                            {
+                                CarModel = CarModelTextBox.Text,
+                                CarNumber = CarNumberTextBox.Text,
+                                CarBodyType = (BodyTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Седан",
+                                Time = OrderDatePicker.SelectedDate.Value.Date + TimeSpan.Parse(OrderTimeTextBox.Text),
+                                BoxNumber = Box1Radio.IsChecked == true ? 1 : (Box2Radio.IsChecked == true ? 2 : 3),
+                                ServiceIds = serviceIds,
+                                ExtraCost = _extraCost,
+                                ExtraCostReason = ExtraCostReasonTextBox.Text.Trim(),
+                                Status = "В ожидании",
+                                IsAppointment = false
+                            };
+
+                            // Рассчитываем сумму
+                            var allServices = _dataService.GetAllServices();
+                            order.TotalPrice = serviceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.Price ?? 0);
+
+                            // Если есть активная смена, добавляем заказ
+                            if (_currentShift != null && !_currentShift.IsClosed)
+                            {
+                                order.Id = _dataService.GetNextOrderId();
+                                order.ShiftId = _currentShift.Id;
+
+                                // Назначаем мойщика по умолчанию
+                                order.WasherId = _currentShift.EmployeeIds.FirstOrDefault();
+                                if (order.WasherId == 0)
+                                {
+                                    order.WasherId = 1;
+                                }
+
+                                _currentShift.Orders.Add(order);
+
+                                // Отмечаем запись как выполненную
+                                appointment.IsCompleted = true;
+                                appointment.OrderId = order.Id;
+
+                                _dataService.SaveData();
+
+                                MessageBox.Show($"✅ Заказ создан!\n\n" +
+                                    $"🚗 {order.CarModel} ({order.CarNumber})\n" +
+                                    $"📅 {order.Time:dd.MM.yyyy HH:mm}\n" +
+                                    $"💰 Сумма: {order.TotalPrice:N0} ₽",
+                                    "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                                DialogResult = true;
+                                Close();
+                            }
+                            else
+                            {
+                                MessageBox.Show("Нет активной смены! Сначала начните смену.", "Ошибка",
+                                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Это не предварительная запись", "Информация",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка");
+            }
+        }
+
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -244,6 +413,10 @@ namespace MyPanelCarWashing
                     return;
                 }
 
+                // Получаем статус
+                string status = (StatusComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "🟡 В ожидании";
+                status = status.Replace("🟡 ", "").Replace("🟢 ", "").Replace("✅ ", "").Replace("❌ ", "");
+
                 _order.CarModel = CarModelTextBox.Text;
                 _order.CarNumber = CarNumberTextBox.Text;
                 _order.CarBodyType = bodyType;
@@ -252,6 +425,7 @@ namespace MyPanelCarWashing
                 _order.WasherId = selectedWasher.Id;
                 _order.ExtraCost = extraCost;
                 _order.ExtraCostReason = extraReason;
+                _order.Status = status;
 
                 var serviceIds = selectedServices.Select(s => s.Id).ToList();
                 _dataService.UpdateOrderServices(_order.Id, serviceIds);
@@ -275,6 +449,7 @@ namespace MyPanelCarWashing
                         existingOrder.ExtraCostReason = _order.ExtraCostReason;
                         existingOrder.TotalPrice = _order.TotalPrice;
                         existingOrder.ServiceIds = serviceIds;
+                        existingOrder.Status = _order.Status;
                     }
                 }
                 FileDataService.SaveData(appData);
@@ -293,6 +468,7 @@ namespace MyPanelCarWashing
                     $"⏰ Время: {_order.Time:HH:mm dd.MM.yyyy}\n" +
                     $"💰 Услуги: {_order.TotalPrice:N0} ₽{extraMessage}\n" +
                     $"💵 Итоговая сумма: {_order.FinalPrice:N0} ₽\n" +
+                    $"📋 Статус: {_order.Status}\n" +
                     $"👤 Мойщику (35%): {_order.WasherEarnings:N0} ₽\n" +
                     $"🏢 Компании (65%): {_order.CompanyEarnings:N0} ₽",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);

@@ -3,8 +3,6 @@ using System;
 
 namespace MyPanelCarWashing
 {
-    // Статический класс для обратной совместимости
-    // В новых окнах используйте DI через конструктор
     public static class Core
     {
         private static DataService _dataService;

@@ -15,6 +15,9 @@ namespace MyPanelCarWashing.Services
         public DataService()
         {
             LoadData();
+            CleanupDuplicateServices(); // Очищаем дубликаты при загрузке
+            CleanupInvalidData(); // Добавляем очистку некорректных данных
+            _data.UpdateIds();
         }
 
         private void LoadData()
@@ -55,16 +58,22 @@ namespace MyPanelCarWashing.Services
         // Смены
         public Shift GetShiftByDate(DateTime date)
         {
-            // Ищем открытую смену на указанную дату
-            var openShift = _data.Shifts.FirstOrDefault(s => s.Date.Date == date.Date && !s.IsClosed);
+            // Используем только дату, игнорируя время и временную зону
+            var targetDate = date.Date;
 
-            if (openShift != null)
+            System.Diagnostics.Debug.WriteLine($"GetShiftByDate ищет смену на {targetDate:dd.MM.yyyy}");
+
+            // Выводим все смены для отладки
+            foreach (var s in _data.Shifts)
             {
-                return openShift;
+                System.Diagnostics.Debug.WriteLine($"  Смена: ID={s.Id}, Дата={s.Date:dd.MM.yyyy}, IsClosed={s.IsClosed}");
             }
 
-            // Если нет открытой смены, возвращаем null
-            return null;
+            var openShift = _data.Shifts.FirstOrDefault(s => s.Date.Date == targetDate && !s.IsClosed);
+
+            System.Diagnostics.Debug.WriteLine($"Результат: {(openShift != null ? $"найдена ID={openShift.Id}" : "не найдена")}");
+
+            return openShift;
         }
 
         public List<Shift> GetAllShifts()
@@ -169,10 +178,13 @@ namespace MyPanelCarWashing.Services
 
         public void StartShift(DateTime date, List<int> employeeIds)
         {
+            System.Diagnostics.Debug.WriteLine($"StartShift вызван для даты {date:dd.MM.yyyy}");
+
             // Удаляем существующую открытую смену на эту дату
             var existingShift = _data.Shifts.FirstOrDefault(s => s.Date.Date == date.Date && !s.IsClosed);
             if (existingShift != null)
             {
+                System.Diagnostics.Debug.WriteLine($"  Удаляем существующую смену ID={existingShift.Id}");
                 _data.Shifts.Remove(existingShift);
             }
 
@@ -186,8 +198,14 @@ namespace MyPanelCarWashing.Services
                 EmployeeIds = employeeIds,
                 Orders = new List<CarWashOrder>()
             };
+
+            System.Diagnostics.Debug.WriteLine($"  Создаем новую смену ID={shift.Id}, Дата={shift.Date:dd.MM.yyyy}");
             _data.Shifts.Add(shift);
             SaveData();
+
+            // Проверяем, что сохранилось
+            var saved = _data.Shifts.FirstOrDefault(s => s.Id == shift.Id);
+            System.Diagnostics.Debug.WriteLine($"  После сохранения: {(saved != null ? $"OK, ID={saved.Id}, Дата={saved.Date:dd.MM.yyyy}" : "НЕ СОХРАНИЛОСЬ!")}");
         }
         public Shift GetShiftById(int shiftId)
         {
@@ -206,6 +224,227 @@ namespace MyPanelCarWashing.Services
         public async Task AddOrderAsync(CarWashOrder order, List<int> serviceIds)
         {
             await Task.Run(() => AddOrder(order, serviceIds));
+        }
+        // Получить все записи
+        public List<Appointment> GetAllAppointments()
+        {
+            return _data.Appointments.OrderBy(a => a.AppointmentDate).ToList();
+        }
+
+        // Получить записи на конкретную дату
+        public List<Appointment> GetAppointmentsByDate(DateTime date)
+        {
+            return _data.Appointments
+                .Where(a => a.AppointmentDate.Date == date.Date && !a.IsCompleted)
+                .OrderBy(a => a.AppointmentDate)
+                .ToList();
+        }
+
+        public bool IsBoxAvailable(int boxNumber, DateTime startTime, int durationMinutes)
+        {
+            var endTime = startTime.AddMinutes(durationMinutes);
+
+            // Получаем ВСЕ записи на эту дату (независимо от бокса, так как мойка одна)
+            var appointments = _data.Appointments
+                .Where(a => !a.IsCompleted && a.AppointmentDate.Date == startTime.Date)
+                .ToList();
+
+            // Проверяем пересечения
+            foreach (var a in appointments)
+            {
+                var aStart = a.AppointmentDate;
+                var aEnd = a.EndTime;
+
+                // Если интервалы пересекаются
+                if (endTime > aStart && startTime < aEnd)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public void ClearAllData()
+        {
+            _data.Shifts.Clear();
+            _data.Appointments.Clear();
+            SaveData();
+            System.Diagnostics.Debug.WriteLine("Все данные очищены");
+        }
+
+        
+
+        private void CleanupInvalidData()
+        {
+            // Удаляем заказы, у которых IsAppointment = true, но нет соответствующей записи
+            var invalidOrders = _data.Shifts
+                .SelectMany(s => s.Orders)
+                .Where(o => o.IsAppointment && !_data.Appointments.Any(a => a.Id == o.AppointmentId))
+                .ToList();
+
+            foreach (var order in invalidOrders)
+            {
+                var shift = _data.Shifts.FirstOrDefault(s => s.Orders.Contains(order));
+                if (shift != null)
+                {
+                    shift.Orders.Remove(order);
+                    System.Diagnostics.Debug.WriteLine($"Удален некорректный заказ ID={order.Id}");
+                }
+            }
+
+            // Удаляем пустые смены
+            _data.Shifts.RemoveAll(s => s.Orders.Count == 0 && s.IsClosed);
+
+            if (invalidOrders.Any())
+            {
+                SaveData();
+            }
+        }
+
+
+        // Добавить запись
+        public void AddAppointment(Appointment appointment)
+        {
+            // Проверяем доступность перед добавлением
+            if (!IsBoxAvailable(appointment.BoxNumber, appointment.AppointmentDate, appointment.DurationMinutes))
+            {
+                throw new Exception("Выбранное время уже занято!");
+            }
+
+            appointment.Id = _data.GetNextAppointmentId();
+            _data.Appointments.Add(appointment);
+            SaveData();
+
+            System.Diagnostics.Debug.WriteLine($"=== ЗАПИСЬ ДОБАВЛЕНА ===");
+            System.Diagnostics.Debug.WriteLine($"ID: {appointment.Id}");
+            System.Diagnostics.Debug.WriteLine($"Время: {appointment.AppointmentDate:HH:mm} - {appointment.EndTime:HH:mm}");
+        }
+
+        // Удалить запись
+        public void DeleteAppointment(int appointmentId)
+        {
+            var appointment = _data.Appointments.FirstOrDefault(a => a.Id == appointmentId);
+            if (appointment != null)
+            {
+                _data.Appointments.Remove(appointment);
+                SaveData();
+            }
+        }
+
+        // Преобразовать запись в заказ при наступлении смены
+        public CarWashOrder ConvertAppointmentToOrder(Appointment appointment, int shiftId, int washerId)
+        {
+            var selectedServices = _data.Services.Where(s => appointment.ServiceIds.Contains(s.Id)).ToList();
+            decimal totalPrice = selectedServices.Sum(s => s.Price);
+
+            var order = new CarWashOrder
+            {
+                Id = _data.GetNextOrderId(),
+                CarNumber = appointment.CarNumber,
+                CarModel = appointment.CarModel,
+                CarBodyType = appointment.CarBodyType,
+                Time = appointment.AppointmentDate,
+                ShiftId = shiftId,
+                BoxNumber = appointment.BoxNumber,
+                WasherId = washerId,
+                ServiceIds = appointment.ServiceIds.ToList(),
+                ExtraCost = appointment.ExtraCost,
+                ExtraCostReason = appointment.ExtraCostReason,
+                Notes = appointment.Notes,
+                Status = "В ожидании",
+                TotalPrice = totalPrice,
+                IsAppointment = true,
+                AppointmentId = appointment.Id
+            };
+
+            appointment.IsCompleted = true;
+            appointment.OrderId = order.Id;
+            SaveData();
+
+            return order;
+        }
+        public Appointment GetAppointmentById(int appointmentId)
+        {
+            return _data.Appointments.FirstOrDefault(a => a.Id == appointmentId);
+        }
+        public void UpdateOrderStatus(int orderId, string status)
+        {
+            var order = GetOrderById(orderId);
+            if (order != null)
+            {
+                order.Status = status;
+                SaveData();
+            }
+        }
+
+        // Добавьте этот метод в класс DataService
+        public int GetNextOrderId()
+        {
+            return _data.GetNextOrderId();
+        }
+
+        private void CleanupDuplicateServices()
+        {
+            // Находим дубликаты по ID
+            var duplicateIds = _data.Services
+                .GroupBy(s => s.Id)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicateIds.Any())
+            {
+                System.Diagnostics.Debug.WriteLine($"Найдены дубликаты ID: {string.Join(", ", duplicateIds)}");
+
+                // Группируем по ID и оставляем только первую запись
+                var cleanedServices = _data.Services
+                    .GroupBy(s => s.Id)
+                    .Select(g => g.First())
+                    .OrderBy(s => s.Id)
+                    .ToList();
+
+                _data.Services = cleanedServices;
+
+                // Находим дубликаты по названию
+                var duplicateNames = _data.Services
+                    .GroupBy(s => s.Name)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                if (duplicateNames.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine($"Найдены дубликаты названий: {string.Join(", ", duplicateNames)}");
+
+                    // Оставляем только одну услугу с каждым названием
+                    cleanedServices = _data.Services
+                        .GroupBy(s => s.Name)
+                        .Select(g => g.First())
+                        .OrderBy(s => s.Id)
+                        .ToList();
+
+                    _data.Services = cleanedServices;
+                }
+
+                // Перенумеровываем ID
+                int newId = 1;
+                foreach (var service in _data.Services.OrderBy(s => s.Id))
+                {
+                    service.Id = newId++;
+                }
+
+                SaveData();
+                System.Diagnostics.Debug.WriteLine($"Дубликаты удалены. Осталось услуг: {_data.Services.Count}");
+            }
+        }
+        public void AddService(Service service)
+        {
+            service.Id = _data.GetNextServiceId();
+            _data.Services.Add(service);
+            SaveData();
+
+            System.Diagnostics.Debug.WriteLine($"Добавлена услуга: ID={service.Id}, Name={service.Name}, Price={service.Price}");
         }
     }
 }

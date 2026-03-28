@@ -72,7 +72,10 @@ namespace MyPanelCarWashing
                     return;
                 }
 
+                // Получаем все смены
                 var allShifts = _dataService.GetAllShifts();
+
+                // Проверяем, есть ли открытая смена на выбранную дату
                 var existingOpenShift = allShifts.FirstOrDefault(s => s.Date.Date == SelectedDate.Date && !s.IsClosed);
 
                 if (existingOpenShift != null)
@@ -89,21 +92,29 @@ namespace MyPanelCarWashing
                     }
 
                     CloseExistingShift(existingOpenShift);
-                    allShifts.Remove(existingOpenShift);
                 }
 
+                // Создаем новую смену
                 var newShift = new Shift
                 {
                     Id = allShifts.Any() ? allShifts.Max(s => s.Id) + 1 : 1,
-                    Date = SelectedDate,
+                    Date = SelectedDate.Date,
                     StartTime = DateTime.Now,
                     IsClosed = false,
                     EmployeeIds = selectedEmployees.Select(emp => emp.Id).ToList(),
                     Orders = new List<CarWashOrder>()
                 };
 
+                // КОНВЕРТИРУЕМ ЗАПИСИ НА СЕГОДНЯ В ЗАКАЗЫ
+                if (SelectedDate.Date == DateTime.Now.Date)
+                {
+                    ConvertTodayAppointmentsToOrders(newShift);
+                }
+
+                // Добавляем новую смену
                 allShifts.Add(newShift);
 
+                // Сохраняем
                 var appData = FileDataService.LoadData();
                 appData.Shifts = allShifts;
                 FileDataService.SaveData(appData);
@@ -111,7 +122,8 @@ namespace MyPanelCarWashing
                 MessageBox.Show($"Смена на {SelectedDate:dd.MM.yyyy} успешно открыта!\n\n" +
                     $"Сотрудников: {selectedEmployees.Count}\n" +
                     $"Список: {string.Join(", ", selectedEmployees.Select(s => s.FullName))}\n" +
-                    $"Время начала: {DateTime.Now:HH:mm:ss}",
+                    $"Время начала: {DateTime.Now:HH:mm:ss}" +
+                    (newShift.Orders.Any() ? $"\n\n📋 Добавлено {newShift.Orders.Count} предварительных записей" : ""),
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
@@ -122,6 +134,35 @@ namespace MyPanelCarWashing
                 MessageBox.Show($"Ошибка при открытии смены: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // Метод для конвертации записей в заказы
+        private void ConvertTodayAppointmentsToOrders(Shift shift)
+        {
+            var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+
+            if (!todayAppointments.Any()) return;
+
+            // Получаем всех сотрудников для выбора мойщика
+            var allUsers = _dataService.GetAllUsers();
+
+            foreach (var appointment in todayAppointments)
+            {
+                // Назначаем мойщика по умолчанию (первого из списка сотрудников смены)
+                int defaultWasherId = shift.EmployeeIds.FirstOrDefault();
+                if (defaultWasherId == 0)
+                {
+                    // Если в смене нет сотрудников, берем первого пользователя (админа)
+                    defaultWasherId = allUsers.FirstOrDefault()?.Id ?? 1;
+                }
+
+                var order = _dataService.ConvertAppointmentToOrder(appointment, shift.Id, defaultWasherId);
+                shift.Orders.Add(order);
+
+                System.Diagnostics.Debug.WriteLine($"Конвертирована запись: {appointment.CarModel} ({appointment.CarNumber}) в {appointment.AppointmentDate:HH:mm}");
+            }
+
+            _dataService.SaveData();
         }
 
         private void CloseExistingShift(Shift shift)
@@ -172,6 +213,17 @@ namespace MyPanelCarWashing
                 }
 
                 SaveShiftReport(report);
+
+                // Удаляем старую смену из данных
+                var allShifts = _dataService.GetAllShifts();
+                var shiftToRemove = allShifts.FirstOrDefault(s => s.Id == shift.Id);
+                if (shiftToRemove != null)
+                {
+                    allShifts.Remove(shiftToRemove);
+                    var appData = FileDataService.LoadData();
+                    appData.Shifts = allShifts;
+                    FileDataService.SaveData(appData);
+                }
             }
             catch (Exception ex)
             {

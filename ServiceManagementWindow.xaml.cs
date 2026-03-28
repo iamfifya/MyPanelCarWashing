@@ -10,13 +10,13 @@ namespace MyPanelCarWashing
 {
     public partial class ServiceManagementWindow : Window
     {
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private List<Service> _allServices;
 
-        public ServiceManagementWindow(DataService dataService)
+        public ServiceManagementWindow()
         {
             InitializeComponent();
-            _dataService = dataService;
+            _dataService = new DataService();
             LoadServices();
         }
 
@@ -24,6 +24,8 @@ namespace MyPanelCarWashing
         {
             _allServices = _dataService.GetAllServices().ToList();
             ApplyFilter();
+
+            System.Diagnostics.Debug.WriteLine($"Загружено услуг: {_allServices.Count}");
         }
 
         private void ApplyFilter()
@@ -53,6 +55,8 @@ namespace MyPanelCarWashing
             var addWin = new AddEditServiceWindow(_dataService, null);
             if (addWin.ShowDialog() == true)
             {
+                // Обновляем DataService и список после добавления
+                _dataService = new DataService();
                 LoadServices();
                 MessageBox.Show("Услуга добавлена", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
@@ -72,6 +76,8 @@ namespace MyPanelCarWashing
             var editWin = new AddEditServiceWindow(_dataService, selectedService);
             if (editWin.ShowDialog() == true)
             {
+                // Обновляем DataService и список после редактирования
+                _dataService = new DataService();
                 LoadServices();
                 MessageBox.Show("Услуга обновлена", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
@@ -101,6 +107,9 @@ namespace MyPanelCarWashing
                     {
                         appData.Services.Remove(serviceToDelete);
                         FileDataService.SaveData(appData);
+
+                        // Обновляем DataService и список
+                        _dataService = new DataService();
                         LoadServices();
                         MessageBox.Show("Услуга удалена", "Успешно",
                             MessageBoxButton.OK, MessageBoxImage.Information);
@@ -116,6 +125,7 @@ namespace MyPanelCarWashing
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
+            _dataService = new DataService();
             LoadServices();
             MessageBox.Show("Список услуг обновлен", "Обновление",
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -124,6 +134,49 @@ namespace MyPanelCarWashing
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+        private void CheckIntegrityButton_Click(object sender, RoutedEventArgs e)
+        {
+            var allServices = _dataService.GetAllServices();
+
+            var duplicateIds = allServices
+                .GroupBy(s => s.Id)
+                .Where(g => g.Count() > 1)
+                .ToList();
+
+            var duplicateNames = allServices
+                .GroupBy(s => s.Name)
+                .Where(g => g.Count() > 1)
+                .ToList();
+
+            string message = $"Всего услуг: {allServices.Count}\n\n";
+
+            if (duplicateIds.Any())
+            {
+                message += $"⚠️ Найдены дубликаты по ID:\n";
+                foreach (var group in duplicateIds)
+                {
+                    message += $"  ID {group.Key}: {group.Count()} услуг\n";
+                }
+                message += "\n";
+            }
+
+            if (duplicateNames.Any())
+            {
+                message += $"⚠️ Найдены дубликаты по названию:\n";
+                foreach (var group in duplicateNames)
+                {
+                    message += $"  \"{group.Key}\": {group.Count()} услуг\n";
+                }
+            }
+
+            if (!duplicateIds.Any() && !duplicateNames.Any())
+            {
+                message += "✅ Дубликатов не найдено";
+            }
+
+            MessageBox.Show(message, "Проверка целостности", MessageBoxButton.OK,
+                duplicateIds.Any() || duplicateNames.Any() ? MessageBoxImage.Warning : MessageBoxImage.Information);
         }
     }
 }

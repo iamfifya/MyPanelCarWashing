@@ -19,6 +19,9 @@ namespace MyPanelCarWashing.Models
             ErrorMessage = "Неверный формат госномера (пример: А123ВС77)")]
         public string CarNumber { get; set; }
 
+        public bool IsAppointment { get; set; } = false; // Признак предварительной записи
+        public int? AppointmentId { get; set; } // ID исходной записи
+
         public string CarBodyType { get; set; }
         public DateTime Time { get; set; }
         public decimal TotalPrice { get; set; }
@@ -42,6 +45,7 @@ namespace MyPanelCarWashing.Models
         public string BoxName => $"Бокс {BoxNumber}";
 
         public string Error => null;
+        public string Status { get; set; } = "В ожидании";
 
         public string this[string columnName]
         {

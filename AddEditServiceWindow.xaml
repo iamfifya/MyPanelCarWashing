@@ -1,4 +1,4 @@
-﻿<Window x:Class="MyPanelCarWashing.AddEditServiceWindow"
+<Window x:Class="MyPanelCarWashing.AddEditServiceWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -9,7 +9,7 @@
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Width="450" Height="700"
-        Background="White">
+        Background="#F5F6FA">
 
     <Grid Margin="15">
         <Grid.RowDefinitions>

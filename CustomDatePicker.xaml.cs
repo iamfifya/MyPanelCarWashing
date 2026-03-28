@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -8,6 +8,7 @@ namespace MyPanelCarWashing
 {
     public partial class CustomDatePicker : UserControl
     {
+        public event EventHandler<DateTime?> SelectedDateChanged;
         private DateTime _currentDate;
         private bool _isUpdating;
         private bool _isInitialized;
@@ -31,9 +32,13 @@ namespace MyPanelCarWashing
                 {
                     DateTextBox.Text = value.HasValue ? value.Value.ToString("dd.MM.yyyy") : "";
                     UpdateCalendar();
+
+                    // Вызываем событие
+                    SelectedDateChanged?.Invoke(this, value);
                 }
             }
         }
+
 
         private static void OnSelectedDateChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {

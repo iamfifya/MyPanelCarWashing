@@ -1,7 +1,8 @@
-﻿using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Models;
 using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Linq;
 
 public static class FileDataService
 {
@@ -11,6 +12,25 @@ public static class FileDataService
     {
         try
         {
+            // Проверка на дубликаты ID в услугах перед сохранением
+            var duplicateIds = data.Services
+                .GroupBy(s => s.Id)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicateIds.Any())
+            {
+                System.Diagnostics.Debug.WriteLine($"Предупреждение: найдены дубликаты ID услуг: {string.Join(", ", duplicateIds)}");
+
+                // Оставляем только уникальные услуги
+                data.Services = data.Services
+                    .GroupBy(s => s.Id)
+                    .Select(g => g.First())
+                    .OrderBy(s => s.Id)
+                    .ToList();
+            }
+
             var json = JsonConvert.SerializeObject(data, Formatting.Indented);
             File.WriteAllText(dataPath, json);
         }

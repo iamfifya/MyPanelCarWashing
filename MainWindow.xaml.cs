@@ -3,10 +3,12 @@ using MyPanelCarWashing.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace MyPanelCarWashing
 {
@@ -14,16 +16,180 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private List<CarWashOrder> _allOrders;
-        private Shift _currentShift;  // Не readonly, чтобы можно было изменять
+        private Shift _currentShift;
         private User _currentUser;
         private string _searchFilter = "";
         private List<WasherStat> _washersStats;
         private decimal _companyEarnings;
+        private decimal _totalRevenue;
 
         public string CurrentShiftInfo { get; private set; }
         public string TotalOrdersInfo { get; private set; }
+
+        // Добавляем свойство для выбранного элемента
+        private OrderDisplayItem _selectedItem;
+        public OrderDisplayItem SelectedItem
+        {
+            get => _selectedItem;
+            set
+            {
+                // Сбрасываем выделение у предыдущего элемента
+                if (_selectedItem != null)
+                {
+                    _selectedItem.IsSelected = false;
+                }
+
+                _selectedItem = value;
+
+                // Устанавливаем выделение новому элементу
+                if (_selectedItem != null)
+                {
+                    _selectedItem.IsSelected = true;
+                }
+
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedItem)));
+
+                // Принудительно обновляем UI
+                RefreshItems();
+            }
+        }
+
+        private void RefreshItems()
+        {
+            // Обновляем списки, чтобы UI перерисовался
+            var temp1 = Box1Items;
+            Box1Items = null;
+            Box1Items = temp1;
+
+            var temp2 = Box2Items;
+            Box2Items = null;
+            Box2Items = temp2;
+
+            var temp3 = Box3Items;
+            Box3Items = null;
+            Box3Items = temp3;
+        }
+
+        private List<OrderDisplayItem> _box1Items;
+        private List<OrderDisplayItem> _box2Items;
+        private List<OrderDisplayItem> _box3Items;
+
+        public List<OrderDisplayItem> Box1Items
+        {
+            get => _box1Items;
+            set
+            {
+                _box1Items = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box1Items)));
+            }
+        }
+
+        public List<OrderDisplayItem> Box2Items
+        {
+            get => _box2Items;
+            set
+            {
+                _box2Items = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box2Items)));
+            }
+        }
+
+        public List<OrderDisplayItem> Box3Items
+        {
+            get => _box3Items;
+            set
+            {
+                _box3Items = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box3Items)));
+            }
+        }
+        private void LoadData()
+        {
+            try
+            {
+                _currentShift = _dataService.GetShiftByDate(DateTime.Now);
+
+                // Получаем заказы из смены
+                if (_currentShift != null && !_currentShift.IsClosed)
+                {
+                    if (_currentShift.Orders != null)
+                    {
+                        _allOrders = _currentShift.Orders.ToList();
+                    }
+                    else
+                    {
+                        _allOrders = new List<CarWashOrder>();
+                    }
+                }
+                else
+                {
+                    _allOrders = new List<CarWashOrder>();
+                }
+
+                // Получаем записи на сегодня
+                var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+
+                // Создаем отображаемые элементы
+                var allServices = _dataService.GetAllServices();
+
+                // Заказы
+                var orderItems = _allOrders.Select(o => new OrderDisplayItem
+                {
+                    CarModel = o.CarModel,
+                    CarNumber = o.CarNumber,
+                    Time = o.Time,
+                    WasherName = GetWasherName(o.WasherId),
+                    ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
+                    FinalPrice = o.FinalPrice,
+                    ExtraCost = o.ExtraCost,
+                    ExtraCostReason = o.ExtraCostReason,
+                    BoxNumber = o.BoxNumber,
+                    Status = o.Status,
+                    IsAppointment = false,
+                    IsCompleted = false
+                }).ToList();
+
+                // Записи
+                var appointmentItems = todayAppointments.Select(a => new OrderDisplayItem
+                {
+                    CarModel = a.CarModel,
+                    CarNumber = a.CarNumber,
+                    Time = a.AppointmentDate,
+                    WasherName = "📅 Запись",
+                    ServicesList = string.Join(", ", a.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
+                    FinalPrice = a.ServiceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.Price ?? 0) + a.ExtraCost,
+                    ExtraCost = a.ExtraCost,
+                    ExtraCostReason = a.ExtraCostReason,
+                    BoxNumber = a.BoxNumber,
+                    Status = "Предварительная запись",
+                    IsAppointment = true,
+                    IsCompleted = a.IsCompleted,
+                    AppointmentId = a.Id
+                }).ToList();
+
+                // Объединяем и сортируем по времени
+                var allItems = orderItems.Concat(appointmentItems)
+                    .OrderBy(i => i.Time)
+                    .ToList();
+
+                // Сбрасываем выделение
+                SelectedItem = null;
+
+                // Распределяем по боксам
+                Box1Items = allItems.Where(i => i.BoxNumber == 1).ToList();
+                Box2Items = allItems.Where(i => i.BoxNumber == 2).ToList();
+                Box3Items = allItems.Where(i => i.BoxNumber == 3).ToList();
+
+                UpdateInfo();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         public List<WasherStat> WashersStats
         {
@@ -45,6 +211,16 @@ namespace MyPanelCarWashing
             }
         }
 
+        public decimal TotalRevenue
+        {
+            get => _totalRevenue;
+            set
+            {
+                _totalRevenue = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalRevenue)));
+            }
+        }
+
         public MainWindow(DataService dataService, User user)
         {
             InitializeComponent();
@@ -54,41 +230,28 @@ namespace MyPanelCarWashing
             LoadData();
         }
 
-        private void LoadData()
+        // Метод для установки пользователя (используется если MainWindow создается через DI)
+        public void SetUser(User user)
         {
-            try
-            {
-                _currentShift = _dataService.GetShiftByDate(DateTime.Now);
-
-                if (_currentShift != null && !_currentShift.IsClosed)
-                {
-                    if (_currentShift.Orders != null)
-                    {
-                        _allOrders = _currentShift.Orders.ToList();
-                    }
-                    else
-                    {
-                        _allOrders = new List<CarWashOrder>();
-                    }
-                }
-                else
-                {
-                    _allOrders = new List<CarWashOrder>();
-                }
-
-                ApplyFilterAndDisplay();
-                UpdateInfo();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                _allOrders = new List<CarWashOrder>();
-            }
+            _currentUser = user;
+            LoadData();
         }
 
         private void ApplyFilterAndDisplay()
         {
+            // Если нет заказов, но есть записи, они уже загружены через LoadAppointmentsToDisplay
+            if (_allOrders == null || !_allOrders.Any())
+            {
+                // Проверяем, не загружены ли уже записи через ShowAppointmentsAsWarning
+                if (Box1ItemsControl.ItemsSource == null || !(Box1ItemsControl.ItemsSource as IEnumerable<object>)?.Any() == true)
+                {
+                    Box1ItemsControl.ItemsSource = new List<OrderDisplayItem>();
+                    Box2ItemsControl.ItemsSource = new List<OrderDisplayItem>();
+                    Box3ItemsControl.ItemsSource = new List<OrderDisplayItem>();
+                }
+                return;
+            }
+
             var filteredOrders = _allOrders.AsEnumerable();
 
             if (!string.IsNullOrWhiteSpace(_searchFilter))
@@ -111,7 +274,9 @@ namespace MyPanelCarWashing
                 FinalPrice = o.FinalPrice,
                 ExtraCost = o.ExtraCost,
                 ExtraCostReason = o.ExtraCostReason,
-                BoxNumber = o.BoxNumber
+                BoxNumber = o.BoxNumber,
+                Status = o.Status,
+                IsAppointment = o.IsAppointment
             }).ToList();
 
             var box2Orders = sortedOrders.Where(o => o.BoxNumber == 2).Select(o => new OrderDisplayItem
@@ -124,7 +289,9 @@ namespace MyPanelCarWashing
                 FinalPrice = o.FinalPrice,
                 ExtraCost = o.ExtraCost,
                 ExtraCostReason = o.ExtraCostReason,
-                BoxNumber = o.BoxNumber
+                BoxNumber = o.BoxNumber,
+                Status = o.Status,
+                IsAppointment = o.IsAppointment
             }).ToList();
 
             var box3Orders = sortedOrders.Where(o => o.BoxNumber == 3).Select(o => new OrderDisplayItem
@@ -137,7 +304,9 @@ namespace MyPanelCarWashing
                 FinalPrice = o.FinalPrice,
                 ExtraCost = o.ExtraCost,
                 ExtraCostReason = o.ExtraCostReason,
-                BoxNumber = o.BoxNumber
+                BoxNumber = o.BoxNumber,
+                Status = o.Status,
+                IsAppointment = o.IsAppointment
             }).ToList();
 
             Box1ItemsControl.ItemsSource = box1Orders;
@@ -157,23 +326,25 @@ namespace MyPanelCarWashing
             {
                 CurrentShiftInfo = $"📅 Смена: {_currentShift.Date:dd.MM.yyyy} | Начало: {_currentShift.StartTime:HH:mm}";
 
-                var totalRevenue = _allOrders.Sum(o => o.FinalPrice);
+                TotalRevenue = _allOrders.Sum(o => o.FinalPrice);
                 var totalWasherEarnings = _allOrders.Sum(o => o.WasherEarnings);
                 CompanyEarnings = _allOrders.Sum(o => o.CompanyEarnings);
 
-                TotalOrdersInfo = $"🚗 Всего машин: {_allOrders.Count} | 💰 Выручка: {totalRevenue:N0} ₽ | " +
-                                  $"👤 Мойщикам: {totalWasherEarnings:N0} ₽ | 🏢 Компании: {CompanyEarnings:N0} ₽";
+                TotalOrdersInfo = $"🚗 Всего машин: {_allOrders.Count} | 💰 Выручка: {TotalRevenue:N0} ₽ | " +
+                    $"👤 Мойщикам: {totalWasherEarnings:N0} ₽ | 🏢 Компании: {CompanyEarnings:N0} ₽";
             }
             else if (_currentShift != null && _currentShift.IsClosed)
             {
                 CurrentShiftInfo = $"📅 Смена закрыта: {_currentShift.Date:dd.MM.yyyy}";
-                TotalOrdersInfo = $"🚗 Итого за смену: {_allOrders.Count} машин | 💰 {_allOrders.Sum(o => o.FinalPrice):N0} ₽";
+                TotalRevenue = _allOrders.Sum(o => o.FinalPrice);
+                TotalOrdersInfo = $"🚗 Итого за смену: {_allOrders.Count} машин | 💰 {TotalRevenue:N0} ₽";
                 CompanyEarnings = 0;
             }
             else
             {
                 CurrentShiftInfo = "⏰ Нет активной смены. Начните смену!";
                 TotalOrdersInfo = "";
+                TotalRevenue = 0;
                 CompanyEarnings = 0;
             }
 
@@ -183,6 +354,7 @@ namespace MyPanelCarWashing
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalOrdersInfo)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WashersStats)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarnings)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalRevenue)));
         }
 
         private void UpdateWashersStats()
@@ -194,14 +366,21 @@ namespace MyPanelCarWashing
             }
 
             var allUsers = _dataService.GetAllUsers();
+            var totalShiftRevenue = _allOrders.Sum(o => o.FinalPrice);
 
             var stats = _allOrders
                 .GroupBy(o => o.WasherId)
-                .Select(g => new WasherStat
+                .Select(g =>
                 {
-                    WasherName = allUsers.FirstOrDefault(u => u.Id == g.Key)?.FullName ?? "Неизвестный",
-                    CarsCount = g.Count(),
-                    Earnings = g.Sum(o => o.WasherEarnings)
+                    var washerRevenue = g.Sum(o => o.FinalPrice);
+                    return new WasherStat
+                    {
+                        WasherName = allUsers.FirstOrDefault(u => u.Id == g.Key)?.FullName ?? "Неизвестный",
+                        CarsCount = g.Count(),
+                        Earnings = g.Sum(o => o.WasherEarnings),
+                        TotalRevenue = washerRevenue,
+                        Percentage = totalShiftRevenue > 0 ? (washerRevenue / totalShiftRevenue) * 100m : 0m
+                    };
                 })
                 .OrderByDescending(s => s.Earnings)
                 .ToList();
@@ -214,7 +393,6 @@ namespace MyPanelCarWashing
             _searchFilter = SearchFilterTextBox.Text;
             ApplyFilterAndDisplay();
         }
-
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
             if (_currentShift == null || _currentShift.IsClosed)
@@ -243,7 +421,7 @@ namespace MyPanelCarWashing
             if (startWin.ShowDialog() == true)
             {
                 LoadData();
-                MessageBox.Show($"Смена на {startWin.SelectedDate:dd.MM.yyyy} успешно начата!", "Успешно",
+                MessageBox.Show($"Смена успешно начата!", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -334,15 +512,6 @@ namespace MyPanelCarWashing
                 appData.Shifts = allShifts;
                 FileDataService.SaveData(appData);
 
-                // Вместо _dataService = new DataService();
-                // Просто перезагрузите данные через RefreshData или LoadData
-
-                // Удалите или закомментируйте эту строку:
-                // _dataService = new DataService();
-
-                // Или если нужно обновить данные, используйте:
-                Core.RefreshData(); // если есть такой метод
-
                 LoadData();
 
                 MessageBox.Show($"Смена успешно закрыта!\n\n" +
@@ -365,17 +534,15 @@ namespace MyPanelCarWashing
         {
             try
             {
-                string reportsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-                if (!System.IO.Directory.Exists(reportsPath))
-                    System.IO.Directory.CreateDirectory(reportsPath);
+                string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+                if (!Directory.Exists(reportsPath))
+                    Directory.CreateDirectory(reportsPath);
 
                 string fileName = $"ShiftReport_{report.Date:yyyy-MM-dd_HHmmss}.json";
-                string filePath = System.IO.Path.Combine(reportsPath, fileName);
+                string filePath = Path.Combine(reportsPath, fileName);
 
                 var json = Newtonsoft.Json.JsonConvert.SerializeObject(report, Newtonsoft.Json.Formatting.Indented);
-                System.IO.File.WriteAllText(filePath, json);
-
-                System.Diagnostics.Debug.WriteLine($"Отчет сохранен: {filePath}");
+                File.WriteAllText(filePath, json);
             }
             catch (Exception ex)
             {
@@ -385,7 +552,7 @@ namespace MyPanelCarWashing
 
         private void ServicesButton_Click(object sender, RoutedEventArgs e)
         {
-            var servicesWin = new ServiceManagementWindow(_dataService);
+            var servicesWin = new ServiceManagementWindow(); // Без параметров
             servicesWin.ShowDialog();
         }
 
@@ -399,42 +566,12 @@ namespace MyPanelCarWashing
         {
             Application.Current.Shutdown();
         }
-        // Добавьте эти методы в конец класса MainWindow перед закрывающей скобкой
 
         private void EditOrderMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            // Находим выбранный заказ через контекстное меню
-            var menuItem = sender as MenuItem;
-            var contextMenu = menuItem?.Parent as ContextMenu;
-            var groupBox = contextMenu?.PlacementTarget as GroupBox;
-
-            if (groupBox == null) return;
-
-            // Определяем, какой ItemsControl используется
-            ItemsControl itemsControl = null;
-            if (groupBox.Header.ToString().Contains("Бокс 1"))
-                itemsControl = Box1ItemsControl;
-            else if (groupBox.Header.ToString().Contains("Бокс 2"))
-                itemsControl = Box2ItemsControl;
-            else if (groupBox.Header.ToString().Contains("Бокс 3"))
-                itemsControl = Box3ItemsControl;
-
-            if (itemsControl == null) return;
-
-            // Получаем выбранный элемент
-            var selectedOrder = itemsControl.ItemsSource?.Cast<OrderDisplayItem>().FirstOrDefault();
-            if (selectedOrder != null)
+            if (SelectedItem != null)
             {
-                var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == selectedOrder.CarNumber &&
-                                                                    o.Time == selectedOrder.Time);
-                if (originalOrder != null && _currentShift != null)
-                {
-                    var editWin = new EditOrderWindow(_dataService, originalOrder, _currentShift);
-                    if (editWin.ShowDialog() == true)
-                    {
-                        LoadData();
-                    }
-                }
+                OpenEditOrder(SelectedItem);
             }
             else
             {
@@ -445,50 +582,37 @@ namespace MyPanelCarWashing
 
         private void DeleteOrderMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var menuItem = sender as MenuItem;
-            var contextMenu = menuItem?.Parent as ContextMenu;
-            var groupBox = contextMenu?.PlacementTarget as GroupBox;
-
-            if (groupBox == null) return;
-
-            ItemsControl itemsControl = null;
-            if (groupBox.Header.ToString().Contains("Бокс 1"))
-                itemsControl = Box1ItemsControl;
-            else if (groupBox.Header.ToString().Contains("Бокс 2"))
-                itemsControl = Box2ItemsControl;
-            else if (groupBox.Header.ToString().Contains("Бокс 3"))
-                itemsControl = Box3ItemsControl;
-
-            if (itemsControl == null) return;
-
-            var selectedOrder = itemsControl.ItemsSource?.Cast<OrderDisplayItem>().FirstOrDefault();
-            if (selectedOrder != null)
+            if (SelectedItem != null)
             {
-                var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == selectedOrder.CarNumber &&
-                                                                    o.Time == selectedOrder.Time);
-                if (originalOrder != null && _currentShift != null)
+                if (SelectedItem.IsAppointment && SelectedItem.AppointmentId.HasValue)
                 {
-                    if (MessageBox.Show($"Удалить заказ?\n\n{originalOrder.CarModel} ({originalOrder.CarNumber})",
-                        "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                    var appointment = _dataService.GetAppointmentById(SelectedItem.AppointmentId.Value);
+                    if (appointment != null)
                     {
-                        try
+                        var result = MessageBox.Show($"Удалить запись?\n\n{SelectedItem.CarModel} ({SelectedItem.CarNumber})",
+                            "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            _dataService.DeleteAppointment(appointment.Id);
+                            LoadData();
+                            MessageBox.Show("Запись удалена", "Успешно");
+                        }
+                    }
+                }
+                else
+                {
+                    var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == SelectedItem.CarNumber &&
+                                                                        o.Time == SelectedItem.Time);
+                    if (originalOrder != null && _currentShift != null)
+                    {
+                        var result = MessageBox.Show($"Удалить заказ?\n\n{originalOrder.CarModel} ({originalOrder.CarNumber})",
+                            "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                        if (result == MessageBoxResult.Yes)
                         {
                             _currentShift.Orders.Remove(originalOrder);
-                            var appData = FileDataService.LoadData();
-                            var shift = appData.Shifts.FirstOrDefault(s => s.Id == _currentShift.Id);
-                            if (shift != null)
-                            {
-                                shift.Orders = _currentShift.Orders;
-                            }
-                            FileDataService.SaveData(appData);
+                            _dataService.SaveData();
                             LoadData();
-                            MessageBox.Show("Заказ удален", "Успешно",
-                                MessageBoxButton.OK, MessageBoxImage.Information);
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Заказ удален", "Успешно");
                         }
                     }
                 }
@@ -499,12 +623,168 @@ namespace MyPanelCarWashing
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+        private void AppointmentButton_Click(object sender, RoutedEventArgs e)
+        {
+            var appointmentWin = new AppointmentWindow(_dataService);
+            // Подписываемся на закрытие окна
+            appointmentWin.Closed += (s, args) =>
+            {
+                // Обновляем данные после добавления записи
+                LoadData();
+            };
+            appointmentWin.ShowDialog();
+        }
+
+        private void ViewAppointmentsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var appointmentsWin = new AppointmentsWindow(_dataService);
+            appointmentsWin.ShowDialog();
+        }
+
+        private void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            LoadData();
+        }
+        private void LoadAppointmentsToDisplay()
+        {
+            // Получаем все записи на сегодня, которые еще не выполнены
+            var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+
+            // Если нет активной смены, показываем записи с предупреждением
+            if (_currentShift == null || _currentShift.IsClosed)
+            {
+                if (todayAppointments.Any())
+                {
+                    // Показываем записи в специальном виде
+                    ShowAppointmentsAsWarning(todayAppointments);
+                }
+                return;
+            }
+
+            // Если есть активная смена, записи должны быть конвертированы в заказы
+            // Проверяем, все ли записи на сегодня конвертированы
+            var unconvertedAppointments = todayAppointments.Where(a => !a.IsCompleted).ToList();
+
+            if (unconvertedAppointments.Any())
+            {
+                // Конвертируем неконвертированные записи
+                foreach (var appointment in unconvertedAppointments)
+                {
+                    int defaultWasherId = _currentShift.EmployeeIds.FirstOrDefault();
+                    if (defaultWasherId == 0)
+                    {
+                        var allUsers = _dataService.GetAllUsers();
+                        defaultWasherId = allUsers.FirstOrDefault()?.Id ?? 1;
+                    }
+
+                    var order = _dataService.ConvertAppointmentToOrder(appointment, _currentShift.Id, defaultWasherId);
+                    _currentShift.Orders.Add(order);
+                }
+                _dataService.SaveData();
+
+                // Перезагружаем заказы
+                _allOrders = _currentShift.Orders.ToList();
+                ApplyFilterAndDisplay();
+                UpdateInfo();
+            }
+        }
+
+        private void ShowAppointmentsAsWarning(List<Appointment> appointments)
+        {
+            // Создаем временные отображаемые элементы для записей
+            var allServices = _dataService.GetAllServices();
+
+            var appointmentDisplayItems = appointments.Select(a => new OrderDisplayItem
+            {
+                CarModel = a.CarModel,
+                CarNumber = a.CarNumber,
+                Time = a.AppointmentDate,
+                WasherName = "⚠️ Нет смены",
+                ServicesList = string.Join(", ", a.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
+                FinalPrice = a.ServiceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.Price ?? 0) + a.ExtraCost,
+                ExtraCost = a.ExtraCost,
+                ExtraCostReason = a.ExtraCostReason,
+                BoxNumber = a.BoxNumber,
+                Status = "Ожидает смены",
+                IsAppointment = true
+            }).ToList();
+
+            // Распределяем по боксам
+            Box1ItemsControl.ItemsSource = appointmentDisplayItems.Where(i => i.BoxNumber == 1).ToList();
+            Box2ItemsControl.ItemsSource = appointmentDisplayItems.Where(i => i.BoxNumber == 2).ToList();
+            Box3ItemsControl.ItemsSource = appointmentDisplayItems.Where(i => i.BoxNumber == 3).ToList();
+
+            // Показываем сообщение пользователю
+            CurrentShiftInfo = "⏰ Нет активной смены. Для выполнения записей начните смену!";
+            TotalOrdersInfo = $"📋 Есть {appointments.Count} невыполненных записей на сегодня";
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentShiftInfo)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalOrdersInfo)));
+        }
+
+        private void BoxItemsControl_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var selectedOrder = listBox.SelectedItem as OrderDisplayItem;
+            if (selectedOrder != null)
+            {
+                OpenEditOrder(selectedOrder);
+            }
+        }
+
+        private void OpenEditOrder(OrderDisplayItem orderDisplay)
+        {
+            if (orderDisplay.IsAppointment && orderDisplay.AppointmentId.HasValue)
+            {
+                var appointment = _dataService.GetAppointmentById(orderDisplay.AppointmentId.Value);
+                if (appointment != null)
+                {
+                    var tempOrder = new CarWashOrder
+                    {
+                        Id = 0,
+                        CarModel = appointment.CarModel,
+                        CarNumber = appointment.CarNumber,
+                        CarBodyType = appointment.CarBodyType,
+                        Time = appointment.AppointmentDate,
+                        BoxNumber = appointment.BoxNumber,
+                        ServiceIds = appointment.ServiceIds,
+                        ExtraCost = appointment.ExtraCost,
+                        ExtraCostReason = appointment.ExtraCostReason,
+                        Status = "Предварительная запись",
+                        IsAppointment = true,
+                        AppointmentId = appointment.Id
+                    };
+
+                    var editWin = new EditOrderWindow(_dataService, tempOrder, _currentShift);
+                    if (editWin.ShowDialog() == true)
+                    {
+                        LoadData();
+                    }
+                }
+            }
+            else
+            {
+                var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == orderDisplay.CarNumber &&
+                                                                    o.Time == orderDisplay.Time);
+                if (originalOrder != null)
+                {
+                    var editWin = new EditOrderWindow(_dataService, originalOrder, _currentShift);
+                    if (editWin.ShowDialog() == true)
+                    {
+                        LoadData();
+                    }
+                }
+            }
+        }
     }
 
-    public class OrderDisplayItem
+    public class OrderDisplayItem : INotifyPropertyChanged
     {
-        public string CarModel { get; set; }
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public string CarNumber { get; set; }
+        public string CarModel { get; set; }
         public DateTime Time { get; set; }
         public string WasherName { get; set; }
         public string ServicesList { get; set; }
@@ -512,12 +792,31 @@ namespace MyPanelCarWashing
         public decimal ExtraCost { get; set; }
         public string ExtraCostReason { get; set; }
         public int BoxNumber { get; set; }
+        public string Status { get; set; }
+        public bool IsAppointment { get; set; }
+        public bool IsCompleted { get; set; }
+        public int? AppointmentId { get; set; }
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                _isSelected = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+            }
+        }
     }
+
+
 
     public class WasherStat
     {
         public string WasherName { get; set; }
         public int CarsCount { get; set; }
         public decimal Earnings { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public decimal Percentage { get; set; }
     }
 }

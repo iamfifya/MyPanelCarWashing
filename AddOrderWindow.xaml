@@ -9,7 +9,7 @@
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Width="550" Height="800"
-        Background="White">
+        Background="#F5F6FA">
     
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="15">

@@ -74,13 +74,30 @@ namespace MyPanelCarWashing
 
                 var appData = FileDataService.LoadData();
 
+                // Проверка на дубликат названия
+                var existingByName = appData.Services.FirstOrDefault(s =>
+                    s.Name.Equals(CurrentService.Name, StringComparison.OrdinalIgnoreCase));
+
+                if (existingByName != null && (CurrentService.Id == 0 || existingByName.Id != CurrentService.Id))
+                {
+                    MessageBox.Show($"Услуга с названием \"{CurrentService.Name}\" уже существует!\n\n" +
+                        "Пожалуйста, используйте другое название.", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 if (CurrentService.Id == 0)
                 {
-                    CurrentService.Id = appData.GetNextServiceId();
+                    // Новая услуга - получаем следующий ID
+                    int newId = appData.Services.Any() ? appData.Services.Max(s => s.Id) + 1 : 1;
+                    CurrentService.Id = newId;
                     appData.Services.Add(CurrentService);
+
+                    System.Diagnostics.Debug.WriteLine($"Добавлена новая услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                 }
                 else
                 {
+                    // Обновляем существующую
                     var existing = appData.Services.FirstOrDefault(s => s.Id == CurrentService.Id);
                     if (existing != null)
                     {
@@ -89,11 +106,14 @@ namespace MyPanelCarWashing
                         existing.DurationMinutes = CurrentService.DurationMinutes;
                         existing.Description = CurrentService.Description;
                         existing.IsActive = CurrentService.IsActive;
+
+                        System.Diagnostics.Debug.WriteLine($"Обновлена услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                     }
                 }
 
                 FileDataService.SaveData(appData);
 
+                // Успешно - закрываем окно
                 DialogResult = true;
                 Close();
             }

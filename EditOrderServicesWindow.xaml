@@ -1,4 +1,4 @@
-﻿<Window x:Class="MyPanelCarWashing.EditOrderServicesWindow"
+<Window x:Class="MyPanelCarWashing.EditOrderServicesWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -10,7 +10,7 @@
         WindowStyle="None"
         ResizeMode="NoResize"
         Width="450" Height="500"
-        Background="White">
+        Background="#F5F6FA">
     
     <Grid Margin="15">
         <Grid.RowDefinitions>
@@ -50,6 +50,14 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+        <!-- Статус заказа -->
+        <Label Content="📋 Статус заказа:" Grid.Row="20" Margin="0,5" FontWeight="SemiBold"/>
+        <ComboBox x:Name="StatusComboBox" Grid.Row="21" Margin="0,5" Height="40">
+            <ComboBoxItem Content="🟡 В ожидании" IsSelected="True"/>
+            <ComboBoxItem Content="🟢 Выполняется"/>
+            <ComboBoxItem Content="✅ Выполнен"/>
+            <ComboBoxItem Content="❌ Отменен"/>
+        </ComboBox>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="4" Margin="0,15">
             <Button Content="✓ Сохранить" Click="SaveButton_Click" Width="100" Height="35" 
