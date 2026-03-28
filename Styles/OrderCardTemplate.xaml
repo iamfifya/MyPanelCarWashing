@@ -41,6 +41,8 @@
                     <Setter Property="Margin" Value="5"/>
                     <Setter Property="BorderBrush" Value="#BDC3C7"/>
                     <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="MaxWidth" Value="350"/>
+                    <!-- Добавляем ограничение ширины -->
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                             <Setter Property="Background" Value="#E3F2FD"/>
@@ -68,25 +70,31 @@
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                     <TextBlock Text="{Binding CarNumber}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50"/>
                     <TextBlock Text=" 📅" FontSize="12" Foreground="#FF9800" 
-                               Visibility="{Binding IsAppointment, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                           Visibility="{Binding IsAppointment, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
                 <TextBlock Text="{Binding CarModel}" FontSize="12" Foreground="#7F8C8D"/>
                 <TextBlock Text="{Binding Time, StringFormat={}{0:HH:mm}}" FontSize="11" Foreground="#95A5A6"/>
                 <TextBlock Text="{Binding WasherName}" FontSize="11" Foreground="#3498DB"/>
-                <TextBlock Text="{Binding ServicesList}" FontSize="10" Foreground="#95A5A6"/>
+
+                <!-- ИСПРАВЛЕННЫЙ TextBlock для услуг -->
+                <TextBlock Text="{Binding ServicesList}" 
+                       FontSize="10" 
+                       Foreground="#95A5A6" 
+                       TextWrapping="Wrap"
+                       Margin="0,2,0,2"/>
+
                 <TextBlock Text="{Binding FinalPrice, StringFormat={}{0:N0} ₽}" FontWeight="Bold" Foreground="#27AE60"/>
                 <TextBlock Text="{Binding ExtraCost, StringFormat=➕ {0:N0} ₽}" 
-                           FontSize="10" Foreground="#E67E22" Margin="0,2,0,0"
-                           Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
-                
+                       FontSize="10" Foreground="#E67E22" Margin="0,2,0,0"
+                       Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
+
                 <TextBlock Text="{Binding ExtraCostReason}" FontSize="9" Foreground="#E67E22" 
-                           TextWrapping="Wrap" Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
-                
+                       TextWrapping="Wrap" Visibility="{Binding ExtraCost, Converter={StaticResource ZeroToVisibilityConverter}}"/>
+
                 <Border CornerRadius="10" Padding="5,2" Margin="0,5,0,0" 
-                        Background="{Binding Status, Converter={StaticResource StatusToBackgroundConverter}}"
-                        HorizontalAlignment="Center">
+                    Background="{Binding Status, Converter={StaticResource StatusToBackgroundConverter}}"
+                    HorizontalAlignment="Center">
                     <TextBlock FontSize="9" Foreground="White" Text="{Binding Status}"/>
-                    
                 </Border>
             </StackPanel>
         </Border>
