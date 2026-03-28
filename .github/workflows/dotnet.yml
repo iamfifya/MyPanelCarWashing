@@ -18,11 +18,14 @@ jobs:
       with:
         dotnet-version: 8.0.x
     
-    - name: Restore dependencies
-      run: dotnet restore MyPanelCarWashing.csproj
+    - name: Restore NuGet packages
+      run: |
+        dotnet restore MyPanelCarWashing.slnx
+        # Если dotnet restore не работает, попробуйте nuget restore
+        # nuget restore MyPanelCarWashing.slnx
     
     - name: Build
-      run: dotnet build MyPanelCarWashing.csproj --no-restore --configuration Release
+      run: dotnet build MyPanelCarWashing.slnx --configuration Release --no-restore
     
-    - name: Run tests (if exists)
+    - name: Run tests
       run: dotnet test --no-build --verbosity normal
