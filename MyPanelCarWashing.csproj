@@ -59,11 +59,11 @@
     <ManifestKeyFile>MyPanelCarWashing_TemporaryKey.pfx</ManifestKeyFile>
     <GenerateManifests>true</GenerateManifests>
     <SignManifests>true</SignManifests>
-</PropertyGroup>
-<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <GenerateManifests>false</GenerateManifests>
     <SignManifests>false</SignManifests>
-</PropertyGroup>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="ClosedXML, Version=0.105.0.0, Culture=neutral, PublicKeyToken=fd1eb21b62ae805b, processorArchitecture=MSIL">
       <HintPath>packages\ClosedXML.0.105.0\lib\netstandard2.0\ClosedXML.dll</HintPath>
@@ -168,6 +168,9 @@
     </ApplicationDefinition>
     <Compile Include="ActiveToBackgroundConverter.cs" />
     <Compile Include="ActiveToStatusConverter.cs" />
+    <Compile Include="AddEditOrderViewModel.xaml.cs">
+      <DependentUpon>AddEditOrderViewModel.xaml</DependentUpon>
+    </Compile>
     <Compile Include="AddEditServiceWindow.xaml.cs">
       <DependentUpon>AddEditServiceWindow.xaml</DependentUpon>
     </Compile>
@@ -189,11 +192,9 @@
     <Compile Include="CustomReportWindow.xaml.cs">
       <DependentUpon>CustomReportWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="EditOrderWindow.xaml.cs">
-      <DependentUpon>EditOrderWindow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="ExcelExporter.cs" />
     <Compile Include="IntToBoolConverter.cs" />
+    <Compile Include="InverseBoolToVisibilityConverter.cs" />
     <Compile Include="ItemStyleConverter.cs" />
     <Compile Include="Models\Appointment.cs" />
     <Compile Include="Models\EmployeeShiftReport.cs" />
@@ -203,6 +204,7 @@
       <DependentUpon>MonthlyReportWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="PercentageConverter.cs" />
+    <Compile Include="SafePriceConverter.cs" />
     <Compile Include="ServiceManagementWindow.xaml.cs">
       <DependentUpon>ServiceManagementWindow.xaml</DependentUpon>
     </Compile>
@@ -210,9 +212,6 @@
     <Compile Include="Services\FileDataService.cs" />
     <Compile Include="AddEditEmployeeWindow.xaml.cs">
       <DependentUpon>AddEditEmployeeWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="AddOrderWindow.xaml.cs">
-      <DependentUpon>AddOrderWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="EditOrderServicesWindow.xaml.cs">
       <DependentUpon>EditOrderServicesWindow.xaml</DependentUpon>
@@ -232,6 +231,7 @@
     <Compile Include="Services\Logger.cs" />
     <Compile Include="StatusToBackgroundConverter.cs" />
     <Compile Include="StatusToColorConverter.cs" />
+    <Compile Include="ViewModels\AddEditOrderViewModel.cs" />
     <Compile Include="ViewModels\ServiceViewModel.cs" />
     <Compile Include="StartShiftWindow.xaml.cs">
       <DependentUpon>StartShiftWindow.xaml</DependentUpon>
@@ -241,6 +241,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ZeroToVisibilityConverter.cs" />
+    <Page Include="AddEditOrderViewModel.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="AddEditServiceWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -261,10 +265,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="EditOrderWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="MonthlyReportWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -278,9 +278,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Page Include="AddEditEmployeeWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="AddOrderWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="EditOrderServicesWindow.xaml">

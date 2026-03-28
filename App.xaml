@@ -25,6 +25,8 @@
             <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <local:AppointmentToBackgroundConverter x:Key="AppointmentToBackgroundConverter"/>
             <local:ItemStyleConverter x:Key="ItemStyleConverter"/>
+            <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+            <local:SafePriceConverter x:Key="SafePriceConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

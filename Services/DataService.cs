@@ -138,6 +138,77 @@ namespace MyPanelCarWashing.Services
             return order?.ServiceIds ?? new List<int>();
         }
 
+        // DataService.cs - добавьте эти методы
+
+        public void UpdateAppointment(Appointment appointment)
+        {
+            try
+            {
+                var appData = FileDataService.LoadData();
+                var existing = appData.Appointments.FirstOrDefault(a => a.Id == appointment.Id);
+
+                if (existing != null)
+                {
+                    existing.CarModel = appointment.CarModel;
+                    existing.CarNumber = appointment.CarNumber;
+                    existing.CarBodyType = appointment.CarBodyType;
+                    existing.AppointmentDate = appointment.AppointmentDate;
+                    existing.DurationMinutes = appointment.DurationMinutes;
+                    existing.BoxNumber = appointment.BoxNumber;
+                    existing.ServiceIds = appointment.ServiceIds;
+                    existing.ExtraCost = appointment.ExtraCost;
+                    existing.ExtraCostReason = appointment.ExtraCostReason;
+                    existing.Notes = appointment.Notes;
+                    existing.IsCompleted = appointment.IsCompleted;
+                }
+
+                FileDataService.SaveData(appData);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка UpdateAppointment: {ex.Message}");
+                throw;
+            }
+        }
+
+        public void UpdateOrder(CarWashOrder order)
+        {
+            try
+            {
+                var appData = FileDataService.LoadData();
+                var shift = appData.Shifts.FirstOrDefault(s => s.Id == order.ShiftId);
+
+                if (shift != null)
+                {
+                    var existingOrder = shift.Orders.FirstOrDefault(o => o.Id == order.Id);
+                    if (existingOrder != null)
+                    {
+                        existingOrder.CarModel = order.CarModel;
+                        existingOrder.CarNumber = order.CarNumber;
+                        existingOrder.CarBodyType = order.CarBodyType;
+                        existingOrder.BodyTypeCategory = order.BodyTypeCategory;
+                        existingOrder.Time = order.Time;
+                        existingOrder.BoxNumber = order.BoxNumber;
+                        existingOrder.WasherId = order.WasherId;
+                        existingOrder.ServiceIds = order.ServiceIds;
+                        existingOrder.ExtraCost = order.ExtraCost;
+                        existingOrder.ExtraCostReason = order.ExtraCostReason;
+                        existingOrder.TotalPrice = order.TotalPrice;
+                        existingOrder.Status = order.Status;
+                        existingOrder.PaymentMethod = order.PaymentMethod;
+                        existingOrder.Notes = order.Notes;
+                    }
+                }
+
+                FileDataService.SaveData(appData);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка UpdateOrder: {ex.Message}");
+                throw;
+            }
+        }
+
         private void MigrateOldServices()
         {
             bool needSave = false;
@@ -400,11 +471,42 @@ namespace MyPanelCarWashing.Services
                 SaveData();
             }
         }
-
-        // Добавьте этот метод в класс DataService
         public int GetNextOrderId()
         {
-            return _data.GetNextOrderId();
+            try
+            {
+                var appData = FileDataService.LoadData();
+                int maxId = 0;
+
+                foreach (var shift in appData.Shifts)
+                {
+                    if (shift.Orders != null && shift.Orders.Any())
+                    {
+                        var maxInShift = shift.Orders.Max(o => o.Id);
+                        if (maxInShift > maxId)
+                            maxId = maxInShift;
+                    }
+                }
+
+                return maxId + 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+        public Shift GetCurrentOpenShift()
+        {
+            try
+            {
+                var appData = FileDataService.LoadData();
+                return appData.Shifts?.FirstOrDefault(s => !s.IsClosed && s.Date.Date == DateTime.Now.Date);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetCurrentOpenShift error: {ex.Message}");
+                return null;
+            }
         }
 
         private void CleanupDuplicateServices()

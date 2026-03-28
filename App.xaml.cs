@@ -48,8 +48,7 @@ namespace MyPanelCarWashing
             // Регистрируем окна
             services.AddTransient<LoginWindow>();
             services.AddTransient<MainWindow>();
-            services.AddTransient<AddOrderWindow>();
-            services.AddTransient<EditOrderWindow>();
+            services.AddTransient<AddEditOrderWindow>();
             services.AddTransient<EditOrderServicesWindow>();
             services.AddTransient<EmployeeCardWindow>();
             services.AddTransient<AddEditEmployeeWindow>();

@@ -159,6 +159,12 @@ namespace MyPanelCarWashing
             Box3Items = null;
             Box3Items = temp3;
         }
+        public void RefreshData()
+        {
+            // Полностью перезагружаем данные
+            _dataService = new DataService();
+            LoadData();
+        }
 
         private List<OrderDisplayItem> _box1Items;
         private List<OrderDisplayItem> _box2Items;
@@ -198,20 +204,16 @@ namespace MyPanelCarWashing
             try
             {
                 System.Diagnostics.Debug.WriteLine($"=== LoadData ===");
-                System.Diagnostics.Debug.WriteLine($"Текущая дата: {DateTime.Now:dd.MM.yyyy HH:mm:ss}");
 
-                // Используем _dataService вместо Core.DB
-                _currentShift = _dataService.GetShiftByDate(DateTime.Now);
+                // Получаем текущую открытую смену
+                _currentShift = _dataService.GetCurrentOpenShift();
 
-                System.Diagnostics.Debug.WriteLine($"_currentShift: {_currentShift != null}");
-                if (_currentShift != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"  ID: {_currentShift.Id}, StartTime: {_currentShift.StartTime}");
-                }
+                System.Diagnostics.Debug.WriteLine($"Current shift found: {_currentShift != null}");
 
                 if (_currentShift != null && !_currentShift.IsClosed)
                 {
                     _allOrders = _currentShift.Orders ?? new List<CarWashOrder>();
+                    System.Diagnostics.Debug.WriteLine($"Orders count: {_allOrders.Count}");
                 }
                 else
                 {
@@ -222,7 +224,7 @@ namespace MyPanelCarWashing
                 var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
                 var allServices = _dataService.GetAllServices();
 
-                // Заказы
+                // Создаем отображаемые элементы для заказов
                 var orderItems = _allOrders.Select(o => new OrderDisplayItem
                 {
                     CarModel = o.CarModel,
@@ -237,18 +239,19 @@ namespace MyPanelCarWashing
                     Status = o.Status,
                     PaymentMethod = o.PaymentMethod,
                     IsAppointment = false,
-                    IsCompleted = false
+                    IsCompleted = false,
+                    AppointmentId = null
                 }).ToList();
 
-                // Записи
-                var appointmentItems = todayAppointments.Select(a => new OrderDisplayItem
+                // Создаем отображаемые элементы для записей
+                var appointmentItems = todayAppointments.Where(a => !a.IsCompleted).Select(a => new OrderDisplayItem
                 {
                     CarModel = a.CarModel,
                     CarNumber = a.CarNumber,
                     Time = a.AppointmentDate,
                     WasherName = "📅 Запись",
                     ServicesList = string.Join(", ", a.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                    FinalPrice = a.ServiceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.GetPrice(1) ?? 0) + a.ExtraCost,
+                    FinalPrice = a.ServiceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.GetPrice(a.BodyTypeCategory) ?? 0) + a.ExtraCost,
                     ExtraCost = a.ExtraCost,
                     ExtraCostReason = a.ExtraCostReason,
                     BoxNumber = a.BoxNumber,
@@ -258,7 +261,7 @@ namespace MyPanelCarWashing
                     AppointmentId = a.Id
                 }).ToList();
 
-                // Объединяем и сортируем по времени
+                // Объединяем и сортируем
                 var allItems = orderItems.Concat(appointmentItems).OrderBy(i => i.Time).ToList();
 
                 // Распределяем по боксам
@@ -267,12 +270,16 @@ namespace MyPanelCarWashing
                 Box3Items = allItems.Where(i => i.BoxNumber == 3).ToList();
 
                 UpdateInfo();
+
+                System.Diagnostics.Debug.WriteLine($"Box1 items: {Box1Items?.Count ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"Box2 items: {Box2Items?.Count ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"Box3 items: {Box3Items?.Count ?? 0}");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"LoadData error: {ex}");
                 MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
-                _allOrders = new List<CarWashOrder>();
             }
         }
 
@@ -496,10 +503,60 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            var addWin = new AddOrderWindow(_dataService, _currentShift);
+            var addWin = new AddEditOrderWindow(_dataService, _currentShift);
             if (addWin.ShowDialog() == true)
             {
                 LoadData();
+            }
+        }
+
+        private void OpenEditOrder(OrderDisplayItem orderDisplay)
+        {
+            if (orderDisplay.IsAppointment && orderDisplay.AppointmentId.HasValue)
+            {
+                var appointment = _dataService.GetAppointmentById(orderDisplay.AppointmentId.Value);
+                if (appointment != null)
+                {
+                    var tempOrder = new CarWashOrder
+                    {
+                        Id = 0,
+                        CarModel = appointment.CarModel,
+                        CarNumber = appointment.CarNumber,
+                        CarBodyType = appointment.CarBodyType,
+                        BodyTypeCategory = appointment.BodyTypeCategory,
+                        Time = appointment.AppointmentDate,
+                        BoxNumber = appointment.BoxNumber,
+                        ServiceIds = appointment.ServiceIds,
+                        ExtraCost = appointment.ExtraCost,
+                        ExtraCostReason = appointment.ExtraCostReason,
+                        Status = "Предварительная запись",
+                        IsAppointment = true,
+                        AppointmentId = appointment.Id
+                    };
+
+                    var editWin = new AddEditOrderWindow(_dataService, _currentShift, tempOrder);
+                    if (editWin.ShowDialog() == true)
+                    {
+                        // Полная перезагрузка данных
+                        _dataService = new DataService();
+                        LoadData();
+                    }
+                }
+            }
+            else
+            {
+                var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == orderDisplay.CarNumber &&
+                                                                    o.Time == orderDisplay.Time);
+                if (originalOrder != null)
+                {
+                    var editWin = new AddEditOrderWindow(_dataService, _currentShift, originalOrder);
+                    if (editWin.ShowDialog() == true)
+                    {
+                        // Полная перезагрузка данных
+                        _dataService = new DataService();
+                        LoadData();
+                    }
+                }
             }
         }
 
@@ -870,57 +927,13 @@ namespace MyPanelCarWashing
                 OpenEditOrder(selectedOrder);
             }
         }
-
-        private void OpenEditOrder(OrderDisplayItem orderDisplay)
-        {
-            if (orderDisplay.IsAppointment && orderDisplay.AppointmentId.HasValue)
-            {
-                var appointment = _dataService.GetAppointmentById(orderDisplay.AppointmentId.Value);
-                if (appointment != null)
-                {
-                    var tempOrder = new CarWashOrder
-                    {
-                        Id = 0,
-                        CarModel = appointment.CarModel,
-                        CarNumber = appointment.CarNumber,
-                        CarBodyType = appointment.CarBodyType,
-                        Time = appointment.AppointmentDate,
-                        BoxNumber = appointment.BoxNumber,
-                        ServiceIds = appointment.ServiceIds,
-                        ExtraCost = appointment.ExtraCost,
-                        ExtraCostReason = appointment.ExtraCostReason,
-                        Status = "Предварительная запись",
-                        IsAppointment = true,
-                        AppointmentId = appointment.Id
-                    };
-
-                    var editWin = new EditOrderWindow(_dataService, tempOrder, _currentShift);
-                    if (editWin.ShowDialog() == true)
-                    {
-                        LoadData();
-                    }
-                }
-            }
-            else
-            {
-                var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == orderDisplay.CarNumber &&
-                                                                    o.Time == orderDisplay.Time);
-                if (originalOrder != null)
-                {
-                    var editWin = new EditOrderWindow(_dataService, originalOrder, _currentShift);
-                    if (editWin.ShowDialog() == true)
-                    {
-                        LoadData();
-                    }
-                }
-            }
-        }
     }
 
     public class OrderDisplayItem : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public int Id { get; set; }  // Добавьте это свойство
         public string CarNumber { get; set; }
         public string CarModel { get; set; }
         public DateTime Time { get; set; }

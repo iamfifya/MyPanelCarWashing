@@ -1,10 +1,12 @@
-using System.Collections.Generic;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace MyPanelCarWashing.Models
 {
-    public class Service
+    public class Service : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
         public int Id { get; set; }
         public string Name { get; set; }
         public int DurationMinutes { get; set; }
@@ -26,6 +28,16 @@ namespace MyPanelCarWashing.Models
 
             // Если нет вообще, возвращаем 0
             return 0;
+        }
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                _isSelected = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+            }
         }
     }
 }

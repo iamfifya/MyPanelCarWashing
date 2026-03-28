@@ -51,7 +51,13 @@
                         <TextBlock Text="{Binding WasherName}" FontWeight="Medium" FontSize="12"/>
                     </StackPanel>
 
-                    <TextBlock Text="{Binding ServicesList}" FontSize="12" Foreground="#7F8C8D" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding ServicesList}" 
+                               FontSize="12" 
+                               Foreground="#7F8C8D" 
+                               TextWrapping="Wrap" 
+                               Margin="0,0,0,8"
+                               MaxWidth="350"
+                               HorizontalAlignment="Left"/>
 
                     <Separator Background="#F1F2F6" Margin="0,5"/>
 
@@ -62,7 +68,7 @@
                         </StackPanel>
 
                         <Border Background="{Binding Status, Converter={StaticResource StatusToBackgroundConverter}}" 
-                                CornerRadius="4" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        CornerRadius="4" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Status}" Foreground="White" FontSize="10" FontWeight="Bold"/>
                         </Border>
                     </Grid>

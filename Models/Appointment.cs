@@ -15,6 +15,7 @@ namespace MyPanelCarWashing.Models
         public List<int> ServiceIds { get; set; } = new List<int>();
         public decimal ExtraCost { get; set; }
         public string ExtraCostReason { get; set; }
+        public int BodyTypeCategory { get; set; } = 1; // 1-4 категория кузова
         public int BoxNumber { get; set; } // Желаемый бокс (1,2,3)
         public string Notes { get; set; }
         public bool IsCompleted { get; set; } // Выполнена ли запись
