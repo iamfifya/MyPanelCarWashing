@@ -17,7 +17,12 @@ jobs:
       uses: microsoft/setup-msbuild@v2
     
     - name: Restore NuGet packages
-      run: msbuild MyPanelCarWashing.slnx /t:Restore /p:Configuration=Release
+      run: |
+        # Создаем директорию для пакетов
+        if not exist packages mkdir packages
+        
+        # Восстанавливаем пакеты с помощью MSBuild
+        msbuild MyPanelCarWashing.slnx /t:Restore /p:Configuration=Release /p:RestorePackages=true
     
     - name: Build
-      run: msbuild MyPanelCarWashing.slnx /p:Configuration=Release /p:Platform="Any CPU"
+      run: msbuild MyPanelCarWashing.slnx /p:Configuration=Release /p:Platform="Any CPU" /p:RestorePackages=false
