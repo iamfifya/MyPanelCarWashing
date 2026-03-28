@@ -16,12 +16,7 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
     
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v2
-      with:
-        nuget-version: '6.x'
-    
-    - name: Restore packages
+    - name: Restore NuGet packages
       run: nuget restore MyPanelCarWashing.slnx
     
     - name: Build
