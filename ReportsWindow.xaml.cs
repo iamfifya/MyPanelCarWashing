@@ -119,6 +119,11 @@ namespace MyPanelCarWashing
             var monthlyReportWin = new MonthlyReportWindow(_dataService);
             monthlyReportWin.ShowDialog();
         }
+        private void CustomReportButton_Click(object sender, RoutedEventArgs e)
+        {
+            var customReportWin = new CustomReportWindow(_dataService);
+            customReportWin.ShowDialog();
+        }
 
         private void ExportButton_Click(object sender, RoutedEventArgs args)
         {

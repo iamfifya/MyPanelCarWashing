@@ -188,6 +188,9 @@
     <Compile Include="CustomDatePicker.xaml.cs">
       <DependentUpon>CustomDatePicker.xaml</DependentUpon>
     </Compile>
+    <Compile Include="CustomReportWindow.xaml.cs">
+      <DependentUpon>CustomReportWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="EditOrderWindow.xaml.cs">
       <DependentUpon>EditOrderWindow.xaml</DependentUpon>
     </Compile>
@@ -253,6 +256,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="CustomDatePicker.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="CustomReportWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
