@@ -26,3 +26,4 @@
 1. Клонируйте репозиторий:
    ```bash
    git clone https://github.com/iamfifya/MyPanelCarWashing.git
+[![.NET Build](https://github.com/iamfifya/MyPanelCarWashing/actions/workflows/dotnet.yml/badge.svg)](https://github.com/iamfifya/MyPanelCarWashing/actions/workflows/dotnet.yml)
