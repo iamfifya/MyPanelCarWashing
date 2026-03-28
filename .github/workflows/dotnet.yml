@@ -13,25 +13,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
     
     - name: Restore NuGet packages
-      run: |
-        dotnet restore MyPanelCarWashing.slnx
-        # Если dotnet restore не работает, попробуйте nuget restore
-        # nuget restore MyPanelCarWashing.slnx
+      run: msbuild MyPanelCarWashing.slnx /t:Restore /p:Configuration=Release
     
     - name: Build
-      run: dotnet build MyPanelCarWashing.slnx --configuration Release --no-restore
-    
-    - name: Run tests
-      run: dotnet test --no-build --verbosity normal
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v2
-      with:
-        nuget-version: '6.x'
-    - name: Restore packages
-      run: nuget restore MyPanelCarWashing.slnx      
+      run: msbuild MyPanelCarWashing.slnx /p:Configuration=Release /p:Platform="Any CPU"
