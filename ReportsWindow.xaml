@@ -119,7 +119,32 @@
                                 <TextBlock Text="{Binding SelectedReport.Notes, StringFormat=📝 Примечание: {0}}" 
                                            FontSize="12" Foreground="#7F8C8D" Margin="0,10,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
+
                         </Border>
+                        <Separator Margin="0,10,0,10" Height="1" Background="#BDC3C7"/>
+                        <TextBlock Text="💳 Статистика по способам оплаты" FontSize="14" FontWeight="Bold" Margin="0,5,0,5"/>
+                        <Grid Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                <TextBlock Text="💵 Наличные" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding SelectedReport.CashCount, StringFormat=Кол-во: {0}}"/>
+                                <TextBlock Text="{Binding SelectedReport.CashAmount, StringFormat=Сумма: {0:N0} ₽}" Foreground="#27AE60"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                <TextBlock Text="💳 Карта" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding SelectedReport.CardCount, StringFormat=Кол-во: {0}}"/>
+                                <TextBlock Text="{Binding SelectedReport.CardAmount, StringFormat=Сумма: {0:N0} ₽}" Foreground="#27AE60"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                <TextBlock Text="📱 Перевод" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding SelectedReport.TransferCount, StringFormat=Кол-во: {0}}"/>
+                                <TextBlock Text="{Binding SelectedReport.TransferAmount, StringFormat=Сумма: {0:N0} ₽}" Foreground="#27AE60"/>
+                            </StackPanel>
+                        </Grid>
 
                         <TextBlock Text="👥 Работа сотрудников" FontSize="14" FontWeight="Bold" 
                                    Margin="0,15,0,5"/>

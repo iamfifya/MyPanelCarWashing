@@ -38,6 +38,7 @@ namespace MyPanelCarWashing.Models
 
         public decimal BasePrice => TotalPrice;
         public decimal FinalPrice => TotalPrice + ExtraCost;
+        public string PaymentMethod { get; set; } = "Наличные";
         public decimal WasherEarnings => FinalPrice * 0.35m;
         public decimal CompanyEarnings => FinalPrice * 0.65m;
 

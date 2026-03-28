@@ -11,7 +11,7 @@ namespace MyPanelCarWashing
 {
     public partial class AppointmentWindow : Window
     {
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private List<ServiceViewModel> _services;
         private decimal _servicesTotal;
         private decimal _extraCost;

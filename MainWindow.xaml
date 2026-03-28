@@ -56,10 +56,13 @@
                     <Separator Background="#F1F2F6" Margin="0,5"/>
 
                     <Grid Margin="0,5,0,0">
-                        <TextBlock Text="{Binding FinalPrice, StringFormat={}{0:N0} ₽}" FontSize="16" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Left"/>
+                        <StackPanel>
+                            <TextBlock Text="{Binding FinalPrice, StringFormat={}{0:N0} ₽}" FontSize="16" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Left"/>
+                            <TextBlock Text="{Binding PaymentMethod, StringFormat=💳 {0}}" FontSize="10" Foreground="#3498DB" Margin="0,2,0,0"/>
+                        </StackPanel>
 
                         <Border Background="{Binding Status, Converter={StaticResource StatusToBackgroundConverter}}" 
-                                CornerRadius="4" Padding="8,2" HorizontalAlignment="Right">
+                                CornerRadius="4" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Status}" Foreground="White" FontSize="10" FontWeight="Bold"/>
                         </Border>
                     </Grid>
@@ -256,6 +259,69 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        
+                        <!-- НОВЫЙ БЛОК: Статистика по способам оплаты -->
+                        <Separator Margin="0,10,0,10" Height="1" Background="#BDC3C7"/>
+                        <TextBlock Text="💳 Способы оплаты:" FontSize="14" FontWeight="Bold" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                        <Border Background="#F8F9FA" CornerRadius="5" Padding="10" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Наличные -->
+                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="💵" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="Наличные" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <TextBlock Text="{Binding CashCount, StringFormat={}{0} шт.}" FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text=" / " FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text="{Binding CashAmount, StringFormat={}{0:N0} ₽}" FontSize="11" FontWeight="Bold" Foreground="#27AE60"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Карта -->
+                                <Grid Grid.Row="1" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="💳" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="Карта" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <TextBlock Text="{Binding CardCount, StringFormat={}{0} шт.}" FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text=" / " FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text="{Binding CardAmount, StringFormat={}{0:N0} ₽}" FontSize="11" FontWeight="Bold" Foreground="#27AE60"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Перевод -->
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="📱" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="Перевод" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <TextBlock Text="{Binding TransferCount, StringFormat={}{0} шт.}" FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text=" / " FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text="{Binding TransferAmount, StringFormat={}{0:N0} ₽}" FontSize="11" FontWeight="Bold" Foreground="#27AE60"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- ИТОГО -->
 
                         <Separator Margin="0,10,0,10" Height="1" Background="#BDC3C7"/>
 

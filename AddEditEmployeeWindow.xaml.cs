@@ -8,7 +8,7 @@ namespace MyPanelCarWashing
 {
     public partial class AddEditEmployeeWindow : Window
     {
-        private readonly DataService _dataService;
+        private DataService _dataService;
         public User CurrentEmployee { get; set; }
         public string Title { get; set; }
 

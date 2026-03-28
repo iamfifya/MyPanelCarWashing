@@ -140,6 +140,13 @@
                 <ComboBoxItem Content="❌ Отменен"/>
             </ComboBox>
 
+            <Label Content="💳 Способ оплаты:" Grid.Row="19" Margin="0,10,0,5" FontWeight="SemiBold"/>
+            <ComboBox x:Name="PaymentMethodComboBox" Grid.Row="20" Margin="0,5" Height="40" SelectedIndex="0">
+                <ComboBoxItem Content="💵 Наличные"/>
+                <ComboBoxItem Content="💳 Карта"/>
+                <ComboBoxItem Content="📱 Перевод"/>
+            </ComboBox>
+
             <!-- Итоговая сумма -->
             <Border Grid.Row="21" Background="#F0F8FF" CornerRadius="5" Padding="10" Margin="0,10">
                 <StackPanel>

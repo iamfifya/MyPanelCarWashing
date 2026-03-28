@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace MyPanelCarWashing.Models
@@ -15,6 +15,12 @@ namespace MyPanelCarWashing.Models
         public decimal TotalWasherEarnings { get; set; } // Заработок всех мойщиков
         public decimal TotalCompanyEarnings { get; set; } // Заработок компании
         public string Notes { get; set; }
+        public int CashCount { get; set; }
+        public decimal CashAmount { get; set; }
+        public int CardCount { get; set; }
+        public decimal CardAmount { get; set; }
+        public int TransferCount { get; set; }
+        public decimal TransferAmount { get; set; }
     }
 
     public class EmployeeWorkReport

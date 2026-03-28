@@ -12,7 +12,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private DateTime _selectedDate;
         private List<EmployeeSelection> _employees;
 
@@ -72,7 +72,7 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем все смены
+                // Получаем все смены через _dataService
                 var allShifts = _dataService.GetAllShifts();
 
                 // Проверяем, есть ли открытая смена на выбранную дату
@@ -91,7 +91,8 @@ namespace MyPanelCarWashing
                         return;
                     }
 
-                    CloseExistingShift(existingOpenShift);
+                    // Удаляем старую смену
+                    allShifts.Remove(existingOpenShift);
                 }
 
                 // Создаем новую смену
@@ -105,25 +106,21 @@ namespace MyPanelCarWashing
                     Orders = new List<CarWashOrder>()
                 };
 
-                // КОНВЕРТИРУЕМ ЗАПИСИ НА СЕГОДНЯ В ЗАКАЗЫ
-                if (SelectedDate.Date == DateTime.Now.Date)
-                {
-                    ConvertTodayAppointmentsToOrders(newShift);
-                }
-
                 // Добавляем новую смену
                 allShifts.Add(newShift);
 
-                // Сохраняем
+                // Сохраняем через _dataService (он сам сохранит в файл)
                 var appData = FileDataService.LoadData();
                 appData.Shifts = allShifts;
                 FileDataService.SaveData(appData);
 
+                // Обновляем данные в _dataService
+                _dataService = new DataService();
+
                 MessageBox.Show($"Смена на {SelectedDate:dd.MM.yyyy} успешно открыта!\n\n" +
                     $"Сотрудников: {selectedEmployees.Count}\n" +
                     $"Список: {string.Join(", ", selectedEmployees.Select(s => s.FullName))}\n" +
-                    $"Время начала: {DateTime.Now:HH:mm:ss}" +
-                    (newShift.Orders.Any() ? $"\n\n📋 Добавлено {newShift.Orders.Count} предварительных записей" : ""),
+                    $"Время начала: {DateTime.Now:HH:mm:ss}",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
@@ -133,122 +130,6 @@ namespace MyPanelCarWashing
             {
                 MessageBox.Show($"Ошибка при открытии смены: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        // Метод для конвертации записей в заказы
-        private void ConvertTodayAppointmentsToOrders(Shift shift)
-        {
-            var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
-
-            if (!todayAppointments.Any()) return;
-
-            // Получаем всех сотрудников для выбора мойщика
-            var allUsers = _dataService.GetAllUsers();
-
-            foreach (var appointment in todayAppointments)
-            {
-                // Назначаем мойщика по умолчанию (первого из списка сотрудников смены)
-                int defaultWasherId = shift.EmployeeIds.FirstOrDefault();
-                if (defaultWasherId == 0)
-                {
-                    // Если в смене нет сотрудников, берем первого пользователя (админа)
-                    defaultWasherId = allUsers.FirstOrDefault()?.Id ?? 1;
-                }
-
-                var order = _dataService.ConvertAppointmentToOrder(appointment, shift.Id, defaultWasherId);
-                shift.Orders.Add(order);
-
-                System.Diagnostics.Debug.WriteLine($"Конвертирована запись: {appointment.CarModel} ({appointment.CarNumber}) в {appointment.AppointmentDate:HH:mm}");
-            }
-
-            _dataService.SaveData();
-        }
-
-        private void CloseExistingShift(Shift shift)
-        {
-            try
-            {
-                shift.EndTime = DateTime.Now;
-                shift.IsClosed = true;
-
-                var orders = shift.Orders ?? new List<CarWashOrder>();
-                var totalRevenue = orders.Sum(o => o.FinalPrice);
-                var totalWasherEarnings = orders.Sum(o => o.WasherEarnings);
-                var totalCompanyEarnings = orders.Sum(o => o.CompanyEarnings);
-
-                var report = new ShiftReport
-                {
-                    Id = Guid.NewGuid().GetHashCode(),
-                    Date = shift.Date,
-                    StartTime = shift.StartTime.Value,
-                    EndTime = shift.EndTime.Value,
-                    TotalCars = orders.Count,
-                    TotalRevenue = totalRevenue,
-                    TotalWasherEarnings = totalWasherEarnings,
-                    TotalCompanyEarnings = totalCompanyEarnings,
-                    Notes = "Смена закрыта для начала новой"
-                };
-
-                var allUsers = _dataService.GetAllUsers();
-
-                foreach (var empId in shift.EmployeeIds)
-                {
-                    var employee = allUsers.FirstOrDefault(u => u.Id == empId);
-                    if (employee != null)
-                    {
-                        var employeeOrders = orders.Where(o => o.WasherId == empId).ToList();
-                        var employeeRevenue = employeeOrders.Sum(o => o.FinalPrice);
-                        var employeeEarnings = employeeOrders.Sum(o => o.WasherEarnings);
-
-                        report.EmployeesWork.Add(new EmployeeWorkReport
-                        {
-                            EmployeeId = empId,
-                            EmployeeName = employee.FullName,
-                            CarsWashed = employeeOrders.Count,
-                            TotalAmount = employeeRevenue,
-                            Earnings = employeeEarnings
-                        });
-                    }
-                }
-
-                SaveShiftReport(report);
-
-                // Удаляем старую смену из данных
-                var allShifts = _dataService.GetAllShifts();
-                var shiftToRemove = allShifts.FirstOrDefault(s => s.Id == shift.Id);
-                if (shiftToRemove != null)
-                {
-                    allShifts.Remove(shiftToRemove);
-                    var appData = FileDataService.LoadData();
-                    appData.Shifts = allShifts;
-                    FileDataService.SaveData(appData);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при закрытии смены: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void SaveShiftReport(ShiftReport report)
-        {
-            try
-            {
-                string reportsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-                if (!System.IO.Directory.Exists(reportsPath))
-                    System.IO.Directory.CreateDirectory(reportsPath);
-
-                string fileName = $"ShiftReport_{report.Date:yyyy-MM-dd_HHmmss}.json";
-                string filePath = System.IO.Path.Combine(reportsPath, fileName);
-
-                var json = Newtonsoft.Json.JsonConvert.SerializeObject(report, Newtonsoft.Json.Formatting.Indented);
-                System.IO.File.WriteAllText(filePath, json);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ошибка сохранения отчета: {ex.Message}");
             }
         }
 

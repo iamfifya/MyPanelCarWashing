@@ -13,7 +13,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private List<User> _allEmployees;
         private List<User> _employeesList;
         private string _searchFilter = "";

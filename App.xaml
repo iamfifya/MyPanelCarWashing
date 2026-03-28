@@ -5,8 +5,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/OrderCardTemplate.xaml"/>
                 <ResourceDictionary Source="Styles/AppStyles.xaml"/>
-                <ResourceDictionary Source="Styles/OrderCardTemplate.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
 

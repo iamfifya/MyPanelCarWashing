@@ -13,7 +13,7 @@ namespace MyPanelCarWashing
 {
     public partial class EditOrderWindow : Window
     {
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private CarWashOrder _order;
         private Shift _currentShift;
         private List<ServiceViewModel> _services;

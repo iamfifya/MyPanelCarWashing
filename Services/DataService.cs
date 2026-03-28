@@ -58,7 +58,7 @@ namespace MyPanelCarWashing.Services
         // Смены
         public Shift GetShiftByDate(DateTime date)
         {
-            // Используем только дату, игнорируя время и временную зону
+            // Используем только дату, игнорируя время
             var targetDate = date.Date;
 
             System.Diagnostics.Debug.WriteLine($"GetShiftByDate ищет смену на {targetDate:dd.MM.yyyy}");

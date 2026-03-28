@@ -8,7 +8,7 @@ namespace MyPanelCarWashing
 {
     public partial class LoginWindow : Window
     {
-        private readonly DataService _dataService;
+        private DataService _dataService;
 
         public LoginWindow(DataService dataService)
         {

@@ -13,7 +13,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private CarWashOrder _order;
         private List<ServiceViewModel> _services;
 

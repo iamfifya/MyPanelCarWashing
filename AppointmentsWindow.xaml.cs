@@ -10,7 +10,7 @@ namespace MyPanelCarWashing
 {
     public partial class AppointmentsWindow : Window
     {
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private List<Appointment> _allAppointments;
 
         public AppointmentsWindow(DataService dataService)

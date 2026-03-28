@@ -14,7 +14,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private List<ShiftReport> _reports;
         private ShiftReport _selectedReport;
 

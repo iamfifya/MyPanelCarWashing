@@ -11,7 +11,7 @@ namespace MyPanelCarWashing
 {
     public partial class AddOrderWindow : Window
     {
-        private readonly DataService _dataService;
+        private DataService _dataService;
         private Shift _currentShift;
         private List<ServiceViewModel> _services;
         private List<User> _washers;
@@ -189,6 +189,8 @@ namespace MyPanelCarWashing
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+                string paymentMethod = (PaymentMethodComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Наличные";
+                paymentMethod = paymentMethod.Replace("💵 ", "").Replace("💳 ", "").Replace("📱 ", "");
 
                 var newOrder = new CarWashOrder
                 {
@@ -200,7 +202,8 @@ namespace MyPanelCarWashing
                     WasherId = selectedWasher.Id,
                     ShiftId = _currentShift.Id,
                     ExtraCost = extraCost,
-                    ExtraCostReason = extraReason
+                    ExtraCostReason = extraReason,
+                    PaymentMethod = paymentMethod
                 };
 
                 var serviceIds = selectedServices.Select(s => s.Id).ToList();
