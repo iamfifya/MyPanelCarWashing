@@ -18,8 +18,8 @@ jobs:
     
     - name: Restore NuGet packages
       run: |
-        # Создаем директорию для пакетов
-        if not exist packages mkdir packages
+        # Создаем директорию для пакетов (PowerShell синтаксис)
+        New-Item -ItemType Directory -Force -Path packages
         
         # Восстанавливаем пакеты с помощью MSBuild
         msbuild MyPanelCarWashing.slnx /t:Restore /p:Configuration=Release /p:RestorePackages=true
