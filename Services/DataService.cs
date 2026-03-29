@@ -125,11 +125,24 @@ namespace MyPanelCarWashing.Services
             }
         }
 
+        // DataService.cs
         public CarWashOrder GetOrderById(int orderId)
         {
-            return _data.Shifts
-                .SelectMany(s => s.Orders)
-                .FirstOrDefault(o => o.Id == orderId);
+            try
+            {
+                var appData = FileDataService.LoadData();
+                foreach (var shift in appData.Shifts)
+                {
+                    var order = shift.Orders?.FirstOrDefault(o => o.Id == orderId);
+                    if (order != null)
+                        return order;
+                }
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public List<int> GetOrderServiceIds(int orderId)

@@ -27,7 +27,7 @@
         <TextBox x:Name="LoginTextBox" Grid.Row="2" Margin="0,5" Height="50" Padding="5" Foreground="Black"/>
 
         <Label Content="Пароль:" Grid.Row="3" Margin="0,5" FontWeight="SemiBold"/>
-        <PasswordBox x:Name="PasswordBox" Grid.Row="4" Margin="0,5" Height="50" Padding="5" Foreground="Black"/>
+        <PasswordBox x:Name="PasswordBox" Grid.Row="4" Margin="0,5" Height="50" Padding="5" VerticalContentAlignment="Center" Foreground="Black"/>
 
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20">
             <Button Content="Войти" Click="LoginButton_Click" Width="100" Height="35" 

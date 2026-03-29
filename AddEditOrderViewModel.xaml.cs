@@ -154,70 +154,156 @@ namespace MyPanelCarWashing
             }
         }
 
-        private void ConvertToOrderButton_Click(object sender, RoutedEventArgs e)
+        private async void ConvertToOrderButton_Click(object sender, RoutedEventArgs e)
         {
             if (!_viewModel.IsAppointment) return;
 
             var result = MessageBox.Show($"Преобразовать запись в заказ?\n\n" +
                 $"🚗 {_viewModel.CurrentOrder.CarModel} ({_viewModel.CurrentOrder.CarNumber})\n" +
-                $"📅 {_viewModel.CurrentOrder.Time:dd.MM.yyyy HH:mm}\n\n" +
+                $"🚘 Категория кузова: {GetCategoryName(_viewModel.SelectedBodyTypeCategory)}\n" +
+                $"📅 {_viewModel.CurrentOrder.Time:dd.MM.yyyy HH:mm}\n" +
+                $"💰 Сумма: {_viewModel.FinalTotal:N0} ₽\n\n" +
                 $"После преобразования запись будет считаться выполненной, а заказ можно будет редактировать.",
                 "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
-            if (result == MessageBoxResult.Yes && _currentShift != null && !_currentShift.IsClosed)
+            if (result != MessageBoxResult.Yes) return;
+
+            if (_currentShift == null || _currentShift.IsClosed)
+            {
+                MessageBox.Show("Нет активной смены! Сначала начните смену.", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
             {
                 var selectedServices = _viewModel.Services.Where(s => s.IsSelected).ToList();
                 var serviceIds = selectedServices.Select(s => s.Id).ToList();
 
+                if (!serviceIds.Any())
+                {
+                    MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var appData = FileDataService.LoadData();
+
+                // Находим оригинальную запись
+                var appointment = appData.Appointments.FirstOrDefault(a => a.Id == _viewModel.CurrentOrder.AppointmentId.Value);
+                if (appointment == null)
+                {
+                    MessageBox.Show("Запись не найдена!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"=== ПРЕОБРАЗОВАНИЕ ЗАПИСИ ===");
+                System.Diagnostics.Debug.WriteLine($"Appointment ID: {appointment.Id}");
+                System.Diagnostics.Debug.WriteLine($"Appointment IsCompleted: {appointment.IsCompleted}");
+                System.Diagnostics.Debug.WriteLine($"Appointment OrderId: {appointment.OrderId}");
+
+                // Создаем новый заказ
+                var newOrderId = GetNextOrderId(appData);
                 var order = new CarWashOrder
                 {
+                    Id = newOrderId,
                     CarModel = _viewModel.CurrentOrder.CarModel,
                     CarNumber = _viewModel.CurrentOrder.CarNumber,
-                    CarBodyType = _viewModel.CurrentOrder.CarBodyType,
+                    CarBodyType = GetCategoryName(_viewModel.SelectedBodyTypeCategory),
+                    BodyTypeCategory = _viewModel.SelectedBodyTypeCategory,
                     Time = _viewModel.CurrentOrder.Time,
                     BoxNumber = _viewModel.CurrentOrder.BoxNumber,
+                    WasherId = _currentShift.EmployeeIds.FirstOrDefault(),
                     ServiceIds = serviceIds,
                     ExtraCost = _viewModel.ExtraCost,
                     ExtraCostReason = _viewModel.CurrentOrder.ExtraCostReason,
                     Status = "В ожидании",
-                    IsAppointment = false
+                    PaymentMethod = _viewModel.CurrentOrder.PaymentMethod,
+                    IsAppointment = false,
+                    ShiftId = _currentShift.Id,
+                    TotalPrice = _viewModel.ServicesTotal
                 };
 
-                var appData = FileDataService.LoadData();
-                order.Id = GetNextOrderId(appData);
-                order.ShiftId = _currentShift.Id;
-                order.WasherId = _currentShift.EmployeeIds.FirstOrDefault();
+                System.Diagnostics.Debug.WriteLine($"Создан заказ ID: {order.Id}");
 
-                var appointment = appData.Appointments.FirstOrDefault(a => a.Id == _viewModel.CurrentOrder.AppointmentId.Value);
-                if (appointment != null)
-                {
-                    appointment.IsCompleted = true;
-                    appointment.OrderId = order.Id;
-                }
+                // Обновляем запись
+                appointment.IsCompleted = true;
+                appointment.OrderId = order.Id;
 
+                System.Diagnostics.Debug.WriteLine($"Обновлена запись: IsCompleted={appointment.IsCompleted}, OrderId={appointment.OrderId}");
+
+                // Добавляем заказ в смену
                 var shift = appData.Shifts.FirstOrDefault(s => s.Id == _currentShift.Id);
                 if (shift != null)
                 {
                     if (shift.Orders == null) shift.Orders = new List<CarWashOrder>();
                     shift.Orders.Add(order);
+                    System.Diagnostics.Debug.WriteLine($"Заказ добавлен в смену {shift.Id}, всего заказов: {shift.Orders.Count}");
                 }
 
+                // Сохраняем изменения
                 FileDataService.SaveData(appData);
 
-                MessageBox.Show($"✅ Заказ создан!\n\n" +
+                // Проверяем сохранение
+                var checkAppData = FileDataService.LoadData();
+                var checkAppointment = checkAppData.Appointments.FirstOrDefault(a => a.Id == appointment.Id);
+                var checkOrder = checkAppData.Shifts.SelectMany(s => s.Orders ?? new List<CarWashOrder>()).FirstOrDefault(o => o.Id == order.Id);
+
+                System.Diagnostics.Debug.WriteLine($"=== ПОСЛЕ СОХРАНЕНИЯ ===");
+                System.Diagnostics.Debug.WriteLine($"Запись найдена: {checkAppointment != null}");
+                System.Diagnostics.Debug.WriteLine($"Запись IsCompleted: {checkAppointment?.IsCompleted}");
+                System.Diagnostics.Debug.WriteLine($"Запись OrderId: {checkAppointment?.OrderId}");
+                System.Diagnostics.Debug.WriteLine($"Заказ найден: {checkOrder != null}");
+                System.Diagnostics.Debug.WriteLine($"Заказ ID: {checkOrder?.Id}");
+
+                // Обновляем ViewModel
+                _viewModel.CurrentOrder.Id = order.Id;
+                _viewModel.CurrentOrder.IsAppointment = false;
+
+                MessageBox.Show($"✅ Заказ успешно создан из записи!\n\n" +
                     $"🚗 {order.CarModel} ({order.CarNumber})\n" +
+                    $"🚘 Категория кузова: {order.CarBodyType}\n" +
                     $"📅 {order.Time:dd.MM.yyyy HH:mm}\n" +
-                    $"💰 Сумма: {order.FinalPrice:N0} ₽",
+                    $"👤 Мойщик: {GetWasherName(order.WasherId)}\n" +
+                    $"💰 Услуги: {order.TotalPrice:N0} ₽\n" +
+                    $"➕ Дополнительно: {order.ExtraCost:N0} ₽\n" +
+                    $"💵 Итоговая сумма: {order.FinalPrice:N0} ₽\n" +
+                    $"👤 Мойщику (35%): {order.WasherEarnings:N0} ₽\n" +
+                    $"🏢 Компании (65%): {order.CompanyEarnings:N0} ₽",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
                 Close();
             }
-            else if (_currentShift == null || _currentShift.IsClosed)
+            catch (Exception ex)
             {
-                MessageBox.Show("Нет активной смены! Сначала начните смену.", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Diagnostics.Debug.WriteLine($"Ошибка при преобразовании: {ex}");
+                MessageBox.Show($"Ошибка при преобразовании: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private string GetCategoryName(int categoryId)
+        {
+            switch (categoryId)
+            {
+                case 1:
+                    return "Категория 1 (Легковая)";
+                case 2:
+                    return "Категория 2 (Универсал)";
+                case 3:
+                    return "Категория 3 (Кроссовер)";
+                case 4:
+                    return "Категория 4 (Внедорожник)";
+                default:
+                    return "Категория 1 (Легковая)";
+            }
+        }
+
+        private string GetWasherName(int washerId)
+        {
+            var washer = _dataService.GetAllUsers().FirstOrDefault(u => u.Id == washerId);
+            return washer?.FullName ?? "Не назначен";
         }
 
         private int GetNextOrderId(AppData appData)

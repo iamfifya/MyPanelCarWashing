@@ -7,13 +7,16 @@
         mc:Ignorable="d"
         Title="Редактирование услуг"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="None"
         ResizeMode="NoResize"
         Width="450" Height="500"
         Background="#F5F6FA">
     
     <Grid Margin="15">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -44,22 +47,22 @@
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <CheckBox IsChecked="{Binding IsSelected}" Width="20"/>
-                        <TextBlock Text="{Binding Name}" Width="180" Margin="10,0,0,0"/>
-                        <TextBlock Text="{Binding Price, StringFormat={}{0:N0} ₽}" Foreground="#27AE60"/>
+                        <TextBlock Text="{Binding Name}" Width="180" Margin="10,0,0,0" Height="50"/>
+                        <TextBlock Text="{Binding Price, StringFormat={}{0:N0} ₽}" Foreground="#27AE60" Height="50"/>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
         <!-- Статус заказа -->
         <Label Content="📋 Статус заказа:" Grid.Row="20" Margin="0,5" FontWeight="SemiBold"/>
-        <ComboBox x:Name="StatusComboBox" Grid.Row="21" Margin="0,5" Height="40">
+        <ComboBox x:Name="StatusComboBox" Grid.Row="21" Margin="0,5" Height="50">
             <ComboBoxItem Content="🟡 В ожидании" IsSelected="True"/>
             <ComboBoxItem Content="🟢 Выполняется"/>
             <ComboBoxItem Content="✅ Выполнен"/>
             <ComboBoxItem Content="❌ Отменен"/>
         </ComboBox>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="4" Margin="0,15">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="9" Margin="0,15">
             <Button Content="✓ Сохранить" Click="SaveButton_Click" Width="100" Height="35" 
                     Margin="5" Background="#27AE60" Foreground="White" Cursor="Hand"/>
             <Button Content="✗ Отмена" Click="CloseButton_Click" Width="100" Height="35" 

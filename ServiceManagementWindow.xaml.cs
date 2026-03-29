@@ -251,8 +251,6 @@ namespace MyPanelCarWashing
         {
             Close();
         }
-        private DateTime _lastClickTime;
-        private Service _lastClickedService;
 
         private void ServiceCard_MouseDown(object sender, MouseButtonEventArgs e)
         {

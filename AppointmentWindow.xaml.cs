@@ -2,7 +2,6 @@ using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,22 +11,21 @@ namespace MyPanelCarWashing
     public partial class AppointmentWindow : Window
     {
         private DataService _dataService;
-        private List<ServiceViewModel> _services;
-        private decimal _servicesTotal;
-        private decimal _extraCost;
+        private AppointmentViewModel _viewModel;
         private int _selectedBox = 1;
 
         public AppointmentWindow(DataService dataService)
         {
             InitializeComponent();
             _dataService = dataService;
+            _viewModel = new AppointmentViewModel(dataService);
+            DataContext = _viewModel;
 
+            // Устанавливаем начальные значения
             AppointmentDatePicker.SelectedDate = DateTime.Now.AddDays(1);
             AppointmentTimeTextBox.Text = "12:00";
             DurationTextBox.Text = "60";
             ExtraCostTextBox.Text = "0";
-
-            LoadServices();
 
             // Подписываемся на события
             AppointmentTimeTextBox.TextChanged += (s, e) => CheckAvailability();
@@ -35,59 +33,58 @@ namespace MyPanelCarWashing
             Box1Radio.Checked += (s, e) => { _selectedBox = 1; CheckAvailability(); };
             Box2Radio.Checked += (s, e) => { _selectedBox = 2; CheckAvailability(); };
             Box3Radio.Checked += (s, e) => { _selectedBox = 3; CheckAvailability(); };
-            ExtraCostTextBox.TextChanged += (s, e) => CalculateTotal();
+            ExtraCostTextBox.TextChanged += (s, e) =>
+            {
+                if (decimal.TryParse(ExtraCostTextBox.Text, out decimal cost))
+                    _viewModel.ExtraCost = cost;
+            };
 
-            // Для услуг используем SelectionChanged
+            // Подписываемся на изменение выбора услуг
             ServicesListBox.SelectionChanged += (s, e) =>
             {
-                CalculateTotal();
+                foreach (ServiceViewModel service in ServicesListBox.Items)
+                {
+                    service.IsSelected = ServicesListBox.SelectedItems.Contains(service);
+                }
+                _viewModel.CalculateTotal();
                 CheckAvailability();
             };
 
-            // Для даты используем событие из CustomDatePicker
+            // Подписываемся на изменение даты
             AppointmentDatePicker.SelectedDateChanged += (s, date) => CheckAvailability();
 
-            // После загрузки услуг обновляем сумму
-            CalculateTotal();
+            // Подписываемся на изменение категории кузова
+            BodyTypeComboBox.SelectionChanged += (s, e) =>
+            {
+                if (BodyTypeComboBox.SelectedItem is ComboBoxItem selectedItem)
+                {
+                    if (int.TryParse(selectedItem.Tag?.ToString(), out int category))
+                    {
+                        _viewModel.SelectedBodyTypeCategory = category;
+                    }
+                }
+            };
+
+            // Подписываемся на изменение цены в ViewModel
+            _viewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(_viewModel.ServicesTotal) ||
+                    e.PropertyName == nameof(_viewModel.FinalTotal))
+                {
+                    UpdateTotalDisplay();
+                }
+            };
+
+            // Инициализируем отображение
+            UpdateTotalDisplay();
             CheckAvailability();
         }
 
-        private void LoadServices()
+        private void UpdateTotalDisplay()
         {
-            var allServices = _dataService.GetAllServices();
-            _services = allServices.Select(s => new ServiceViewModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                Price = s.GetPrice(1),
-                IsSelected = false // По умолчанию ничего не выбрано
-            }).ToList();
-
-            ServicesListBox.ItemsSource = _services;
-
-            // НЕ ВЫБИРАЕМ НИЧЕГО АВТОМАТИЧЕСКИ
-            // Оставляем все услуги невыбранными
-        }
-
-        private void CalculateTotal()
-        {
-            // Сумма выбранных услуг
-            _servicesTotal = 0;
-
-            if (ServicesListBox.SelectedItems != null)
-            {
-                foreach (ServiceViewModel service in ServicesListBox.SelectedItems)
-                {
-                    _servicesTotal += service.Price;
-                }
-            }
-
-            // Дополнительная стоимость
-            if (!decimal.TryParse(ExtraCostTextBox.Text, out _extraCost))
-                _extraCost = 0;
-
-            decimal finalTotal = _servicesTotal + _extraCost;
-            TotalPriceTextBlock.Text = $"💰 Итого: {finalTotal:N0} ₽";
+            ServicesTotalText.Text = $"💰 Услуги: {_viewModel.ServicesTotal:N0} ₽";
+            ExtraCostText.Text = $"➕ Дополнительно: {_viewModel.ExtraCost:N0} ₽";
+            TotalPriceTextBlock.Text = $"💰 Итого: {_viewModel.FinalTotal:N0} ₽";
         }
 
         private void CheckAvailability()
@@ -98,6 +95,7 @@ namespace MyPanelCarWashing
                 if (!date.HasValue)
                 {
                     AvailabilityText.Text = "❌ Выберите дату";
+                    AvailabilityText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red);
                     return;
                 }
 
@@ -116,8 +114,6 @@ namespace MyPanelCarWashing
                 }
 
                 var endTime = startTime.AddMinutes(duration);
-
-                // Проверка рабочего времени
                 var workingStart = date.Value.Date.AddHours(8);
                 var workingEnd = date.Value.Date.AddHours(22);
 
@@ -135,7 +131,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Проверка длительности
                 if (duration < 15)
                 {
                     AvailabilityText.Text = "⚠️ Минимальная длительность мойки - 15 минут";
@@ -150,7 +145,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Проверяем доступность
                 var isAvailable = _dataService.IsBoxAvailable(_selectedBox, startTime, duration);
 
                 if (isAvailable)
@@ -170,120 +164,32 @@ namespace MyPanelCarWashing
             }
         }
 
-        private DateTime? GetNextFreeTime(DateTime startTime, int durationMinutes)
-        {
-            // Получаем все записи на эту дату
-            var allAppointments = _dataService.GetAllAppointments()
-                .Where(a => !a.IsCompleted && a.AppointmentDate.Date == startTime.Date)
-                .OrderBy(a => a.AppointmentDate)
-                .ToList();
-
-            var workingStart = startTime.Date.AddHours(8);
-            var workingEnd = startTime.Date.AddHours(22);
-
-            // Начинаем с 8:00
-            var checkTime = workingStart;
-
-            System.Diagnostics.Debug.WriteLine($"=== Поиск свободного времени ===");
-            System.Diagnostics.Debug.WriteLine($"Длительность: {durationMinutes} мин");
-
-            while (checkTime.AddMinutes(durationMinutes) <= workingEnd)
-            {
-                var endTime = checkTime.AddMinutes(durationMinutes);
-
-                bool isFree = true;
-                foreach (var a in allAppointments)
-                {
-                    var aStart = a.AppointmentDate;
-                    var aEnd = a.EndTime;
-
-                    // Если интервалы пересекаются
-                    if (!(endTime <= aStart || checkTime >= aEnd))
-                    {
-                        isFree = false;
-                        // Перемещаем время на окончание этой записи
-                        checkTime = aEnd;
-                        break;
-                    }
-                }
-
-                if (isFree)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Найдено свободное время: {checkTime:HH:mm} - {endTime:HH:mm}");
-                    return checkTime;
-                }
-
-                // Защита от бесконечного цикла
-                if (checkTime > workingEnd)
-                {
-                    break;
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Свободное время не найдено");
-            return null;
-        }
-        private void ServicesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            try
-            {
-                CalculateTotal();
-                CheckAvailability();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ошибка в ServicesListBox_SelectionChanged: {ex.Message}");
-            }
-        }
-
-        private void ExtraCostTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            try
-            {
-                CalculateTotal();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ошибка в ExtraCostTextBox_TextChanged: {ex.Message}");
-            }
-        }
-
-        private void AppointmentDatePicker_SelectedDateChanged(DateTime? oldDate, DateTime? newDate)
-        {
-            try
-            {
-                CheckAvailability();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ошибка в AppointmentDatePicker_SelectedDateChanged: {ex.Message}");
-            }
-        }
-
         private void CheckAvailabilityButton_Click(object sender, RoutedEventArgs e)
         {
             CheckAvailability();
         }
 
-        private bool ValidateAvailability()
+        private string GetCategoryName(int categoryId)
         {
-            var date = AppointmentDatePicker.SelectedDate;
-            if (!date.HasValue) return false;
-
-            if (!DateTime.TryParse($"{date:yyyy-MM-dd} {AppointmentTimeTextBox.Text}", out DateTime startTime))
-                return false;
-
-            if (!int.TryParse(DurationTextBox.Text, out int duration) || duration <= 0)
-                return false;
-
-            return _dataService.IsBoxAvailable(_selectedBox, startTime, duration);
+            switch (categoryId)
+            {
+                case 1:
+                    return "Категория 1 (Легковая)";
+                case 2:
+                    return "Категория 2 (Универсал)";
+                case 3:
+                    return "Категория 3 (Кроссовер)";
+                case 4:
+                    return "Категория 4 (Внедорожник)";
+                default:
+                    return "Категория 1 (Легковая)";
+            }
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // Проверка полей
                 if (string.IsNullOrWhiteSpace(CarModelTextBox.Text))
                 {
                     MessageBox.Show("Введите марку и модель автомобиля", "Ошибка");
@@ -315,7 +221,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Проверка рабочего времени
                 if (startTime < date.Value.Date.AddHours(8))
                 {
                     MessageBox.Show("Рабочий день начинается в 8:00", "Ошибка");
@@ -328,47 +233,48 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем выбранные услуги
-                var selectedServices = ServicesListBox.SelectedItems.Cast<ServiceViewModel>().ToList();
+                var selectedServices = _viewModel.GetSelectedServiceIds();
                 if (!selectedServices.Any())
                 {
                     MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка");
                     return;
                 }
 
-                // Проверяем доступность времени
                 bool isAvailable = _dataService.IsBoxAvailable(_selectedBox, startTime, duration);
-
                 if (!isAvailable)
                 {
-                    MessageBox.Show($"Время {startTime:HH:mm} уже занято другой записью!\n\n" +
-                        "Пожалуйста, выберите другое время.", "Ошибка");
+                    MessageBox.Show($"Время {startTime:HH:mm} уже занято другой записью!\n\nПожалуйста, выберите другое время.", "Ошибка");
                     return;
                 }
 
-                // СОЗДАЕМ ТОЛЬКО ЗАПИСЬ, НЕ КОНВЕРТИРУЕМ В ЗАКАЗ!
+                // Получаем категорию кузова
+                int bodyTypeCategory = _viewModel.SelectedBodyTypeCategory;
+                string bodyTypeName = GetCategoryName(_viewModel.SelectedBodyTypeCategory);
+
                 var appointment = new Appointment
                 {
                     CarModel = CarModelTextBox.Text,
                     CarNumber = CarNumberTextBox.Text,
-                    CarBodyType = (BodyTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Седан",
+                    CarBodyType = bodyTypeName,
+                    BodyTypeCategory = bodyTypeCategory,
                     AppointmentDate = startTime,
                     DurationMinutes = duration,
-                    ServiceIds = selectedServices.Select(s => s.Id).ToList(),
-                    ExtraCost = _extraCost,
+                    ServiceIds = selectedServices,
+                    ExtraCost = _viewModel.ExtraCost,
                     ExtraCostReason = ExtraCostReasonTextBox.Text.Trim(),
                     BoxNumber = _selectedBox,
                     Notes = "",
                     IsCompleted = false
                 };
 
-                // Добавляем запись
                 _dataService.AddAppointment(appointment);
 
                 MessageBox.Show($"✅ Запись создана!\n\n" +
                     $"🚗 {appointment.CarModel} ({appointment.CarNumber})\n" +
+                    $"🚘 Тип кузова: {appointment.CarBodyType}\n" +
                     $"📅 {appointment.AppointmentDate:dd.MM.yyyy HH:mm}\n" +
-                    $"⏱️ Длительность: {appointment.DurationMinutes} мин\n\n" +
+                    $"⏱️ Длительность: {appointment.DurationMinutes} мин\n" +
+                    $"💰 Итого: {_viewModel.FinalTotal:N0} ₽\n\n" +
                     $"⏰ Запись будет выполнена при начале смены {appointment.AppointmentDate:dd.MM.yyyy}",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 

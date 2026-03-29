@@ -14,7 +14,6 @@ namespace MyPanelCarWashing
         public event PropertyChangedEventHandler PropertyChanged;
 
         private DataService _dataService;
-        private CarWashOrder _order;
         private List<ServiceViewModel> _services;
 
         public CarWashOrder CurrentOrder { get; set; }

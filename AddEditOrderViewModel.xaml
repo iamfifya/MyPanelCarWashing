@@ -102,7 +102,7 @@
             <!-- Выбор мойщика - видим для заказов, скрыт для записей -->
             <Label Content="👤 Выберите мойщика:" Grid.Row="11" Margin="0,5" FontWeight="SemiBold"
                    Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
-            <ComboBox x:Name="WasherComboBox" Grid.Row="12" Margin="0,5" Height="30" 
+            <ComboBox x:Name="WasherComboBox" Grid.Row="12" Margin="0,5" Height="50" 
                       ItemsSource="{Binding Washers}" SelectedValue="{Binding CurrentOrder.WasherId}"
                       DisplayMemberPath="FullName" SelectedValuePath="Id"
                       Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
@@ -110,11 +110,11 @@
             <!-- Выбор услуг -->
             <Label Content="🛠️ Выберите услуги:" Grid.Row="13" Margin="0,10,0,5" FontWeight="SemiBold"/>
             <ListBox x:Name="ServicesListBox" Grid.Row="14" MinHeight="150" MaxHeight="250" Margin="0,5"
-                     ItemsSource="{Binding Services}" SelectionMode="Multiple">
+                     ItemsSource="{Binding Services}" SelectionMode="Multiple" d:ItemsSource="{d:SampleData ItemCount=5}">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="Padding" Value="8,8"/>
-                        <Setter Property="MinHeight" Value="45"/>
+                        <Setter Property="MinHeight" Value="50"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
                         <Style.Triggers>
                             <Trigger Property="IsSelected" Value="True">
@@ -154,7 +154,7 @@
             <!-- Статус заказа (только для редактирования) -->
             <Label Content="📋 Статус заказа:" Grid.Row="19" Margin="0,5" FontWeight="SemiBold"
                    Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
-            <ComboBox x:Name="StatusComboBox" Grid.Row="20" Margin="0,5" Height="40"
+            <ComboBox x:Name="StatusComboBox" Grid.Row="20" Margin="0,5" Height="50"
                       Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}">
                 <ComboBoxItem Content="🟡 В ожидании"/>
                 <ComboBoxItem Content="🟢 Выполняется"/>
@@ -164,7 +164,7 @@
 
             <!-- Способ оплаты -->
             <Label Content="💳 Способ оплаты:" Grid.Row="21" Margin="0,10,0,5" FontWeight="SemiBold"/>
-            <ComboBox x:Name="PaymentMethodComboBox" Grid.Row="22" Margin="0,5" Height="40" 
+            <ComboBox x:Name="PaymentMethodComboBox" Grid.Row="22" Margin="0,5" Height="50" 
                       SelectedValue="{Binding CurrentOrder.PaymentMethod}" SelectedIndex="0">
                 <ComboBoxItem Content="💵 Наличные"/>
                 <ComboBoxItem Content="💳 Карта"/>

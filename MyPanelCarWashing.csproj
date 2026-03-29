@@ -232,6 +232,7 @@
     <Compile Include="StatusToBackgroundConverter.cs" />
     <Compile Include="StatusToColorConverter.cs" />
     <Compile Include="ViewModels\AddEditOrderViewModel.cs" />
+    <Compile Include="ViewModels\AppointmentViewModel.cs" />
     <Compile Include="ViewModels\ServiceViewModel.cs" />
     <Compile Include="StartShiftWindow.xaml.cs">
       <DependentUpon>StartShiftWindow.xaml</DependentUpon>

@@ -11,7 +11,6 @@ namespace MyPanelCarWashing
     public partial class AppointmentsWindow : Window
     {
         private DataService _dataService;
-        private List<Appointment> _allAppointments;
 
         public AppointmentsWindow(DataService dataService)
         {

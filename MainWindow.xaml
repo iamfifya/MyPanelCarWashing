@@ -51,12 +51,12 @@
                         <TextBlock Text="{Binding WasherName}" FontWeight="Medium" FontSize="12"/>
                     </StackPanel>
 
-                        <TextBlock Text="{Binding ServicesList}" 
+                        <TextBlock Text="{Binding ServicesList}"
                                FontSize="12" 
                                Foreground="#7F8C8D" 
                                TextWrapping="Wrap" 
                                Margin="0,0,0,8"
-                               MaxWidth="350"
+                               MaxWidth="300"
                                HorizontalAlignment="Left"/>
 
                     <Separator Background="#F1F2F6" Margin="0,5"/>
@@ -130,34 +130,33 @@
                 <Button x:Name="AddButton" Content="➕ Добавить заказ" 
                 Click="AddButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#3498DB" Foreground="White" BorderThickness="0"
-                Cursor="Hand"/>
+                Cursor="Hand" Height="35"/>
                 <Button x:Name="EmployeesButton" Content="👥 Сотрудники" 
                 Click="EmployeesButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#3498DB" Foreground="White" BorderThickness="0"
-                Cursor="Hand"/>
+                Cursor="Hand" Height="35"/>
                 <Button x:Name="StartShiftButton" Content="📅 Начать смену" 
                 Click="StartShiftButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#27AE60" Foreground="White" BorderThickness="0"
-                Cursor="Hand"/>
+                Cursor="Hand" Height="35"/>
                 <Button x:Name="CloseShiftButton" Content="🔒 Закрыть смену" 
                 Click="CloseShiftButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#E74C3C" Foreground="White" BorderThickness="0"
-                Cursor="Hand"/>
+                Cursor="Hand" Height="35"/>
                 <Button Content="🛠️ Услуги" x:Name="ServicesButton" Click="ServicesButton_Click" 
-                Width="100" Margin="5" Background="#9B59B6" Foreground="White"/>
+                Width="100" Margin="5" Background="#9B59B6" Foreground="White" Height="35"/>
                 <Button x:Name="ReportsButton" Content="📊 Отчёты" 
                 Click="ReportsButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#F39C12" Foreground="White" BorderThickness="0"
-                Cursor="Hand"/>
+                Cursor="Hand" Height="35"/>
                 <Button x:Name="ViewAppointmentsButton" Content="📅 Записи" 
                 Click="ViewAppointmentsButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#F39C12" Foreground="White" BorderThickness="0"
-                Cursor="Hand"/>
+                Cursor="Hand" Height="35"/>
                 <Button x:Name="AppointmentButton" Content="📅 Добавить запись" 
                 Click="AppointmentButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#9B59B6" Foreground="White" BorderThickness="0"
-                Cursor="Hand"/>
-
+                Cursor="Hand" Height="35"/>
                 <TextBox x:Name="SearchFilterTextBox" 
                  Text="🔍 Поиск по гос. номеру или модели..."
                  KeyUp="SearchFilterTextBox_KeyUp"
@@ -346,7 +345,7 @@
                         <Button x:Name="RefreshButton" Content="🔄 Обновить" 
             Click="RefreshButton_Click" Padding="15,8" Margin="10"
             Background="#3498DB" Foreground="White" BorderThickness="0"
-            Cursor="Hand"/>
+            Cursor="Hand" Height="35"/>
                     </StackPanel>
                 </DockPanel>
             </Border>

@@ -203,7 +203,8 @@ namespace MyPanelCarWashing
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"=== LoadData ===");
+                System.Diagnostics.Debug.WriteLine("=========================================");
+                System.Diagnostics.Debug.WriteLine("=== LoadData ===");
 
                 // Получаем текущую открытую смену
                 _currentShift = _dataService.GetCurrentOpenShift();
@@ -214,19 +215,33 @@ namespace MyPanelCarWashing
                 {
                     _allOrders = _currentShift.Orders ?? new List<CarWashOrder>();
                     System.Diagnostics.Debug.WriteLine($"Orders count: {_allOrders.Count}");
+
+                    // Выводим все заказы для отладки
+                    foreach (var order in _allOrders)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  Order ID: {order.Id}, Car: {order.CarNumber}, Time: {order.Time}, IsAppointment: {order.IsAppointment}");
+                    }
                 }
                 else
                 {
                     _allOrders = new List<CarWashOrder>();
+                    System.Diagnostics.Debug.WriteLine("Нет активной смены или смена закрыта");
                 }
 
                 // Получаем записи на сегодня
                 var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
                 var allServices = _dataService.GetAllServices();
 
+                System.Diagnostics.Debug.WriteLine($"Appointments today: {todayAppointments.Count}");
+                foreach (var app in todayAppointments)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  App ID: {app.Id}, Car: {app.CarNumber}, IsCompleted: {app.IsCompleted}, OrderId: {app.OrderId}");
+                }
+
                 // Создаем отображаемые элементы для заказов
                 var orderItems = _allOrders.Select(o => new OrderDisplayItem
                 {
+                    Id = o.Id,
                     CarModel = o.CarModel,
                     CarNumber = o.CarNumber,
                     Time = o.Time,
@@ -243,9 +258,10 @@ namespace MyPanelCarWashing
                     AppointmentId = null
                 }).ToList();
 
-                // Создаем отображаемые элементы для записей
+                // Создаем отображаемые элементы для записей (только невыполненные)
                 var appointmentItems = todayAppointments.Where(a => !a.IsCompleted).Select(a => new OrderDisplayItem
                 {
+                    Id = 0,
                     CarModel = a.CarModel,
                     CarNumber = a.CarNumber,
                     Time = a.AppointmentDate,
@@ -264,16 +280,16 @@ namespace MyPanelCarWashing
                 // Объединяем и сортируем
                 var allItems = orderItems.Concat(appointmentItems).OrderBy(i => i.Time).ToList();
 
+                System.Diagnostics.Debug.WriteLine($"Total display items: {allItems.Count}");
+                System.Diagnostics.Debug.WriteLine($"  Orders: {orderItems.Count}");
+                System.Diagnostics.Debug.WriteLine($"  Appointments: {appointmentItems.Count}");
+
                 // Распределяем по боксам
                 Box1Items = allItems.Where(i => i.BoxNumber == 1).ToList();
                 Box2Items = allItems.Where(i => i.BoxNumber == 2).ToList();
                 Box3Items = allItems.Where(i => i.BoxNumber == 3).ToList();
 
                 UpdateInfo();
-
-                System.Diagnostics.Debug.WriteLine($"Box1 items: {Box1Items?.Count ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"Box2 items: {Box2Items?.Count ?? 0}");
-                System.Diagnostics.Debug.WriteLine($"Box3 items: {Box3Items?.Count ?? 0}");
             }
             catch (Exception ex)
             {
@@ -517,6 +533,24 @@ namespace MyPanelCarWashing
                 var appointment = _dataService.GetAppointmentById(orderDisplay.AppointmentId.Value);
                 if (appointment != null)
                 {
+                    // Если запись уже преобразована в заказ, открываем заказ, а не запись
+                    if (appointment.IsCompleted && appointment.OrderId.HasValue)
+                    {
+                        // Находим заказ
+                        var order = _allOrders.FirstOrDefault(o => o.Id == appointment.OrderId.Value);
+                        if (order != null)
+                        {
+                            var orderEditWin = new AddEditOrderWindow(_dataService, _currentShift, order);
+                            if (orderEditWin.ShowDialog() == true)
+                            {
+                                _dataService = new DataService();
+                                LoadData();
+                            }
+                            return;
+                        }
+                    }
+
+                    // Иначе открываем как запись
                     var tempOrder = new CarWashOrder
                     {
                         Id = 0,
@@ -529,15 +563,14 @@ namespace MyPanelCarWashing
                         ServiceIds = appointment.ServiceIds,
                         ExtraCost = appointment.ExtraCost,
                         ExtraCostReason = appointment.ExtraCostReason,
-                        Status = "Предварительная запись",
+                        Status = appointment.IsCompleted ? "Выполнен" : "Предварительная запись",
                         IsAppointment = true,
                         AppointmentId = appointment.Id
                     };
 
-                    var editWin = new AddEditOrderWindow(_dataService, _currentShift, tempOrder);
-                    if (editWin.ShowDialog() == true)
+                    var appointmentEditWin = new AddEditOrderWindow(_dataService, _currentShift, tempOrder);
+                    if (appointmentEditWin.ShowDialog() == true)
                     {
-                        // Полная перезагрузка данных
                         _dataService = new DataService();
                         LoadData();
                     }
@@ -549,10 +582,9 @@ namespace MyPanelCarWashing
                                                                     o.Time == orderDisplay.Time);
                 if (originalOrder != null)
                 {
-                    var editWin = new AddEditOrderWindow(_dataService, _currentShift, originalOrder);
-                    if (editWin.ShowDialog() == true)
+                    var orderEditWin = new AddEditOrderWindow(_dataService, _currentShift, originalOrder);
+                    if (orderEditWin.ShowDialog() == true)
                     {
-                        // Полная перезагрузка данных
                         _dataService = new DataService();
                         LoadData();
                     }
@@ -777,15 +809,128 @@ namespace MyPanelCarWashing
 
         private void DeleteOrderMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (SelectedItem != null)
+            if (SelectedItem == null)
             {
-                if (SelectedItem.IsAppointment && SelectedItem.AppointmentId.HasValue)
+                MessageBox.Show("Выберите заказ для удаления", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine("=========================================");
+            System.Diagnostics.Debug.WriteLine("=== УДАЛЕНИЕ ЗАКАЗА ===");
+            System.Diagnostics.Debug.WriteLine($"SelectedItem.CarNumber: {SelectedItem.CarNumber}");
+            System.Diagnostics.Debug.WriteLine($"SelectedItem.Time: {SelectedItem.Time}");
+            System.Diagnostics.Debug.WriteLine($"SelectedItem.IsAppointment: {SelectedItem.IsAppointment}");
+            System.Diagnostics.Debug.WriteLine($"SelectedItem.AppointmentId: {SelectedItem.AppointmentId}");
+
+            // Выводим все заказы в смене
+            System.Diagnostics.Debug.WriteLine("--- ВСЕ ЗАКАЗЫ В СМЕНЕ ---");
+            if (_currentShift != null && _currentShift.Orders != null)
+            {
+                foreach (var order in _currentShift.Orders)
                 {
-                    var appointment = _dataService.GetAppointmentById(SelectedItem.AppointmentId.Value);
-                    if (appointment != null)
+                    System.Diagnostics.Debug.WriteLine($"  Order ID: {order.Id}, Car: {order.CarNumber}, Time: {order.Time}, IsAppointment: {order.IsAppointment}");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("  Нет заказов в смене");
+            }
+
+            // Ищем заказ в _allOrders
+            var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == SelectedItem.CarNumber &&
+                                                                o.Time == SelectedItem.Time);
+
+            System.Diagnostics.Debug.WriteLine($"--- ПОИСК ЗАКАЗА ---");
+            System.Diagnostics.Debug.WriteLine($"Найден заказ в _allOrders: {originalOrder != null}");
+            if (originalOrder != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Заказ ID: {originalOrder.Id}, Статус: {originalOrder.Status}");
+                System.Diagnostics.Debug.WriteLine($"  Заказ IsAppointment: {originalOrder.IsAppointment}");
+                System.Diagnostics.Debug.WriteLine($"  Заказ AppointmentId: {originalOrder.AppointmentId}");
+                System.Diagnostics.Debug.WriteLine($"  Заказ ShiftId: {originalOrder.ShiftId}");
+            }
+
+            if (originalOrder != null)
+            {
+                // Это заказ - удаляем его
+                var result = MessageBox.Show($"Удалить заказ?\n\n{originalOrder.CarModel} ({originalOrder.CarNumber})\n" +
+                    $"Время: {originalOrder.Time:HH:mm}\nСумма: {originalOrder.FinalPrice:N0} ₽\n\nЭто действие нельзя отменить!",
+                    "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Удаляем заказ ID: {originalOrder.Id} из смены ID: {originalOrder.ShiftId}");
+
+                    // Загружаем данные из файла
+                    var appData = FileDataService.LoadData();
+
+                    // Находим нужную смену по ShiftId заказа
+                    var shift = appData.Shifts.FirstOrDefault(s => s.Id == originalOrder.ShiftId);
+                    if (shift != null)
                     {
-                        var result = MessageBox.Show($"Удалить запись?\n\n{SelectedItem.CarModel} ({SelectedItem.CarNumber})",
+                        System.Diagnostics.Debug.WriteLine($"Найдена смена ID: {shift.Id}, Заказов до удаления: {shift.Orders?.Count ?? 0}");
+
+                        // Удаляем заказ из смены
+                        var orderToRemove = shift.Orders?.FirstOrDefault(o => o.Id == originalOrder.Id);
+                        if (orderToRemove != null)
+                        {
+                            shift.Orders.Remove(orderToRemove);
+                            System.Diagnostics.Debug.WriteLine($"Заказ удален из смены, теперь заказов: {shift.Orders?.Count ?? 0}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Заказ с ID {originalOrder.Id} не найден в смене");
+                        }
+
+                        // Сохраняем изменения
+                        FileDataService.SaveData(appData);
+
+                        // Обновляем текущие данные
+                        _dataService = new DataService();
+                        LoadData();
+
+                        MessageBox.Show("Заказ удален", "Успешно");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Смена с ID {originalOrder.ShiftId} не найдена");
+                        MessageBox.Show("Не удалось найти смену для удаления заказа", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                return;
+            }
+
+            // Если заказ не найден, проверяем запись
+            System.Diagnostics.Debug.WriteLine("--- ЗАКАЗ НЕ НАЙДЕН, ПРОВЕРЯЕМ ЗАПИСЬ ---");
+            if (SelectedItem.IsAppointment && SelectedItem.AppointmentId.HasValue)
+            {
+                var appointment = _dataService.GetAppointmentById(SelectedItem.AppointmentId.Value);
+                if (appointment != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Найдена запись ID: {appointment.Id}, IsCompleted: {appointment.IsCompleted}, OrderId: {appointment.OrderId}");
+
+                    if (appointment.IsCompleted && appointment.OrderId.HasValue)
+                    {
+                        var result = MessageBox.Show($"Эта запись уже преобразована в заказ #{appointment.OrderId.Value}.\n\n" +
+                            $"Удалить запись из списка предварительных записей?\n" +
+                            $"(Заказ останется в системе и не будет удален)",
                             "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            _dataService.DeleteAppointment(appointment.Id);
+                            LoadData();
+                            MessageBox.Show("Запись удалена (заказ сохранен)", "Успешно");
+                        }
+                    }
+                    else if (!appointment.IsCompleted)
+                    {
+                        var result = MessageBox.Show($"Удалить запись?\n\n{SelectedItem.CarModel} ({SelectedItem.CarNumber})\n" +
+                            $"Время: {SelectedItem.Time:HH:mm}\n\nЭто действие нельзя отменить!",
+                            "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
                         if (result == MessageBoxResult.Yes)
                         {
                             _dataService.DeleteAppointment(appointment.Id);
@@ -793,28 +938,21 @@ namespace MyPanelCarWashing
                             MessageBox.Show("Запись удалена", "Успешно");
                         }
                     }
+                    else
+                    {
+                        MessageBox.Show("Эта запись уже выполнена и не может быть удалена", "Внимание",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                 }
                 else
                 {
-                    var originalOrder = _allOrders.FirstOrDefault(o => o.CarNumber == SelectedItem.CarNumber &&
-                                                                        o.Time == SelectedItem.Time);
-                    if (originalOrder != null && _currentShift != null)
-                    {
-                        var result = MessageBox.Show($"Удалить заказ?\n\n{originalOrder.CarModel} ({originalOrder.CarNumber})",
-                            "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                        if (result == MessageBoxResult.Yes)
-                        {
-                            _currentShift.Orders.Remove(originalOrder);
-                            _dataService.SaveData();
-                            LoadData();
-                            MessageBox.Show("Заказ удален", "Успешно");
-                        }
-                    }
+                    MessageBox.Show("Запись не найдена", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                MessageBox.Show("Выберите заказ для удаления", "Внимание",
+                System.Diagnostics.Debug.WriteLine("Нет записи для удаления");
+                MessageBox.Show("Не удалось найти заказ для удаления", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }

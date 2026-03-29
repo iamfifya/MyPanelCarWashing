@@ -8,8 +8,7 @@
         Title="Управление услугами"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
-        MinWidth="800" MinHeight="500"
-        Width="900" Height="600"
+        MinWidth="1000" MinHeight="500"
         Background="#F5F6FA" 
         WindowState="Maximized">
 
@@ -46,7 +45,7 @@
             <Button Content="🔄 Обновить" Click="RefreshButton_Click" Width="100" Height="35" 
                     Margin="5" Background="#95A5A6" Foreground="White"/>
             <Label Content="🔍 Поиск:" VerticalContentAlignment="Center" Margin="20,0,0,0"/>
-            <TextBox x:Name="SearchTextBox" Width="200" Height="30" Margin="5" Padding="5"
+            <TextBox x:Name="SearchTextBox" Width="350" Height="50" Margin="5" Padding="5"
                      TextChanged="SearchTextBox_TextChanged"/>
         </StackPanel>
         <!-- Список услуг в виде карточек с контекстным меню -->

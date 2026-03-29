@@ -10,7 +10,7 @@ namespace MyPanelCarWashing
     {
         private DataService _dataService;
         public User CurrentEmployee { get; set; }
-        public string Title { get; set; }
+        public new string Title { get; set; }
 
         public AddEditEmployeeWindow(DataService dataService, User employee)
         {

@@ -13,30 +13,29 @@ public static class FileDataService
     {
         try
         {
-            // Проверка на дубликаты ID в услугах перед сохранением
-            var duplicateIds = data.Services
-                .GroupBy(s => s.Id)
-                .Where(g => g.Count() > 1)
-                .Select(g => g.Key)
-                .ToList();
-
-            if (duplicateIds.Any())
-            {
-                System.Diagnostics.Debug.WriteLine($"Предупреждение: найдены дубликаты ID услуг: {string.Join(", ", duplicateIds)}");
-
-                data.Services = data.Services
-                    .GroupBy(s => s.Id)
-                    .Select(g => g.First())
-                    .OrderBy(s => s.Id)
-                    .ToList();
-            }
-
             var json = JsonConvert.SerializeObject(data, Formatting.Indented);
             File.WriteAllText(dataPath, json);
+
+            System.Diagnostics.Debug.WriteLine($"=== СОХРАНЕНИЕ ДАННЫХ ===");
+            System.Diagnostics.Debug.WriteLine($"Всего смен: {data.Shifts?.Count ?? 0}");
+            foreach (var shift in data.Shifts ?? new List<Shift>())
+            {
+                System.Diagnostics.Debug.WriteLine($"  Смена ID: {shift.Id}, Заказов: {shift.Orders?.Count ?? 0}");
+                foreach (var order in shift.Orders ?? new List<CarWashOrder>())
+                {
+                    System.Diagnostics.Debug.WriteLine($"    Заказ ID: {order.Id}, Машина: {order.CarNumber}");
+                }
+            }
+            System.Diagnostics.Debug.WriteLine($"Всего записей: {data.Appointments?.Count ?? 0}");
+            foreach (var app in data.Appointments ?? new List<Appointment>())
+            {
+                System.Diagnostics.Debug.WriteLine($"  Запись ID: {app.Id}, IsCompleted: {app.IsCompleted}, OrderId: {app.OrderId}");
+            }
         }
         catch (Exception ex)
         {
-            throw new Exception($"Ошибка сохранения данных: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Ошибка сохранения: {ex}");
+            throw;
         }
     }
 
