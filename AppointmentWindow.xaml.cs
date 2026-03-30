@@ -268,22 +268,21 @@ namespace MyPanelCarWashing
                 };
 
                 _dataService.AddAppointment(appointment);
+                DataService.NotifyDataChanged(); // Оповещаем все окна
 
                 MessageBox.Show($"✅ Запись создана!\n\n" +
                     $"🚗 {appointment.CarModel} ({appointment.CarNumber})\n" +
-                    $"🚘 Тип кузова: {appointment.CarBodyType}\n" +
                     $"📅 {appointment.AppointmentDate:dd.MM.yyyy HH:mm}\n" +
-                    $"⏱️ Длительность: {appointment.DurationMinutes} мин\n" +
-                    $"💰 Итого: {_viewModel.FinalTotal:N0} ₽\n\n" +
-                    $"⏰ Запись будет выполнена при начале смены {appointment.AppointmentDate:dd.MM.yyyy}",
+                    $"💰 Итого: {_viewModel.FinalTotal:N0} ₽",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                DialogResult = true;
+                DialogResult = true; // ← ЭТО ВАЖНО! Без этого Closed событие не сработает
                 Close();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка");
+                DialogResult = false;
             }
         }
 

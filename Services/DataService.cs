@@ -31,6 +31,104 @@ namespace MyPanelCarWashing.Services
             FileDataService.SaveData(_data);
         }
 
+        // Services/DataService.cs - добавьте эти методы
+
+        public void AddOrderTransactional(CarWashOrder order, List<int> serviceIds)
+        {
+            TransactionService.ExecuteInTransaction(appData =>
+            {
+                var shift = appData.Shifts.FirstOrDefault(s => s.Id == order.ShiftId);
+                if (shift == null)
+                    throw new Exception("Смена не найдена");
+
+                order.Id = GetNextOrderId(appData);
+                order.ServiceIds = serviceIds;
+                order.TotalPrice = appData.Services
+                    .Where(s => serviceIds.Contains(s.Id))
+                    .Sum(s => s.GetPrice(order.BodyTypeCategory));
+
+                if (shift.Orders == null) shift.Orders = new List<CarWashOrder>();
+                shift.Orders.Add(order);
+
+                // Обновляем статистику клиента
+                if (order.ClientId.HasValue)
+                {
+                    var client = appData.Clients.FirstOrDefault(c => c.Id == order.ClientId.Value);
+                    if (client != null)
+                    {
+                        client.VisitsCount++;
+                        client.TotalSpent += order.FinalPrice;
+                        client.LastVisitDate = DateTime.Now;
+                    }
+                }
+
+                return true;
+            });
+        }
+
+        public CarWashOrder ConvertAppointmentToOrderTransactional(Appointment appointment, int shiftId, int washerId)
+        {
+            return TransactionService.ExecuteInTransaction(appData =>
+            {
+                var shift = appData.Shifts.FirstOrDefault(s => s.Id == shiftId);
+                if (shift == null)
+                    throw new Exception("Смена не найдена");
+
+                var app = appData.Appointments.FirstOrDefault(a => a.Id == appointment.Id);
+                if (app == null)
+                    throw new Exception("Запись не найдена");
+
+                var selectedServices = appData.Services.Where(s => app.ServiceIds.Contains(s.Id)).ToList();
+                decimal totalPrice = selectedServices.Sum(s => s.GetPrice(app.BodyTypeCategory));
+
+                var order = new CarWashOrder
+                {
+                    Id = GetNextOrderId(appData),
+                    CarNumber = app.CarNumber,
+                    CarModel = app.CarModel,
+                    CarBodyType = app.CarBodyType,
+                    BodyTypeCategory = app.BodyTypeCategory,
+                    Time = app.AppointmentDate,
+                    ShiftId = shiftId,
+                    BoxNumber = app.BoxNumber,
+                    WasherId = washerId,
+                    ServiceIds = app.ServiceIds.ToList(),
+                    ExtraCost = app.ExtraCost,
+                    ExtraCostReason = app.ExtraCostReason,
+                    Notes = app.Notes,
+                    Status = "В ожидании",
+                    TotalPrice = totalPrice,
+                    IsAppointment = true,
+                    AppointmentId = app.Id
+                };
+
+                shift.Orders.Add(order);
+                app.IsCompleted = true;
+                app.OrderId = order.Id;
+
+                // Обновляем статистику клиента
+                if (order.ClientId.HasValue)
+                {
+                    var client = appData.Clients.FirstOrDefault(c => c.Id == order.ClientId.Value);
+                    if (client != null)
+                    {
+                        client.VisitsCount++;
+                        client.TotalSpent += order.FinalPrice;
+                        client.LastVisitDate = DateTime.Now;
+                    }
+                }
+
+                return order;
+            });
+        }
+
+        public static event Action DataChanged;
+
+        public static void NotifyDataChanged()
+        {
+            DataChanged?.Invoke();
+        }
+
         // Пользователи
         public User AuthenticateUser(string login, string password)
         {
@@ -728,6 +826,70 @@ namespace MyPanelCarWashing.Services
             }
 
             return orders;
+        }
+        /// <summary>
+        /// Обновляет статистику клиента при изменении статуса заказа
+        /// </summary>
+        /// <param name="orderId">ID заказа</param>
+        /// <param name="oldStatus">Старый статус</param>
+        /// <param name="newStatus">Новый статус</param>
+        public void UpdateClientStatsOnStatusChange(int orderId, string oldStatus, string newStatus)
+        {
+            var appData = FileDataService.LoadData();
+
+            // Находим заказ
+            CarWashOrder order = null;
+            Shift shift = null;
+
+            foreach (var s in appData.Shifts)
+            {
+                var foundOrder = s.Orders?.FirstOrDefault(o => o.Id == orderId);
+                if (foundOrder != null)
+                {
+                    order = foundOrder;
+                    shift = s;
+                    break;
+                }
+            }
+
+            if (order == null || !order.ClientId.HasValue) return;
+
+            var client = appData.Clients.FirstOrDefault(c => c.Id == order.ClientId.Value);
+            if (client == null) return;
+
+            bool wasCompleted = oldStatus == "Выполнен";
+            bool willBeCompleted = newStatus == "Выполнен";
+
+            // Если статус не менялся или оба не "Выполнен" - ничего не делаем
+            if (wasCompleted == willBeCompleted) return;
+
+            if (willBeCompleted && !wasCompleted)
+            {
+                // Заказ стал выполненным - добавляем статистику
+                client.VisitsCount++;
+                client.TotalSpent += order.FinalPrice;
+                client.LastVisitDate = DateTime.Now;
+
+                System.Diagnostics.Debug.WriteLine($"Статистика клиента {client.FullName} увеличена: +{order.FinalPrice:N0} ₽, визитов: {client.VisitsCount}");
+            }
+            else if (!willBeCompleted && wasCompleted)
+            {
+                // Заказ был выполнен, но стал отменен/в ожидании - вычитаем статистику
+                client.VisitsCount--;
+                client.TotalSpent -= order.FinalPrice;
+
+                // Обновляем дату последнего визита на предыдущий выполненный заказ
+                var lastCompletedOrder = shift.Orders
+                    .Where(o => o.ClientId == client.Id && o.Id != orderId && o.Status == "Выполнен")
+                    .OrderByDescending(o => o.Time)
+                    .FirstOrDefault();
+
+                client.LastVisitDate = lastCompletedOrder?.Time ?? client.RegistrationDate;
+
+                System.Diagnostics.Debug.WriteLine($"Статистика клиента {client.FullName} уменьшена: -{order.FinalPrice:N0} ₽, визитов: {client.VisitsCount}");
+            }
+
+            FileDataService.SaveData(appData);
         }
     }
 }

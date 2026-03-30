@@ -141,12 +141,11 @@
                            Foreground="#95A5A6" TextWrapping="Wrap" TextAlignment="Center"
                            MaxHeight="50"/>
 
-                                <Border Grid.Row="4" CornerRadius="10" Padding="5,2" Margin="0,8,0,0"
+                               <!-- <Border Grid.Row="4" CornerRadius="10" Padding="5,2" Margin="0,8,0,0"
                         Background="{Binding IsActive, Converter={StaticResource ActiveToBackgroundConverter}}"
                         HorizontalAlignment="Center">
-                                    <TextBlock FontSize="10" Foreground="White"
-                               Text="{Binding IsActive, Converter={StaticResource ActiveToStatusConverter}}"/>
-                                </Border>
+                                    <TextBlock FontSize="10" Foreground="White" Text="{Binding IsActive, Converter={StaticResource ActiveToStatusConverter}}"/> 
+                                </Border> -->
                             </Grid>
                         </Border>
                         <DataTemplate.Triggers>

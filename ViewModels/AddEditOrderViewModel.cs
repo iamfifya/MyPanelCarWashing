@@ -292,6 +292,19 @@ namespace MyPanelCarWashing.ViewModels
                     {
                         if (shift.Orders == null) shift.Orders = new List<CarWashOrder>();
                         shift.Orders.Add(CurrentOrder);
+
+                        // Обновляем статистику клиента для нового заказа
+                        if (CurrentOrder.ClientId.HasValue && CurrentOrder.Status == "Выполнен")
+                        {
+                            var client = appData.Clients.FirstOrDefault(c => c.Id == CurrentOrder.ClientId.Value);
+                            if (client != null)
+                            {
+                                client.VisitsCount++;
+                                client.TotalSpent += CurrentOrder.FinalPrice;
+                                client.LastVisitDate = DateTime.Now;
+                            }
+                        }
+
                         FileDataService.SaveData(appData);
 
                         message = $"Заказ добавлен!\n\n🚗 {CurrentOrder.CarModel} ({CurrentOrder.CarNumber})\n💰 Итого: {FinalTotal:N0} ₽";
@@ -337,6 +350,11 @@ namespace MyPanelCarWashing.ViewModels
                         var existingOrder = shift.Orders.FirstOrDefault(o => o.Id == CurrentOrder.Id);
                         if (existingOrder != null)
                         {
+                            // Сохраняем старый статус для обновления статистики
+                            string oldStatus = existingOrder.Status;
+                            string newStatus = CurrentOrder.Status;
+
+                            // Обновляем поля заказа
                             existingOrder.CarModel = CurrentOrder.CarModel;
                             existingOrder.CarNumber = CurrentOrder.CarNumber;
                             existingOrder.CarBodyType = CurrentOrder.CarBodyType;
@@ -347,9 +365,15 @@ namespace MyPanelCarWashing.ViewModels
                             existingOrder.ServiceIds = serviceIds;
                             existingOrder.ExtraCost = ExtraCost;
                             existingOrder.ExtraCostReason = CurrentOrder.ExtraCostReason;
-                            existingOrder.Status = CurrentOrder.Status;
+                            existingOrder.Status = newStatus;
                             existingOrder.PaymentMethod = CurrentOrder.PaymentMethod;
                             existingOrder.TotalPrice = ServicesTotal;
+
+                            // Обновляем статистику клиента только если изменился статус
+                            if (oldStatus != newStatus && existingOrder.ClientId.HasValue)
+                            {
+                                UpdateClientStatsForOrder(appData, existingOrder, oldStatus, newStatus);
+                            }
 
                             FileDataService.SaveData(appData);
 
@@ -371,6 +395,48 @@ namespace MyPanelCarWashing.ViewModels
             {
                 message = $"Ошибка при сохранении: {ex.Message}";
                 System.Diagnostics.Debug.WriteLine($"SaveOrder error: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Вспомогательный метод для обновления статистики клиента при изменении статуса
+        /// </summary>
+        private void UpdateClientStatsForOrder(AppData appData, CarWashOrder order, string oldStatus, string newStatus)
+        {
+            var client = appData.Clients.FirstOrDefault(c => c.Id == order.ClientId.Value);
+            if (client == null) return;
+
+            bool wasCompleted = oldStatus == "Выполнен";
+            bool willBeCompleted = newStatus == "Выполнен";
+
+            // Если статус не менялся на "Выполнен" или с "Выполнен" - ничего не делаем
+            if (wasCompleted == willBeCompleted) return;
+
+            if (willBeCompleted && !wasCompleted)
+            {
+                // Заказ стал выполненным - добавляем статистику
+                client.VisitsCount++;
+                client.TotalSpent += order.FinalPrice;
+                client.LastVisitDate = DateTime.Now;
+
+                System.Diagnostics.Debug.WriteLine($"Статистика увеличена: клиент {client.FullName}, +{order.FinalPrice:N0} ₽");
+            }
+            else if (!willBeCompleted && wasCompleted)
+            {
+                // Заказ был выполнен, но стал отменен/в ожидании - вычитаем статистику
+                client.VisitsCount--;
+                client.TotalSpent -= order.FinalPrice;
+
+                // Обновляем дату последнего визита
+                var lastCompletedOrder = appData.Shifts
+                    .SelectMany(s => s.Orders ?? new List<CarWashOrder>())
+                    .Where(o => o.ClientId == client.Id && o.Id != order.Id && o.Status == "Выполнен")
+                    .OrderByDescending(o => o.Time)
+                    .FirstOrDefault();
+
+                client.LastVisitDate = lastCompletedOrder?.Time ?? client.RegistrationDate;
+
+                System.Diagnostics.Debug.WriteLine($"Статистика уменьшена: клиент {client.FullName}, -{order.FinalPrice:N0} ₽");
             }
         }
 

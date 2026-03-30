@@ -113,9 +113,9 @@ namespace MyPanelCarWashing
 
                 if (CurrentService.Id == 0)
                 {
-                    // Новая услуга - получаем следующий ID
-                    int newId = appData.Services.Any() ? appData.Services.Max(s => s.Id) + 1 : 1;
-                    CurrentService.Id = newId;
+                    // Новая услуга - используем AppData.GetNextServiceId() вместо ручного расчета
+                    // Это гарантирует уникальность ID
+                    CurrentService.Id = appData.GetNextServiceId();
                     appData.Services.Add(CurrentService);
                     System.Diagnostics.Debug.WriteLine($"Добавлена новая услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                 }

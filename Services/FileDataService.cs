@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using MyPanelCarWashing.Models;
 using Newtonsoft.Json;
 using System;
@@ -7,37 +8,52 @@ using System.Linq;
 
 public static class FileDataService
 {
+    private static readonly object _saveLock = new object();
     private static string dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appdata.json");
+    private static string DataPath => dataPath; // Добавляем свойство для обратной совместимости
 
     public static void SaveData(AppData data)
     {
-        try
+        lock (_saveLock)
         {
             var json = JsonConvert.SerializeObject(data, Formatting.Indented);
-            File.WriteAllText(dataPath, json);
+            var tempPath = DataPath + ".tmp";
 
-            System.Diagnostics.Debug.WriteLine($"=== СОХРАНЕНИЕ ДАННЫХ ===");
-            System.Diagnostics.Debug.WriteLine($"Всего смен: {data.Shifts?.Count ?? 0}");
-            foreach (var shift in data.Shifts ?? new List<Shift>())
+            try
             {
-                System.Diagnostics.Debug.WriteLine($"  Смена ID: {shift.Id}, Заказов: {shift.Orders?.Count ?? 0}");
-                foreach (var order in shift.Orders ?? new List<CarWashOrder>())
+                // 1. Сохраняем во временный файл
+                File.WriteAllText(tempPath, json);
+
+                // 2. Проверяем, что запись прошла успешно
+                var testRead = File.ReadAllText(tempPath);
+                if (string.IsNullOrEmpty(testRead))
+                    throw new IOException("Temp file is empty");
+
+                // 3. Создаём резервную копию существующего файла
+                if (File.Exists(DataPath))
                 {
-                    System.Diagnostics.Debug.WriteLine($"    Заказ ID: {order.Id}, Машина: {order.CarNumber}");
+                    var backupPath = DataPath + ".backup";
+                    File.Copy(DataPath, backupPath, true);
                 }
+
+                // 4. Перемещаем временный файл
+                File.Copy(tempPath, DataPath, true);
+
+                // 5. Удаляем временный файл
+                File.Delete(tempPath);
             }
-            System.Diagnostics.Debug.WriteLine($"Всего записей: {data.Appointments?.Count ?? 0}");
-            foreach (var app in data.Appointments ?? new List<Appointment>())
+            catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"  Запись ID: {app.Id}, IsCompleted: {app.IsCompleted}, OrderId: {app.OrderId}");
+                // Пытаемся восстановиться из бэкапа
+                if (File.Exists(DataPath + ".backup"))
+                {
+                    File.Copy(DataPath + ".backup", DataPath, true);
+                }
+                throw new IOException($"Failed to save data: {ex.Message}", ex);
             }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Ошибка сохранения: {ex}");
-            throw;
         }
     }
+
 
     public static AppData LoadData()
     {
@@ -89,43 +105,41 @@ public static class FileDataService
     {
         // Основные услуги (Лист1)
         var mainServices = new Dictionary<string, Dictionary<int, decimal>>
-        {
-            { "Техническая мойка", new Dictionary<int, decimal> { { 1, 700 }, { 2, 750 }, { 3, 850 }, { 4, 900 } } },
-            { "Профессиональная мойка кузова", new Dictionary<int, decimal> { { 1, 1100 }, { 2, 1300 }, { 3, 1500 }, { 4, 1800 } } },
-            { "Комплекс \"ИЗИ\"", new Dictionary<int, decimal> { { 1, 1900 }, { 2, 2100 }, { 3, 2400 }, { 4, 2700 } } },
-            { "Комплекс \"Глянец\"", new Dictionary<int, decimal> { { 1, 2900 }, { 2, 3100 }, { 3, 3400 }, { 4, 3700 } } }
-        };
+    {
+        { "Техническая мойка", new Dictionary<int, decimal> { { 1, 700 }, { 2, 750 }, { 3, 850 }, { 4, 900 } } },
+        { "Профессиональная мойка кузова", new Dictionary<int, decimal> { { 1, 1100 }, { 2, 1300 }, { 3, 1500 }, { 4, 1800 } } },
+        { "Комплекс \"ИЗИ\"", new Dictionary<int, decimal> { { 1, 1900 }, { 2, 2100 }, { 3, 2400 }, { 4, 2700 } } },
+        { "Комплекс \"Глянец\"", new Dictionary<int, decimal> { { 1, 2900 }, { 2, 3100 }, { 3, 3400 }, { 4, 3700 } } }
+    };
 
         // Дополнительные услуги (Лист2)
         var extraServices = new Dictionary<string, Dictionary<int, decimal>>
-        {
-            { "Багажник(цена от)", new Dictionary<int, decimal> { { 1, 300 } } },
-            { "Пылесос(цена от)", new Dictionary<int, decimal> { { 1, 300 } } },
-            { "Влажная уборка(цена от)", new Dictionary<int, decimal> { { 1, 300 } } },
-            { "Стекла(цена от)", new Dictionary<int, decimal> { { 1, 300 } } },
-            { "Кварцевое покрытие", new Dictionary<int, decimal> { { 1, 850 }, { 2, 950 }, { 3, 1050 }, { 4, 1150 } } },
-            { "Полироль пластика", new Dictionary<int, decimal> { { 1, 300 } } },
-            { "Кондиционер кожи(цена от)", new Dictionary<int, decimal> { { 1, 1500 } } },
-            { "Чистка руля", new Dictionary<int, decimal> { { 1, 500 } } },
-            { "Обработка силиконом", new Dictionary<int, decimal> { { 1, 300 } } },
-            { "Удаление насекомых", new Dictionary<int, decimal> { { 1, 250 } } },
-            { "Битум, металлические вкрапления(цена за элемент)", new Dictionary<int, decimal> { { 1, 150 } } },
-            { "Антидождь быстрый", new Dictionary<int, decimal> { { 1, 150 } } },
-            { "Антидождь крайтека(передний контур)", new Dictionary<int, decimal> { { 1, 3500 } } },
-            { "Антидождь крайтека(вкруг)", new Dictionary<int, decimal> { { 1, 6000 } } },
-            { "Очистка дисков", new Dictionary<int, decimal> { { 1, 300 } } },
-            { "Мойка колес", new Dictionary<int, decimal> { { 1, 1200 } } },
-            { "Мойка двигателя(цена от)", new Dictionary<int, decimal> { { 1, 1500 } } }
-        };
+    {
+        { "Багажник(цена от)", new Dictionary<int, decimal> { { 1, 300 } } },
+        { "Пылесос(цена от)", new Dictionary<int, decimal> { { 1, 300 } } },
+        { "Влажная уборка(цена от)", new Dictionary<int, decimal> { { 1, 300 } } },
+        { "Стекла(цена от)", new Dictionary<int, decimal> { { 1, 300 } } },
+        { "Кварцевое покрытие", new Dictionary<int, decimal> { { 1, 850 }, { 2, 950 }, { 3, 1050 }, { 4, 1150 } } },
+        { "Полироль пластика", new Dictionary<int, decimal> { { 1, 300 } } },
+        { "Кондиционер кожи(цена от)", new Dictionary<int, decimal> { { 1, 1500 } } },
+        { "Чистка руля", new Dictionary<int, decimal> { { 1, 500 } } },
+        { "Обработка силиконом", new Dictionary<int, decimal> { { 1, 300 } } },
+        { "Удаление насекомых", new Dictionary<int, decimal> { { 1, 250 } } },
+        { "Битум, металлические вкрапления(цена за элемент)", new Dictionary<int, decimal> { { 1, 150 } } },
+        { "Антидождь быстрый", new Dictionary<int, decimal> { { 1, 150 } } },
+        { "Антидождь крайтека(передний контур)", new Dictionary<int, decimal> { { 1, 3500 } } },
+        { "Антидождь крайтека(вкруг)", new Dictionary<int, decimal> { { 1, 6000 } } },
+        { "Очистка дисков", new Dictionary<int, decimal> { { 1, 300 } } },
+        { "Мойка колес", new Dictionary<int, decimal> { { 1, 1200 } } },
+        { "Мойка двигателя(цена от)", new Dictionary<int, decimal> { { 1, 1500 } } }
+    };
 
-        int serviceId = 1;
-
-        // Добавляем основные услуги
+        // Используем GetNextServiceId() для каждого добавления
         foreach (var service in mainServices)
         {
             data.Services.Add(new Service
             {
-                Id = serviceId++,
+                Id = data.GetNextServiceId(), // ← ИСПРАВЛЕНО
                 Name = service.Key,
                 DurationMinutes = GetDurationForService(service.Key),
                 Description = GetDescriptionForService(service.Key),
@@ -134,12 +148,11 @@ public static class FileDataService
             });
         }
 
-        // Добавляем дополнительные услуги
         foreach (var service in extraServices)
         {
             data.Services.Add(new Service
             {
-                Id = serviceId++,
+                Id = data.GetNextServiceId(), // ← ИСПРАВЛЕНО
                 Name = service.Key,
                 DurationMinutes = GetDurationForService(service.Key),
                 Description = GetDescriptionForService(service.Key),

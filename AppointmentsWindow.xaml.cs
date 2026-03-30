@@ -93,11 +93,13 @@ namespace MyPanelCarWashing
                 int id = (int)idProperty.GetValue(selected);
 
                 if (MessageBox.Show("Удалить выбранную запись?", "Подтверждение",
-                    MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+        MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     _dataService.DeleteAppointment(id);
-                    LoadAppointments();
-                    MessageBox.Show("Запись удалена", "Успешно");
+                    LoadAppointments(); // Обновляем список в этом окне
+
+                    // Оповещаем MainWindow об изменении
+                    DialogResult = true; // Если окно открыто как диалог
                 }
             }
         }

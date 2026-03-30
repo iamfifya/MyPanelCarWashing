@@ -57,6 +57,11 @@ namespace MyPanelCarWashing
             services.AddTransient<ReportsWindow>();
             services.AddTransient<MonthlyReportWindow>();
             services.AddTransient<StartShiftWindow>();
+            services.AddTransient<AppointmentsWindow>();
+            services.AddTransient<ScheduleWindow>();
+            services.AddTransient<CustomDatePicker>();
+            services.AddTransient<CustomReportWindow>();
+            services.AddTransient<ClientsWindow>();
         }
 
         protected override void OnExit(ExitEventArgs e)

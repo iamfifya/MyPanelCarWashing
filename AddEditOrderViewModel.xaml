@@ -69,10 +69,10 @@
             <ComboBox x:Name="BodyTypeComboBox" Grid.Row="6" Margin="0,5" Height="50"
           SelectedValue="{Binding SelectedBodyTypeCategory}"
           SelectedValuePath="Tag">
-                <ComboBoxItem Content="Категория 1 (Седан/Купе)" Tag="1"/>
-                <ComboBoxItem Content="Категория 2 (Хэтчбек)" Tag="2"/>
-                <ComboBoxItem Content="Категория 3 (Универсал)" Tag="3"/>
-                <ComboBoxItem Content="Категория 4 (Внедорожник/Минивэн)" Tag="4"/>
+                <ComboBoxItem Content="Категория 1 (Легковая)" Tag="1"/>
+                <ComboBoxItem Content="Категория 2 (Универсал)" Tag="2"/>
+                <ComboBoxItem Content="Категория 3 (Кроссовер)" Tag="3"/>
+                <ComboBoxItem Content="Категория 4 (Внедорожник)" Tag="4"/>
             </ComboBox>
 
             <!-- Время заезда -->
@@ -102,13 +102,11 @@
                              Margin="10,5"/>
             </StackPanel>
 
-            <!-- Выбор мойщика - видим для заказов, скрыт для записей -->
-            <Label Content="👤 Выберите мойщика:" Grid.Row="11" Margin="0,5" FontWeight="SemiBold"
-                   Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+            <!-- Выбор мойщика - видим для заказов -->
+            <Label Content="👤 Выберите мойщика:" Grid.Row="11" Margin="0,5" FontWeight="SemiBold"/>
             <ComboBox x:Name="WasherComboBox" Grid.Row="12" Margin="0,5" Height="50" 
-                      ItemsSource="{Binding Washers}" SelectedValue="{Binding CurrentOrder.WasherId}"
-                      DisplayMemberPath="FullName" SelectedValuePath="Id"
-                      Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+          ItemsSource="{Binding Washers}" SelectedValue="{Binding CurrentOrder.WasherId}"
+          DisplayMemberPath="FullName" SelectedValuePath="Id"/>
 
             <!-- Выбор услуг -->
             <Label Content="🛠️ Выберите услуги:" Grid.Row="13" Margin="0,10,0,5" FontWeight="SemiBold"/>
@@ -165,8 +163,8 @@
                 <ComboBoxItem Content="❌ Отменен"/>
             </ComboBox>
             <!-- Выбор клиента -->
-            <Label Content="👤 Клиент:" Grid.Row="20" Margin="0,5" FontWeight="SemiBold"/>
-            <Grid Grid.Row="21" Margin="0,5">
+            <Label Content="👤 Клиент:" Grid.Row="21" Margin="0,5" FontWeight="SemiBold"/>
+            <Grid Grid.Row="22" Margin="0,5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -181,16 +179,16 @@
             </Grid>
 
             <!-- Способ оплаты -->
-            <Label Content="💳 Способ оплаты:" Grid.Row="22" Margin="0,10,0,5" FontWeight="SemiBold"/>
-            <ComboBox x:Name="PaymentMethodComboBox" Grid.Row="23" Margin="0,5" Height="50" 
-                      SelectedValue="{Binding CurrentOrder.PaymentMethod}" SelectedIndex="0">
-                <ComboBoxItem Content="💵 Наличные"/>
-                <ComboBoxItem Content="💳 Карта"/>
-                <ComboBoxItem Content="📱 Перевод"/>
+            <Label Content="💳 Способ оплаты:" Grid.Row="23" Margin="0,10,0,5" FontWeight="SemiBold"/>
+            <ComboBox x:Name="PaymentMethodComboBox" Grid.Row="24" Margin="0,5" Height="50" 
+                      SelectedIndex="0">
+                <ComboBoxItem Content="💵 Наличные" Tag="Наличные"/>
+                <ComboBoxItem Content="💳 Карта" Tag="Карта"/>
+                <ComboBoxItem Content="📱 Перевод" Tag="Перевод"/>
             </ComboBox>
 
             <!-- Итоговая сумма -->
-            <Border Grid.Row="24" Background="#F0F8FF" CornerRadius="5" Padding="10" Margin="0,10">
+            <Border Grid.Row="25" Background="#F0F8FF" CornerRadius="5" Padding="10" Margin="0,10">
                 <StackPanel>
                     <TextBlock FontSize="12" Foreground="#7F8C8D" 
                                HorizontalAlignment="Center" Text="{Binding ServicesTotal, StringFormat=💰 Услуги: {0:N0} ₽}"/>
@@ -201,13 +199,14 @@
                 </StackPanel>
             </Border>
 
-            <!-- Кнопка конвертации записи -->
-            <Button x:Name="ConvertToOrderButton" Content="📅 Преобразовать в заказ" Click="ConvertToOrderButton_Click" 
-                    Grid.Row="24" Width="200" Height="35" Margin="0,10" Background="#9B59B6" Foreground="White"
-                    Visibility="{Binding IsAppointment, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            
 
             <!-- Кнопки -->
-            <StackPanel Grid.Row="25" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
+            <StackPanel Grid.Row="26" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
+                <!-- Кнопка конвертации записи -->
+                <Button x:Name="ConvertToOrderButton" Content="📅 Преобразовать в заказ" Click="ConvertToOrderButton_Click" 
+                        Grid.Row="24" Width="185" Height="35" Margin="0,10" Background="#9B59B6" Foreground="White"
+                        Visibility="{Binding IsAppointment, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 <Button Content="✅ Сохранить" Click="SaveButton_Click" Width="120" Height="35" 
                         Margin="5" Background="#27AE60" Foreground="White" Cursor="Hand"/>
                 <Button Content="✖ Отмена" Click="CloseButton_Click" Width="100" Height="35" 
