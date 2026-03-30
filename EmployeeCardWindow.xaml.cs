@@ -35,6 +35,25 @@ namespace MyPanelCarWashing
             InitializeComponent();
             _dataService = dataService;
             DataContext = this;
+
+            EmployeesListView.LostFocus += (s, e) =>
+            {
+                // Не снимаем, если фокус перешел на кнопку редактирования
+                var focusedElement = FocusManager.GetFocusedElement(this) as FrameworkElement;
+
+                // Если фокус ушел на кнопки управления - не снимаем выделение
+                bool isControlButton = focusedElement is Button &&
+                    (focusedElement.Name == "EditClientButton" ||
+                     focusedElement.Name == "DeleteClientButton" ||
+                     focusedElement.Name == "ShowStatsButton");
+
+                if (!isControlButton)
+                {
+                    EmployeesListView.SelectedItem = null;
+                    _selectedEmployee = null;
+                }
+            };
+
             LoadEmployees();
         }
 

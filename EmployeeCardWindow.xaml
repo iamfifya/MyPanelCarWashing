@@ -70,16 +70,13 @@
             <Button Content="➕ Добавить сотрудника" Click="AddButton_Click" 
                     MinWidth="140" MaxWidth="180" Height="35" 
                     Margin="5" Background="#27AE60" Foreground="White"/>
-            <Button Content="✏ Редактировать" Click="EditItem_Click" 
+            <Button x:Name="EditClientButton" Content="✏ Редактировать" Click="EditItem_Click" 
                     MinWidth="100" MaxWidth="140" Height="35" 
                     Margin="5" Background="#3498DB" Foreground="White"/>
-            <Button Content="🗑 Удалить" Click="DeleteItem_Click" 
+            <Button x:Name="DeleteClientButton" Content="🗑 Удалить" Click="DeleteItem_Click" 
                     MinWidth="80" MaxWidth="120" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>
-            <Button Content="🔄 Обновить" Click="RefreshButton_Click" 
-                    MinWidth="80" MaxWidth="120" Height="35" 
-                    Margin="5" Background="#95A5A6" Foreground="White"/>
-            <Button x:Name="ScheduleButton" Content="📅 График" 
+            <Button x:Name="ScheduleButton" Content="📅 График сотрудников" 
                     Click="ScheduleButton_Click" Padding="15,8" Margin="0,0,10,0"
                     Background="#16A085" Foreground="White" BorderThickness="0"
                     Cursor="Hand" Height="35"/>

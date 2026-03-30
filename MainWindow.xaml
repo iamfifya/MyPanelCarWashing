@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MyPanelCarWashing"
         mc:Ignorable="d"
         Title="Глянец - Панель управления" 
-        Height="800" Width="1200"
+        Height="810" Width="1440"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         Background="#F5F6FA">
@@ -152,10 +152,6 @@
                 <Button x:Name="ViewAppointmentsButton" Content="📅 Записи" 
                 Click="ViewAppointmentsButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#F39C12" Foreground="White" BorderThickness="0"
-                Cursor="Hand" Height="35"/>
-                <Button x:Name="AppointmentButton" Content="📅 Добавить запись" 
-                Click="AppointmentButton_Click" Padding="15,8" Margin="0,0,10,0"
-                Background="#9B59B6" Foreground="White" BorderThickness="0"
                 Cursor="Hand" Height="35"/>
                 <Button x:Name="ClientsButton" Content="👥 Клиенты" 
                         Click="ClientsButton_Click" Padding="15,8" Margin="0,0,10,0"
@@ -361,10 +357,6 @@
                         <Border Grid.Row="3" Background="#34495E" CornerRadius="5" Padding="15" Margin="0,15,0,0">
                             <TextBlock Text="{Binding TotalOrdersInfo}" FontSize="14" FontWeight="Bold" Foreground="White" TextWrapping="WrapWithOverflow"/>
                         </Border>
-                        <Button x:Name="RefreshButton" Content="🔄 Обновить" 
-            Click="RefreshButton_Click" Padding="15,8" Margin="10"
-            Background="#3498DB" Foreground="White" BorderThickness="0"
-            Cursor="Hand" Height="35"/>
                     </StackPanel>
                 </DockPanel>
             </Border>
