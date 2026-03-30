@@ -27,6 +27,7 @@
             <local:ItemStyleConverter x:Key="ItemStyleConverter"/>
             <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
             <local:SafePriceConverter x:Key="SafePriceConverter"/>
+            <local:CurrencyConverter x:Key="CurrencyConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

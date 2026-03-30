@@ -34,7 +34,7 @@ namespace MyPanelCarWashing.Models
 
         [Range(0, 100000, ErrorMessage = "Дополнительная стоимость должна быть от 0 до 100 000")]
         public decimal ExtraCost { get; set; }
-
+        public int? ClientId { get; set; }
         public string ExtraCostReason { get; set; }
 
         public decimal BasePrice => TotalPrice;

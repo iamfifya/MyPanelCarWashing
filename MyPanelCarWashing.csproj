@@ -168,6 +168,9 @@
     </ApplicationDefinition>
     <Compile Include="ActiveToBackgroundConverter.cs" />
     <Compile Include="ActiveToStatusConverter.cs" />
+    <Compile Include="AddEditClientWindow.xaml.cs">
+      <DependentUpon>AddEditClientWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="AddEditOrderViewModel.xaml.cs">
       <DependentUpon>AddEditOrderViewModel.xaml</DependentUpon>
     </Compile>
@@ -184,8 +187,12 @@
     </Compile>
     <Compile Include="BoolToRoleConverter.cs" />
     <Compile Include="BoolToVisibilityConverter.cs" />
+    <Compile Include="ClientsWindow.xaml.cs">
+      <DependentUpon>ClientsWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="CompletedToStatusConverter.cs" />
     <Compile Include="Core.cs" />
+    <Compile Include="CurrencyConverter.cs" />
     <Compile Include="CustomDatePicker.xaml.cs">
       <DependentUpon>CustomDatePicker.xaml</DependentUpon>
     </Compile>
@@ -197,14 +204,19 @@
     <Compile Include="InverseBoolToVisibilityConverter.cs" />
     <Compile Include="ItemStyleConverter.cs" />
     <Compile Include="Models\Appointment.cs" />
+    <Compile Include="Models\Client.cs" />
     <Compile Include="Models\EmployeeShiftReport.cs" />
     <Compile Include="Models\MonthlyReport.cs" />
+    <Compile Include="Models\Schedule.cs" />
     <Compile Include="Models\ShiftReport.cs" />
     <Compile Include="MonthlyReportWindow.xaml.cs">
       <DependentUpon>MonthlyReportWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="PercentageConverter.cs" />
     <Compile Include="SafePriceConverter.cs" />
+    <Compile Include="ScheduleWindow.xaml.cs">
+      <DependentUpon>ScheduleWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ServiceManagementWindow.xaml.cs">
       <DependentUpon>ServiceManagementWindow.xaml</DependentUpon>
     </Compile>
@@ -242,6 +254,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ZeroToVisibilityConverter.cs" />
+    <Page Include="AddEditClientWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="AddEditOrderViewModel.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -258,6 +274,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="ClientsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="CustomDatePicker.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -267,6 +287,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="MonthlyReportWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ScheduleWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

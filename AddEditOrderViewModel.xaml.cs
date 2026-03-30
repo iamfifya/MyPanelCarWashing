@@ -23,6 +23,7 @@ namespace MyPanelCarWashing
             _currentShift = currentShift;
             _viewModel = new AddEditOrderViewModel(dataService, currentShift, order);
             DataContext = _viewModel;
+            LoadClients();
 
             // Заполняем дату/время
             if (order != null)
@@ -318,6 +319,47 @@ namespace MyPanelCarWashing
                 }
             }
             return maxId + 1;
+        }
+        private void LoadClients()
+        {
+            var clients = _dataService.GetAllClients();
+            ClientComboBox.ItemsSource = clients;
+
+            if (_viewModel.CurrentOrder.ClientId.HasValue)
+            {
+                var client = clients.FirstOrDefault(c => c.Id == _viewModel.CurrentOrder.ClientId.Value);
+                if (client != null)
+                {
+                    ClientComboBox.SelectedItem = client;
+                }
+            }
+        }
+
+        private void ClientComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ClientComboBox.SelectedItem is Client selectedClient)
+            {
+                _viewModel.CurrentOrder.ClientId = selectedClient.Id;
+
+                // Автозаполнение данных из карточки клиента
+                if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarModel))
+                {
+                    _viewModel.CurrentOrder.CarModel = selectedClient.CarModel;
+                }
+                if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarNumber))
+                {
+                    _viewModel.CurrentOrder.CarNumber = selectedClient.CarNumber;
+                }
+            }
+        }
+
+        private void AddNewClient_Click(object sender, RoutedEventArgs e)
+        {
+            var addClientWin = new AddEditClientWindow(_dataService, null);
+            if (addClientWin.ShowDialog() == true)
+            {
+                LoadClients();
+            }
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

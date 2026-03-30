@@ -347,79 +347,86 @@ namespace MyPanelCarWashing
 
         private void ApplyFilterAndDisplay()
         {
-            // Если нет заказов, но есть записи, они уже загружены через LoadAppointmentsToDisplay
-            if (_allOrders == null || !_allOrders.Any())
-            {
-                // Проверяем, не загружены ли уже записи через ShowAppointmentsAsWarning
-                if (Box1ItemsControl.ItemsSource == null || !(Box1ItemsControl.ItemsSource as IEnumerable<object>)?.Any() == true)
-                {
-                    Box1ItemsControl.ItemsSource = new List<OrderDisplayItem>();
-                    Box2ItemsControl.ItemsSource = new List<OrderDisplayItem>();
-                    Box3ItemsControl.ItemsSource = new List<OrderDisplayItem>();
-                }
-                return;
-            }
-
-            var filteredOrders = _allOrders.AsEnumerable();
-
-            if (!string.IsNullOrWhiteSpace(_searchFilter))
-            {
-                filteredOrders = filteredOrders.Where(o =>
-                    o.CarNumber.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    o.CarModel.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0);
-            }
-
-            var sortedOrders = filteredOrders.OrderBy(o => o.Time).ToList();
             var allServices = _dataService.GetAllServices();
+            var allDisplayItems = new List<OrderDisplayItem>();
 
-            var box1Orders = sortedOrders.Where(o => o.BoxNumber == 1).Select(o => new OrderDisplayItem
+            // Добавляем заказы
+            if (_allOrders != null && _allOrders.Any())
             {
-                CarModel = o.CarModel,
-                CarNumber = o.CarNumber,
-                Time = o.Time,
-                WasherName = GetWasherName(o.WasherId),
-                ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                FinalPrice = o.FinalPrice,
-                ExtraCost = o.ExtraCost,
-                ExtraCostReason = o.ExtraCostReason,
-                BoxNumber = o.BoxNumber,
-                Status = o.Status,
-                IsAppointment = o.IsAppointment
-            }).ToList();
+                var filteredOrders = _allOrders.AsEnumerable();
 
-            var box2Orders = sortedOrders.Where(o => o.BoxNumber == 2).Select(o => new OrderDisplayItem
+                if (!string.IsNullOrWhiteSpace(_searchFilter))
+                {
+                    filteredOrders = filteredOrders.Where(o =>
+                        o.CarNumber.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        o.CarModel.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0);
+                }
+
+                var orderItems = filteredOrders.Select(o => new OrderDisplayItem
+                {
+                    Id = o.Id,
+                    CarModel = o.CarModel,
+                    CarNumber = o.CarNumber,
+                    Time = o.Time,
+                    WasherName = GetWasherName(o.WasherId),
+                    ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
+                    FinalPrice = o.FinalPrice,
+                    ExtraCost = o.ExtraCost,
+                    ExtraCostReason = o.ExtraCostReason,
+                    BoxNumber = o.BoxNumber,
+                    Status = o.Status,
+                    PaymentMethod = o.PaymentMethod,
+                    IsAppointment = false,
+                    IsCompleted = false,
+                    AppointmentId = null
+                });
+
+                allDisplayItems.AddRange(orderItems);
+            }
+
+            // Добавляем записи на сегодня
+            var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+            var activeAppointments = todayAppointments.Where(a => !a.IsCompleted).ToList();
+
+            if (activeAppointments.Any())
             {
-                CarModel = o.CarModel,
-                CarNumber = o.CarNumber,
-                Time = o.Time,
-                WasherName = GetWasherName(o.WasherId),
-                ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                FinalPrice = o.FinalPrice,
-                ExtraCost = o.ExtraCost,
-                ExtraCostReason = o.ExtraCostReason,
-                BoxNumber = o.BoxNumber,
-                Status = o.Status,
-                IsAppointment = o.IsAppointment
-            }).ToList();
+                var filteredAppointments = activeAppointments.AsEnumerable();
 
-            var box3Orders = sortedOrders.Where(o => o.BoxNumber == 3).Select(o => new OrderDisplayItem
-            {
-                CarModel = o.CarModel,
-                CarNumber = o.CarNumber,
-                Time = o.Time,
-                WasherName = GetWasherName(o.WasherId),
-                ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                FinalPrice = o.FinalPrice,
-                ExtraCost = o.ExtraCost,
-                ExtraCostReason = o.ExtraCostReason,
-                BoxNumber = o.BoxNumber,
-                Status = o.Status,
-                IsAppointment = o.IsAppointment
-            }).ToList();
+                if (!string.IsNullOrWhiteSpace(_searchFilter))
+                {
+                    filteredAppointments = filteredAppointments.Where(a =>
+                        a.CarNumber.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        a.CarModel.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0);
+                }
 
-            Box1ItemsControl.ItemsSource = box1Orders;
-            Box2ItemsControl.ItemsSource = box2Orders;
-            Box3ItemsControl.ItemsSource = box3Orders;
+                var appointmentItems = filteredAppointments.Select(a => new OrderDisplayItem
+                {
+                    Id = 0,
+                    CarModel = a.CarModel,
+                    CarNumber = a.CarNumber,
+                    Time = a.AppointmentDate,
+                    WasherName = "📅 Запись",
+                    ServicesList = string.Join(", ", a.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
+                    FinalPrice = a.ServiceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.GetPrice(a.BodyTypeCategory) ?? 0) + a.ExtraCost,
+                    ExtraCost = a.ExtraCost,
+                    ExtraCostReason = a.ExtraCostReason,
+                    BoxNumber = a.BoxNumber,
+                    Status = "Предварительная запись",
+                    IsAppointment = true,
+                    IsCompleted = a.IsCompleted,
+                    AppointmentId = a.Id
+                });
+
+                allDisplayItems.AddRange(appointmentItems);
+            }
+
+            // Сортируем по времени
+            var sortedItems = allDisplayItems.OrderBy(i => i.Time).ToList();
+
+            // Распределяем по боксам
+            Box1ItemsControl.ItemsSource = sortedItems.Where(i => i.BoxNumber == 1).ToList();
+            Box2ItemsControl.ItemsSource = sortedItems.Where(i => i.BoxNumber == 2).ToList();
+            Box3ItemsControl.ItemsSource = sortedItems.Where(i => i.BoxNumber == 3).ToList();
         }
 
         private string GetWasherName(int washerId)
@@ -505,9 +512,40 @@ namespace MyPanelCarWashing
             WashersStats = stats;
         }
 
+        private void SearchFilterTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("=== SearchFilterTextBox_GotFocus ===");
+            if (SearchFilterTextBox.Text == "🔍 Поиск по гос. номеру или модели...")
+            {
+                SearchFilterTextBox.Text = "";
+                SearchFilterTextBox.Foreground = Brushes.Black;
+                System.Diagnostics.Debug.WriteLine("Text cleared");
+            }
+        }
+
+        private void SearchFilterTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("=== SearchFilterTextBox_LostFocus ===");
+            if (string.IsNullOrWhiteSpace(SearchFilterTextBox.Text))
+            {
+                SearchFilterTextBox.Text = "🔍 Поиск по гос. номеру или модели...";
+                SearchFilterTextBox.Foreground = new SolidColorBrush(Color.FromRgb(127, 140, 141));
+                _searchFilter = "";
+                ApplyFilterAndDisplay();
+                System.Diagnostics.Debug.WriteLine("Placeholder restored");
+            }
+        }
+
         private void SearchFilterTextBox_KeyUp(object sender, KeyEventArgs e)
         {
-            _searchFilter = SearchFilterTextBox.Text;
+            _searchFilter = SearchFilterTextBox.Text.Trim();
+            System.Diagnostics.Debug.WriteLine($"Search text: '{_searchFilter}'");
+
+            if (_searchFilter == "🔍 Поиск по гос. номеру или модели...")
+            {
+                _searchFilter = "";
+            }
+
             ApplyFilterAndDisplay();
         }
         private void AddButton_Click(object sender, RoutedEventArgs e)
@@ -1064,6 +1102,11 @@ namespace MyPanelCarWashing
             {
                 OpenEditOrder(selectedOrder);
             }
+        }
+        private void ClientsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var clientsWin = new ClientsWindow(_dataService);
+            clientsWin.ShowDialog();
         }
     }
 

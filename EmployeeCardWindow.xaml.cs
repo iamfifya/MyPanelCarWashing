@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace MyPanelCarWashing
@@ -17,6 +18,7 @@ namespace MyPanelCarWashing
         private List<User> _allEmployees;
         private List<User> _employeesList;
         private string _searchFilter = "";
+        private User _selectedEmployee;
 
         public List<User> EmployeesList
         {
@@ -48,17 +50,24 @@ namespace MyPanelCarWashing
 
             if (!string.IsNullOrWhiteSpace(_searchFilter))
             {
-                filtered = filtered.Where(e => e.FullName.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                               e.Login.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0);
+                filtered = filtered.Where(e =>
+                    e.FullName.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    e.Login.IndexOf(_searchFilter, StringComparison.OrdinalIgnoreCase) >= 0);
             }
 
             EmployeesList = filtered.ToList();
+            EmployeesListView.ItemsSource = EmployeesList;
         }
 
         private void SearchFilterTextBox_KeyUp(object sender, KeyEventArgs e)
         {
-            _searchFilter = SearchFilterTextBox.Text;
+            _searchFilter = SearchFilterTextBox.Text.Trim();
             ApplyFilter();
+        }
+
+        private void EmployeesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            _selectedEmployee = EmployeesListView.SelectedItem as User;
         }
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
@@ -69,69 +78,126 @@ namespace MyPanelCarWashing
                 LoadEmployees();
             }
         }
+        // Добавьте эти методы в EmployeeCardWindow.xaml.cs
 
-        private void EditItem_Click(object sender, RoutedEventArgs e)
+        private void EmployeesListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            var selectedEmployee = EmployeesListView.SelectedItem as User;
-            if (selectedEmployee != null)
+            if (_selectedEmployee != null)
             {
-                var editWin = new AddEditEmployeeWindow(_dataService, selectedEmployee);
-                if (editWin.ShowDialog() == true)
-                {
-                    LoadEmployees();
-                }
+                OpenEditEmployee(_selectedEmployee);
+                e.Handled = true;
             }
         }
 
-        private void DeleteItem_Click(object sender, RoutedEventArgs e)
+        private void EditEmployeeMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var selectedEmployee = EmployeesListView.SelectedItem as User;
-            if (selectedEmployee != null)
+            if (_selectedEmployee != null)
             {
-                if (selectedEmployee.IsAdmin && selectedEmployee.Login == "admin")
-                {
-                    MessageBox.Show("Нельзя удалить главного администратора!", "Предупреждение",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                OpenEditEmployee(_selectedEmployee);
+            }
+            else
+            {
+                MessageBox.Show("Выберите сотрудника для редактирования", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
 
-                var result = MessageBox.Show($"Удалить сотрудника {selectedEmployee.FullName}?\n\nЭто действие нельзя отменить.",
-                    "Подтверждение удаления",
-                    MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    try
-                    {
-                        var allUsers = _dataService.GetAllUsers();
-                        var userToDelete = allUsers.FirstOrDefault(u => u.Id == selectedEmployee.Id);
-
-                        if (userToDelete != null)
-                        {
-                            allUsers.Remove(userToDelete);
-
-                            var appData = FileDataService.LoadData();
-                            appData.Users = allUsers;
-                            FileDataService.SaveData(appData);
-
-                            LoadEmployees();
-
-                            MessageBox.Show($"Сотрудник {selectedEmployee.FullName} успешно удален", "Успешно",
-                                MessageBoxButton.OK, MessageBoxImage.Information);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
+        private void DeleteEmployeeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedEmployee != null)
+            {
+                DeleteEmployee(_selectedEmployee);
             }
             else
             {
                 MessageBox.Show("Выберите сотрудника для удаления", "Внимание",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        private void OpenEditEmployee(User employee)
+        {
+            var editWin = new AddEditEmployeeWindow(_dataService, employee);
+            if (editWin.ShowDialog() == true)
+            {
+                LoadEmployees();
+            }
+        }
+
+        private void DeleteEmployee(User employee)
+        {
+            if (employee.IsAdmin && employee.Login == "admin")
+            {
+                MessageBox.Show("Нельзя удалить главного администратора!", "Предупреждение",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var result = MessageBox.Show($"Удалить сотрудника {employee.FullName}?\n\nЭто действие нельзя отменить.",
+                "Подтверждение удаления",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    var allUsers = _dataService.GetAllUsers();
+                    var userToDelete = allUsers.FirstOrDefault(u => u.Id == employee.Id);
+
+                    if (userToDelete != null)
+                    {
+                        allUsers.Remove(userToDelete);
+
+                        var appData = FileDataService.LoadData();
+                        appData.Users = allUsers;
+                        FileDataService.SaveData(appData);
+
+                        LoadEmployees();
+                        _selectedEmployee = null;
+
+                        MessageBox.Show($"Сотрудник {employee.FullName} успешно удален", "Успешно",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        // Обновите метод EditItem_Click
+        private void EditItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedEmployee != null)
+            {
+                OpenEditEmployee(_selectedEmployee);
+            }
+            else
+            {
+                MessageBox.Show("Выберите сотрудника для редактирования", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        // Обновите метод DeleteItem_Click
+        private void DeleteItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedEmployee != null)
+            {
+                DeleteEmployee(_selectedEmployee);
+            }
+            else
+            {
+                MessageBox.Show("Выберите сотрудника для удаления", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        private void ScheduleButton_Click(object sender, RoutedEventArgs e)
+        {
+            var scheduleWin = new ScheduleWindow(_dataService);
+            scheduleWin.ShowDialog();
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)

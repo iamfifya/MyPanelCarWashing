@@ -157,16 +157,35 @@
                 Click="AppointmentButton_Click" Padding="15,8" Margin="0,0,10,0"
                 Background="#9B59B6" Foreground="White" BorderThickness="0"
                 Cursor="Hand" Height="35"/>
+                <Button x:Name="ClientsButton" Content="👥 Клиенты" 
+                        Click="ClientsButton_Click" Padding="15,8" Margin="0,0,10,0"
+                        Background="#16A085" Foreground="White" BorderThickness="0"
+                        Cursor="Hand" Height="35"/>
                 <TextBox x:Name="SearchFilterTextBox" 
-                 Text="🔍 Поиск по гос. номеру или модели..."
-                 KeyUp="SearchFilterTextBox_KeyUp"
-                 Padding="10,8" MinWidth="250" Margin="20,0,0,0"
-                 Background="White" BorderBrush="#BDC3C7"/>
+         Text="🔍 Поиск по гос. номеру или модели..."
+         KeyUp="SearchFilterTextBox_KeyUp"
+         GotFocus="SearchFilterTextBox_GotFocus"
+         LostFocus="SearchFilterTextBox_LostFocus"
+         Padding="10,8" 
+         MinWidth="250" 
+         Height="40"
+         Margin="20,0,0,0"
+         Background="White" 
+         BorderBrush="#BDC3C7"
+         Foreground="#7F8C8D"
+         FontSize="12"
+         VerticalAlignment="Center"
+         VerticalContentAlignment="Center">
+                    <TextBox.Resources>
+                        <Style TargetType="TextBox" BasedOn="{x:Null}"/>
+                    </TextBox.Resources>
+                </TextBox>
+
 
                 <Button x:Name="ExitButton" Content="🚪 Выход" 
                 Click="ExitButton_Click" Padding="15,8"
                 Background="#E74C3C" Foreground="White" BorderThickness="0"
-                Cursor="Hand" HorizontalAlignment="Right"/>
+                Cursor="Hand" HorizontalAlignment="Right" Height="35"/>
             </StackPanel>
         </Grid>
 

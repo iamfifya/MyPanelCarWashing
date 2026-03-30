@@ -46,6 +46,9 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <TextBlock Text="{Binding WindowTitle}" FontSize="24" FontWeight="Bold" 
@@ -161,10 +164,25 @@
                 <ComboBoxItem Content="✅ Выполнен"/>
                 <ComboBoxItem Content="❌ Отменен"/>
             </ComboBox>
+            <!-- Выбор клиента -->
+            <Label Content="👤 Клиент:" Grid.Row="20" Margin="0,5" FontWeight="SemiBold"/>
+            <Grid Grid.Row="21" Margin="0,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <ComboBox x:Name="ClientComboBox" Grid.Column="0" Height="50" 
+              DisplayMemberPath="DisplayInfo" SelectedValuePath="Id"
+              IsEditable="True" TextSearch.TextPath="DisplayInfo"
+              SelectionChanged="ClientComboBox_SelectionChanged"/>
+                <Button Grid.Column="1" Content="➕" Click="AddNewClient_Click" 
+            Width="40" Height="40" Margin="5,0,0,0"
+            Background="#27AE60" Foreground="White" FontSize="16"/>
+            </Grid>
 
             <!-- Способ оплаты -->
-            <Label Content="💳 Способ оплаты:" Grid.Row="21" Margin="0,10,0,5" FontWeight="SemiBold"/>
-            <ComboBox x:Name="PaymentMethodComboBox" Grid.Row="22" Margin="0,5" Height="50" 
+            <Label Content="💳 Способ оплаты:" Grid.Row="22" Margin="0,10,0,5" FontWeight="SemiBold"/>
+            <ComboBox x:Name="PaymentMethodComboBox" Grid.Row="23" Margin="0,5" Height="50" 
                       SelectedValue="{Binding CurrentOrder.PaymentMethod}" SelectedIndex="0">
                 <ComboBoxItem Content="💵 Наличные"/>
                 <ComboBoxItem Content="💳 Карта"/>
@@ -172,7 +190,7 @@
             </ComboBox>
 
             <!-- Итоговая сумма -->
-            <Border Grid.Row="23" Background="#F0F8FF" CornerRadius="5" Padding="10" Margin="0,10">
+            <Border Grid.Row="24" Background="#F0F8FF" CornerRadius="5" Padding="10" Margin="0,10">
                 <StackPanel>
                     <TextBlock FontSize="12" Foreground="#7F8C8D" 
                                HorizontalAlignment="Center" Text="{Binding ServicesTotal, StringFormat=💰 Услуги: {0:N0} ₽}"/>

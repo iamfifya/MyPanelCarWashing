@@ -1,15 +1,15 @@
-<Window x:Class="MyPanelCarWashing.EmployeeCardWindow"
+<Window x:Class="MyPanelCarWashing.ClientsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MyPanelCarWashing"
         mc:Ignorable="d"
-        Title="Сотрудники"
+        Title="Клиентская база"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
-        MinWidth="800" MinHeight="500"
-        Width="1000" Height="600"
+        MinWidth="900" MinHeight="500"
+        Width="1100" Height="700"
         Background="#F5F6FA"
         WindowState="Maximized">
 
@@ -61,45 +61,50 @@
         </Grid.RowDefinitions>
 
         <!-- Заголовок -->
-        <TextBlock Text="👥 Сотрудники" FontSize="24" FontWeight="Bold" 
+        <TextBlock Text="👥 Клиентская база" FontSize="24" FontWeight="Bold" 
                    Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,15" Grid.Row="0"/>
 
         <!-- Панель управления -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15" 
                     HorizontalAlignment="Left" VerticalAlignment="Center">
-            <Button Content="➕ Добавить сотрудника" Click="AddButton_Click" 
-                    MinWidth="140" MaxWidth="180" Height="35" 
+            <Button Content="➕ Добавить клиента" Click="AddClient_Click" 
+                    MinWidth="120" MaxWidth="160" Height="35" 
                     Margin="5" Background="#27AE60" Foreground="White"/>
-            <Button Content="✏ Редактировать" Click="EditItem_Click" 
+            <Button Content="✏ Редактировать" Click="EditClient_Click" 
                     MinWidth="100" MaxWidth="140" Height="35" 
                     Margin="5" Background="#3498DB" Foreground="White"/>
-            <Button Content="🗑 Удалить" Click="DeleteItem_Click" 
+            <Button Content="🗑 Удалить" Click="DeleteClient_Click" 
                     MinWidth="80" MaxWidth="120" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>
             <Button Content="🔄 Обновить" Click="RefreshButton_Click" 
                     MinWidth="80" MaxWidth="120" Height="35" 
                     Margin="5" Background="#95A5A6" Foreground="White"/>
-            <Button x:Name="ScheduleButton" Content="📅 График" 
-                    Click="ScheduleButton_Click" Padding="15,8" Margin="0,0,10,0"
-                    Background="#16A085" Foreground="White" BorderThickness="0"
-                    Cursor="Hand" Height="35"/>
             <Label Content="🔍 Поиск:" VerticalContentAlignment="Center" Margin="20,0,0,0"/>
-            <TextBox x:Name="SearchFilterTextBox" 
-                     Width="250" Height="35" Margin="5" Padding="5"
-                     KeyUp="SearchFilterTextBox_KeyUp"/>
+            <TextBox x:Name="SearchTextBox" Width="250" Height="35" Margin="5" Padding="5"
+                     TextChanged="SearchTextBox_TextChanged"/>
         </StackPanel>
 
-        <!-- Заголовок таблицы -->
+        <!-- Заголовок таблицы (отдельно, вне ScrollViewer) -->
         <Border Grid.Row="2" Background="#2C3E50" Height="45" CornerRadius="4,4,0,0">
             <Grid x:Name="HeaderGrid">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="0.8*" MinWidth="50"/>
+                    <ColumnDefinition Width="0.6*" MinWidth="40"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="3*" MinWidth="150"/>
+                    <ColumnDefinition Width="1.8*" MinWidth="100"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="2*" MinWidth="100"/>
+                    <ColumnDefinition Width="1.2*" MinWidth="80"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="2*" MinWidth="120"/>
+                    <ColumnDefinition Width="1.5*" MinWidth="100"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.0*" MinWidth="70"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="0.7*" MinWidth="50"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.0*" MinWidth="80"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="0.8*" MinWidth="70"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.0*" MinWidth="80"/>
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="ID" Style="{StaticResource HeaderCellStyle}" 
@@ -112,54 +117,95 @@
 
                 <GridSplitter Grid.Column="3" Style="{StaticResource GridSplitterStyle}"/>
 
-                <TextBlock Text="Логин" Style="{StaticResource HeaderCellStyle}" 
+                <TextBlock Text="Телефон" Style="{StaticResource HeaderCellStyle}" 
                            HorizontalAlignment="Left" Padding="10,8" Grid.Column="4"/>
 
                 <GridSplitter Grid.Column="5" Style="{StaticResource GridSplitterStyle}"/>
 
-                <TextBlock Text="Должность" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="6"/>
+                <TextBlock Text="Марка/Модель" Style="{StaticResource HeaderCellStyle}" 
+                           HorizontalAlignment="Left" Padding="10,8" Grid.Column="6"/>
+
+                <GridSplitter Grid.Column="7" Style="{StaticResource GridSplitterStyle}"/>
+
+                <TextBlock Text="Госномер" Style="{StaticResource HeaderCellStyle}" 
+                           HorizontalAlignment="Left" Padding="10,8" Grid.Column="8"/>
+
+                <GridSplitter Grid.Column="9" Style="{StaticResource GridSplitterStyle}"/>
+
+                <TextBlock Text="Визитов" Style="{StaticResource HeaderCellStyle}" 
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="10"/>
+
+                <GridSplitter Grid.Column="11" Style="{StaticResource GridSplitterStyle}"/>
+
+                <TextBlock Text="Сумма" Style="{StaticResource HeaderCellStyle}" 
+                           HorizontalAlignment="Right" Padding="10,8" Grid.Column="12"/>
+
+                <GridSplitter Grid.Column="13" Style="{StaticResource GridSplitterStyle}"/>
+
+                <TextBlock Text="Ср. чек" Style="{StaticResource HeaderCellStyle}" 
+                           HorizontalAlignment="Right" Padding="10,8" Grid.Column="14"/>
+
+                <GridSplitter Grid.Column="15" Style="{StaticResource GridSplitterStyle}"/>
+
+                <TextBlock Text="Посл. визит" Style="{StaticResource HeaderCellStyle}" 
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="16"/>
             </Grid>
         </Border>
 
-        <!-- Таблица с данными -->
+        <!-- Таблица с данными (ScrollViewer только для данных) -->
         <ScrollViewer Grid.Row="3" 
                       VerticalScrollBarVisibility="Auto" 
                       HorizontalScrollBarVisibility="Auto"
                       CanContentScroll="True">
             <Grid x:Name="DataGrid">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="0.8*" MinWidth="50"/>
+                    <ColumnDefinition Width="0.6*" MinWidth="40"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="3*" MinWidth="150"/>
+                    <ColumnDefinition Width="1.8*" MinWidth="100"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="2*" MinWidth="100"/>
+                    <ColumnDefinition Width="1.2*" MinWidth="80"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="2*" MinWidth="120"/>
+                    <ColumnDefinition Width="1.5*" MinWidth="100"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.0*" MinWidth="70"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="0.7*" MinWidth="50"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.0*" MinWidth="80"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="0.8*" MinWidth="70"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.0*" MinWidth="80"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- GridSplitter для данных -->
+                <!-- GridSplitter для данных (визуально те же, что и в заголовке) -->
                 <GridSplitter Grid.Column="1" Style="{StaticResource GridSplitterStyle}"/>
                 <GridSplitter Grid.Column="3" Style="{StaticResource GridSplitterStyle}"/>
                 <GridSplitter Grid.Column="5" Style="{StaticResource GridSplitterStyle}"/>
+                <GridSplitter Grid.Column="7" Style="{StaticResource GridSplitterStyle}"/>
+                <GridSplitter Grid.Column="9" Style="{StaticResource GridSplitterStyle}"/>
+                <GridSplitter Grid.Column="11" Style="{StaticResource GridSplitterStyle}"/>
+                <GridSplitter Grid.Column="13" Style="{StaticResource GridSplitterStyle}"/>
+                <GridSplitter Grid.Column="15" Style="{StaticResource GridSplitterStyle}"/>
 
-                <!-- Список сотрудников -->
-                <ListBox x:Name="EmployeesListView" 
-         Grid.ColumnSpan="7"
-         SelectionMode="Single" 
-         Background="White"
-         BorderThickness="0"
-         SelectionChanged="EmployeesListView_SelectionChanged"
-         MouseDoubleClick="EmployeesListView_MouseDoubleClick"
-         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-         VirtualizingPanel.ScrollUnit="Pixel"
-         VirtualizingPanel.IsVirtualizing="True"
-         VirtualizingPanel.VirtualizationMode="Recycling">
-
+                <!-- Список клиентов (занимает все колонки) -->
+                <ListBox x:Name="ClientsListBox" 
+                         Grid.ColumnSpan="17"
+                         SelectionMode="Single" 
+                         Background="White"
+                         BorderThickness="0"
+                         MouseDoubleClick="ClientsListBox_MouseDoubleClick"
+                         SelectionChanged="ClientsListBox_SelectionChanged"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.ScrollUnit="Pixel"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling">
                     <ListBox.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="✏ Редактировать" Click="EditEmployeeMenuItem_Click"/>
-                            <MenuItem Header="🗑 Удалить" Click="DeleteEmployeeMenuItem_Click"/>
+                            <MenuItem Header="✏ Редактировать" Click="EditClientMenuItem_Click"/>
+                            <MenuItem Header="🗑 Удалить" Click="DeleteClientMenuItem_Click"/>
+                            <Separator/>
+                            <MenuItem Header="📊 Показать статистику" Click="ShowStatsMenuItem_Click"/>
                         </ContextMenu>
                     </ListBox.ContextMenu>
 
@@ -191,10 +237,15 @@
                             <Border x:Name="RowBorder" Style="{StaticResource TableRowStyle}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0.8*" MinWidth="50"/>
-                                        <ColumnDefinition Width="3*" MinWidth="150"/>
-                                        <ColumnDefinition Width="2*" MinWidth="100"/>
-                                        <ColumnDefinition Width="2*" MinWidth="120"/>
+                                        <ColumnDefinition Width="0.6*" MinWidth="40"/>
+                                        <ColumnDefinition Width="1.8*" MinWidth="100"/>
+                                        <ColumnDefinition Width="1.2*" MinWidth="80"/>
+                                        <ColumnDefinition Width="1.5*" MinWidth="100"/>
+                                        <ColumnDefinition Width="1.0*" MinWidth="70"/>
+                                        <ColumnDefinition Width="0.7*" MinWidth="50"/>
+                                        <ColumnDefinition Width="1.0*" MinWidth="80"/>
+                                        <ColumnDefinition Width="0.8*" MinWidth="70"/>
+                                        <ColumnDefinition Width="1.0*" MinWidth="80"/>
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Text="{Binding Id}" 
@@ -211,18 +262,55 @@
                                                TextTrimming="CharacterEllipsis"
                                                Grid.Column="1"/>
 
-                                    <TextBlock Text="{Binding Login}" 
+                                    <TextBlock Text="{Binding Phone}" 
                                                HorizontalAlignment="Left" 
                                                VerticalAlignment="Center" 
                                                Padding="10,8"
                                                TextTrimming="CharacterEllipsis"
                                                Grid.Column="2"/>
 
-                                    <TextBlock Text="{Binding IsAdmin, Converter={StaticResource BoolToRoleConverter}}" 
+                                    <TextBlock Text="{Binding CarModel}" 
+                                               HorizontalAlignment="Left" 
+                                               VerticalAlignment="Center" 
+                                               Padding="10,8"
+                                               TextWrapping="Wrap"
+                                               TextTrimming="CharacterEllipsis"
+                                               Grid.Column="3"/>
+
+                                    <TextBlock Text="{Binding CarNumber}" 
+                                               HorizontalAlignment="Left" 
+                                               VerticalAlignment="Center" 
+                                               Padding="10,8"
+                                               TextTrimming="CharacterEllipsis"
+                                               Grid.Column="4"/>
+
+                                    <TextBlock Text="{Binding VisitsCount}" 
                                                HorizontalAlignment="Center" 
                                                VerticalAlignment="Center" 
                                                Padding="10,8"
-                                               Grid.Column="3"/>
+                                               Grid.Column="5"/>
+
+                                    <TextBlock Text="{Binding TotalSpent, StringFormat={}{0:N0} ₽}" 
+                                               HorizontalAlignment="Right" 
+                                               VerticalAlignment="Center" 
+                                               Padding="10,8"
+                                               Foreground="#27AE60"
+                                               TextTrimming="CharacterEllipsis"
+                                               Grid.Column="6"/>
+
+                                    <TextBlock Text="{Binding AverageCheck, StringFormat={}{0:N0} ₽}" 
+                                               HorizontalAlignment="Right" 
+                                               VerticalAlignment="Center" 
+                                               Padding="10,8"
+                                               TextTrimming="CharacterEllipsis"
+                                               Grid.Column="7"/>
+
+                                    <TextBlock Text="{Binding LastVisitDate, StringFormat=dd.MM.yyyy}" 
+                                               HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" 
+                                               Padding="10,8"
+                                               TextTrimming="CharacterEllipsis"
+                                               Grid.Column="8"/>
                                 </Grid>
                             </Border>
                             <DataTemplate.Triggers>
@@ -240,6 +328,9 @@
 
         <!-- Кнопка закрытия -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
+            <Button Content="📊 Показать статистику" Click="ShowStatsButton_Click" 
+                    MinWidth="120" MaxWidth="150" Height="35" 
+                    Margin="5" Background="#F39C12" Foreground="White"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" 
                     MinWidth="80" MaxWidth="120" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>

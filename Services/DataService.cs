@@ -96,19 +96,31 @@ namespace MyPanelCarWashing.Services
         // Заказы
         public void AddOrder(CarWashOrder order, List<int> serviceIds)
         {
-            order.Id = _data.GetNextOrderId();
-            order.ServiceIds = serviceIds;
+            var appData = FileDataService.LoadData();
+            var shift = appData.Shifts.FirstOrDefault(s => s.Id == order.ShiftId);
 
-            // Рассчитываем сумму с учетом категории кузова
-            order.TotalPrice = _data.Services
-                .Where(s => serviceIds.Contains(s.Id))
-                .Sum(s => s.GetPrice(order.BodyTypeCategory)); // Используем GetPrice
-
-            var shift = _data.Shifts.FirstOrDefault(s => s.Id == order.ShiftId);
             if (shift != null)
             {
+                if (shift.Orders == null) shift.Orders = new List<CarWashOrder>();
+
+                // Устанавливаем ID заказа
+                order.Id = GetNextOrderId(appData);
+                order.ServiceIds = serviceIds;
+
+                // Рассчитываем сумму с учетом категории кузова (сохраняем существующую логику)
+                order.TotalPrice = appData.Services
+                    .Where(s => serviceIds.Contains(s.Id))
+                    .Sum(s => s.GetPrice(order.BodyTypeCategory));
+
                 shift.Orders.Add(order);
-                SaveData();
+
+                // Обновляем статистику клиента (если клиент выбран)
+                if (order.ClientId.HasValue)
+                {
+                    UpdateClientStats(order.ClientId.Value, order.FinalPrice);
+                }
+
+                FileDataService.SaveData(appData);
             }
         }
 
@@ -379,7 +391,60 @@ namespace MyPanelCarWashing.Services
             System.Diagnostics.Debug.WriteLine("Все данные очищены");
         }
 
-        
+        // DataService.cs - добавьте эти методы
+
+        public List<EmployeeSchedule> GetSchedule(int year, int month)
+        {
+            var appData = FileDataService.LoadData();
+            var schedule = appData.Schedules?.FirstOrDefault(s => s.Year == year && s.Month == month);
+
+            if (schedule != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Найден график: {schedule.Year}.{schedule.Month}, сотрудников: {schedule.EmployeeSchedules.Count}");
+                foreach (var emp in schedule.EmployeeSchedules)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  {emp.EmployeeName} - {emp.Position}, дней: {emp.Days.Count}");
+                }
+                return schedule.EmployeeSchedules;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"График на {year}.{month} не найден");
+            return new List<EmployeeSchedule>();
+        }
+
+        public void SaveSchedule(int year, int month, List<EmployeeSchedule> scheduleData)
+        {
+            var appData = FileDataService.LoadData();
+
+            // Инициализируем список, если null
+            if (appData.Schedules == null)
+                appData.Schedules = new List<Schedule>();
+
+            // Ищем существующий график
+            var existingSchedule = appData.Schedules.FirstOrDefault(s => s.Year == year && s.Month == month);
+
+            if (existingSchedule != null)
+            {
+                // Обновляем существующий
+                existingSchedule.EmployeeSchedules = scheduleData;
+                System.Diagnostics.Debug.WriteLine($"Обновлен график на {year}.{month}");
+            }
+            else
+            {
+                // Создаем новый
+                int newId = appData.Schedules.Any() ? appData.Schedules.Max(s => s.Id) + 1 : 1;
+                appData.Schedules.Add(new Schedule
+                {
+                    Id = newId,
+                    Year = year,
+                    Month = month,
+                    EmployeeSchedules = scheduleData
+                });
+                System.Diagnostics.Debug.WriteLine($"Создан новый график на {year}.{month}, ID: {newId}");
+            }
+
+            FileDataService.SaveData(appData);
+        }
 
         private void CleanupInvalidData()
         {
@@ -484,29 +549,18 @@ namespace MyPanelCarWashing.Services
                 SaveData();
             }
         }
-        public int GetNextOrderId()
+        private int GetNextOrderId(AppData appData)
         {
-            try
+            int maxId = 0;
+            foreach (var shift in appData.Shifts)
             {
-                var appData = FileDataService.LoadData();
-                int maxId = 0;
-
-                foreach (var shift in appData.Shifts)
+                if (shift.Orders != null && shift.Orders.Any())
                 {
-                    if (shift.Orders != null && shift.Orders.Any())
-                    {
-                        var maxInShift = shift.Orders.Max(o => o.Id);
-                        if (maxInShift > maxId)
-                            maxId = maxInShift;
-                    }
+                    var maxInShift = shift.Orders.Max(o => o.Id);
+                    if (maxInShift > maxId) maxId = maxInShift;
                 }
-
-                return maxId + 1;
             }
-            catch
-            {
-                return 1;
-            }
+            return maxId + 1;
         }
         public Shift GetCurrentOpenShift()
         {
@@ -585,6 +639,95 @@ namespace MyPanelCarWashing.Services
             // Исправлено: выводим информацию о ценах
             var prices = string.Join(", ", service.PriceByBodyType.Select(p => $"Кат.{p.Key}: {p.Value}"));
             System.Diagnostics.Debug.WriteLine($"Добавлена услуга: ID={service.Id}, Name={service.Name}, Цены: {prices}");
+        }
+        public List<Client> GetAllClients()
+        {
+            var appData = FileDataService.LoadData();
+            return appData.Clients;
+        }
+
+        public Client GetClientById(int id)
+        {
+            var appData = FileDataService.LoadData();
+            return appData.Clients.FirstOrDefault(c => c.Id == id);
+        }
+
+        public List<Client> FindClients(string searchText)
+        {
+            var appData = FileDataService.LoadData();
+            if (string.IsNullOrWhiteSpace(searchText))
+                return appData.Clients;
+
+            return appData.Clients.Where(c =>
+                c.FullName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.Phone.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.CarNumber.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0
+            ).ToList();
+        }
+
+        public void AddClient(Client client)
+        {
+            var appData = FileDataService.LoadData();
+            client.Id = appData.GetNextClientId();
+            client.RegistrationDate = DateTime.Now;
+            appData.Clients.Add(client);
+            FileDataService.SaveData(appData);
+        }
+
+        public void UpdateClient(Client client)
+        {
+            var appData = FileDataService.LoadData();
+            var existing = appData.Clients.FirstOrDefault(c => c.Id == client.Id);
+            if (existing != null)
+            {
+                existing.FullName = client.FullName;
+                existing.Phone = client.Phone;
+                existing.CarModel = client.CarModel;
+                existing.CarNumber = client.CarNumber;
+                existing.Notes = client.Notes;
+                FileDataService.SaveData(appData);
+            }
+        }
+
+        public void DeleteClient(int clientId)
+        {
+            var appData = FileDataService.LoadData();
+            var client = appData.Clients.FirstOrDefault(c => c.Id == clientId);
+            if (client != null)
+            {
+                appData.Clients.Remove(client);
+                FileDataService.SaveData(appData);
+            }
+        }
+
+        // Обновляем статистику клиента при добавлении заказа
+        public void UpdateClientStats(int clientId, decimal orderAmount)
+        {
+            var appData = FileDataService.LoadData();
+            var client = appData.Clients.FirstOrDefault(c => c.Id == clientId);
+            if (client != null)
+            {
+                client.VisitsCount++;
+                client.TotalSpent += orderAmount;
+                client.LastVisitDate = DateTime.Now;
+                FileDataService.SaveData(appData);
+            }
+        }
+        public List<CarWashOrder> GetOrdersByClientId(int clientId)
+        {
+            var appData = FileDataService.LoadData();
+            var orders = new List<CarWashOrder>();
+
+            foreach (var shift in appData.Shifts)
+            {
+                var clientOrders = shift.Orders?.Where(o => o.ClientId == clientId).ToList();
+                if (clientOrders != null && clientOrders.Any())
+                {
+                    orders.AddRange(clientOrders);
+                }
+            }
+
+            return orders;
         }
     }
 }

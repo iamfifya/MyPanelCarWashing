@@ -8,7 +8,10 @@ namespace MyPanelCarWashing.Models
         public List<User> Users { get; set; } = new List<User>();
         public List<Service> Services { get; set; } = new List<Service>();
         public List<Shift> Shifts { get; set; } = new List<Shift>();
-        public List<Appointment> Appointments { get; set; } = new List<Appointment>(); // Добавляем
+        public List<Appointment> Appointments { get; set; } = new List<Appointment>();
+        public List<Client> Clients { get; set; } = new List<Client>();
+        public List<Schedule> Schedules { get; set; } = new List<Schedule>();
+
 
         private int _nextUserId = 1;
         private int _nextServiceId = 1;
@@ -36,6 +39,10 @@ namespace MyPanelCarWashing.Models
             if (Appointments.Count > 0) _nextAppointmentId = Appointments.Max(a => a.Id) + 1;
 
             System.Diagnostics.Debug.WriteLine($"UpdateIds: NextServiceId = {_nextServiceId}");
+        }
+        public int GetNextClientId()
+        {
+            return Clients.Any() ? Clients.Max(c => c.Id) + 1 : 1;
         }
     }
 }
