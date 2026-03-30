@@ -84,6 +84,14 @@
         </ScrollViewer>
 
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
+            <Button x:Name="SaveButton" 
+        Content="💾 Сохранить" 
+        Click="SaveButton_Click" 
+        MinWidth="100" Height="35" 
+        Margin="20,5,5,5" 
+        Background="#27AE60" 
+        Foreground="White"
+        IsEnabled="False"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" 
                     MinWidth="100" Height="35" Margin="5" Background="#E74C3C" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
         </StackPanel>

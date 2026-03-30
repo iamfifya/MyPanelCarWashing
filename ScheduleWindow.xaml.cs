@@ -17,6 +17,7 @@ namespace MyPanelCarWashing
         private List<EmployeeSchedule> _scheduleData;
         private Dictionary<int, Border> _dayHeaders = new Dictionary<int, Border>();
         private Dictionary<string, Border> _cells = new Dictionary<string, Border>();
+        private bool _isDataModified = false; // Флаг изменения данных
 
         public ScheduleWindow(DataService dataService)
         {
@@ -28,64 +29,258 @@ namespace MyPanelCarWashing
 
         private void LoadSchedule()
         {
-            // 1. Загружаем то, что сохранено в файле
-            _scheduleData = _dataService.GetSchedule(_currentDate.Year, _currentDate.Month) ?? new List<EmployeeSchedule>();
+            // Загружаем существующий график, НЕ создаем автоматически
+            _scheduleData = _dataService.GetSchedule(_currentDate.Year, _currentDate.Month);
 
-            // 2. Получаем актуальный список ВСЕХ сотрудников (админы + мойщики)
-            var actualEmployees = _dataService.GetAllUsers().ToList();
-
-            if (!_scheduleData.Any())
+            if (_scheduleData == null || !_scheduleData.Any())
             {
-                // Если файла нет вообще — создаем с нуля
-                CreateDefaultSchedule();
+                // Если графика нет, показываем пустую таблицу
+                _scheduleData = new List<EmployeeSchedule>();
+                System.Diagnostics.Debug.WriteLine($"График на {_currentDate:MMMM yyyy} не найден");
+
+                // Показываем сообщение пользователю
+                MessageBox.Show($"График на {_currentDate:MMMM yyyy} не найден.\n\n" +
+                    "Нажмите кнопку '📋 Шаблон', чтобы создать график по умолчанию.",
+                    "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                // Если файл есть, проверяем, есть ли все сотрудники (например, Анастасия)
-                foreach (var emp in actualEmployees)
-                {
-                    if (!_scheduleData.Any(s => s.EmployeeId == emp.Id))
-                    {
-                        string empName = !string.IsNullOrWhiteSpace(emp.FullName) ? emp.FullName : emp.Login;
-                        _scheduleData.Add(new EmployeeSchedule
-                        {
-                            EmployeeId = emp.Id,
-                            EmployeeName = empName,
-                            Position = emp.IsAdmin ? "Администратор" : "Мойщик",
-                            Days = new Dictionary<int, string>()
-                        });
-                    }
-                }
+                System.Diagnostics.Debug.WriteLine($"Загружен существующий график для {_scheduleData.Count} сотрудников");
             }
 
             MonthYearText.Text = _currentDate.ToString("MMMM yyyy");
             BuildScheduleTable();
+            _isDataModified = false;
+            UpdateSaveButtonState();
         }
+
+        private void UpdateSaveButtonState()
+        {
+            // Кнопка сохранения активна только если есть изменения И есть данные
+            SaveButton.IsEnabled = _isDataModified && _scheduleData.Any();
+        }
+
+        private void Cell_Click(object sender, MouseButtonEventArgs e)
+        {
+            var border = sender as Border;
+            if (border?.Tag == null) return;
+
+            dynamic tag = border.Tag;
+            int employeeId = tag.EmployeeId;
+            int day = tag.Day;
+            string currentStatus = tag.Status;
+
+            // Переключение только между "р" и "в"
+            string newStatus = currentStatus == "р" ? "в" : "р";
+
+            // Обновляем данные
+            var employeeSchedule = _scheduleData.FirstOrDefault(s => s.EmployeeId == employeeId);
+            if (employeeSchedule != null)
+            {
+                employeeSchedule.Days[day] = newStatus;
+                border.Tag = new { EmployeeId = employeeId, Day = day, Status = newStatus };
+
+                // Отмечаем, что данные изменены
+                if (!_isDataModified)
+                {
+                    _isDataModified = true;
+                    UpdateSaveButtonState();
+                }
+            }
+
+            e.Handled = true;
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_scheduleData.Any())
+            {
+                MessageBox.Show("Нет данных для сохранения. Сначала создайте шаблон.", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _dataService.SaveSchedule(_currentDate.Year, _currentDate.Month, _scheduleData);
+            _isDataModified = false;
+            UpdateSaveButtonState();
+
+            MessageBox.Show($"График на {_currentDate:MMMM yyyy} сохранен", "Успешно",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void TemplateButton_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show("Создать шаблон графика?\n\n" +
+                "Текущий график будет заменен новым.\n\n" +
+                "Шаблон:\n" +
+                "• Администраторы: чередование через день\n" +
+                "• Мойщики: 6 человек, каждый день работают 3",
+                "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                CreateDefaultSchedule();
+                BuildScheduleTable();
+                _isDataModified = true; // Шаблон считается изменением
+                UpdateSaveButtonState();
+
+                MessageBox.Show("Шаблон графика создан.\n\nНе забудьте сохранить изменения!",
+                    "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void PrevMonth_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isDataModified)
+            {
+                var result = MessageBox.Show("У вас есть несохраненные изменения.\n\n" +
+                    "Перейти к другому месяцу без сохранения?",
+                    "Предупреждение", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+            }
+
+            _currentDate = _currentDate.AddMonths(-1);
+            LoadSchedule();
+        }
+
+        private void NextMonth_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isDataModified)
+            {
+                var result = MessageBox.Show("У вас есть несохраненные изменения.\n\n" +
+                    "Перейти к другому месяцу без сохранения?",
+                    "Предупреждение", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+            }
+
+            _currentDate = _currentDate.AddMonths(1);
+            LoadSchedule();
+        }
+
 
         private void CreateDefaultSchedule()
         {
-            var actualEmployees = _dataService.GetAllUsers().ToList();
+            var employees = _dataService.GetAllUsers();
+            var daysInMonth = DateTime.DaysInMonth(_currentDate.Year, _currentDate.Month);
+
+            // Получаем график предыдущего месяца
+            var prevMonthDate = _currentDate.AddMonths(-1);
+            var prevMonthSchedule = _dataService.GetSchedule(prevMonthDate.Year, prevMonthDate.Month);
+
+            // Разделяем сотрудников
+            var admins = employees.Where(e => e.IsAdmin).OrderBy(e => e.Id).ToList();
+            var workers = employees.Where(e => !e.IsAdmin).OrderBy(e => e.Id).ToList();
+
             _scheduleData = new List<EmployeeSchedule>();
 
-            foreach (var emp in actualEmployees)
+            // ========== АДМИНИСТРАТОРЫ (2х2, чередуются) ==========
+            // 2 админа работают через день: Анна в четные, Анастасия в нечетные (или наоборот)
+            for (int i = 0; i < admins.Count; i++)
             {
-                string empName = !string.IsNullOrWhiteSpace(emp.FullName) ? emp.FullName : emp.Login;
+                var admin = admins[i];
                 var empSchedule = new EmployeeSchedule
                 {
-                    EmployeeId = emp.Id,
-                    EmployeeName = empName,
-                    Position = emp.IsAdmin ? "Администратор" : "Мойщик",
+                    EmployeeId = admin.Id,
+                    EmployeeName = admin.FullName,
+                    Position = "Администратор",
                     Days = new Dictionary<int, string>()
                 };
 
-                int daysInMonth = DateTime.DaysInMonth(_currentDate.Year, _currentDate.Month);
-                for (int i = 1; i <= daysInMonth; i++)
+                // Сдвиг: первый админ работает в нечетные дни, второй - в четные
+                int shift = i % 2; // 0 или 1
+
+                // Учитываем предыдущий месяц
+                var prevSchedule = prevMonthSchedule?.FirstOrDefault(s => s.EmployeeId == admin.Id);
+                int prevShift = 0;
+                if (prevSchedule != null && prevSchedule.Days.Any())
                 {
-                    empSchedule.Days[i] = ""; // По умолчанию пустые дни
+                    var lastDayPrevMonth = DateTime.DaysInMonth(prevMonthDate.Year, prevMonthDate.Month);
+                    int lastActualDay = lastDayPrevMonth;
+                    while (lastActualDay > 0 && !prevSchedule.Days.ContainsKey(lastActualDay))
+                    {
+                        lastActualDay--;
+                    }
+                    if (lastActualDay > 0 && prevSchedule.Days[lastActualDay] == "р")
+                    {
+                        prevShift = 1;
+                    }
+                }
+
+                int totalShift = (shift + prevShift) % 2;
+
+                for (int day = 1; day <= daysInMonth; day++)
+                {
+                    // Работает, если день месяца соответствует сдвигу
+                    empSchedule.Days[day] = ((day + totalShift) % 2 == 0) ? "р" : "в";
                 }
 
                 _scheduleData.Add(empSchedule);
+                System.Diagnostics.Debug.WriteLine($"Админ {admin.FullName}: сдвиг={shift}, работает в {(shift == 0 ? "нечетные" : "четные")} дни");
             }
+
+            // ========== МОЙЩИКИ (6 человек, каждый день 3 на работе) ==========
+            // Цикл 6 дней: дни 1-3 работают мойщики 1-3, дни 4-6 работают мойщики 4-6
+            // Сдвиг между мойщиками - 1 день
+
+            for (int i = 0; i < workers.Count; i++)
+            {
+                var worker = workers[i];
+                var empSchedule = new EmployeeSchedule
+                {
+                    EmployeeId = worker.Id,
+                    EmployeeName = worker.FullName,
+                    Position = "Мойщик",
+                    Days = new Dictionary<int, string>()
+                };
+
+                // Сдвиг: каждый следующий мойщик начинает на 1 день позже
+                int shift = i % 6; // 0,1,2,3,4,5
+
+                // Учитываем предыдущий месяц
+                var prevSchedule = prevMonthSchedule?.FirstOrDefault(s => s.EmployeeId == worker.Id);
+                int prevOffset = 0;
+                if (prevSchedule != null && prevSchedule.Days.Any())
+                {
+                    var lastDayPrevMonth = DateTime.DaysInMonth(prevMonthDate.Year, prevMonthDate.Month);
+                    int lastActualDay = lastDayPrevMonth;
+                    while (lastActualDay > 0 && !prevSchedule.Days.ContainsKey(lastActualDay))
+                    {
+                        lastActualDay--;
+                    }
+                    if (lastActualDay > 0 && prevSchedule.Days[lastActualDay] == "р")
+                    {
+                        // Если последний день был рабочим, нужно продолжить цикл
+                        // Определяем, сколько дней он уже отработал в этом цикле
+                        // Упрощенно: добавляем смещение
+                        prevOffset = 1;
+                    }
+                }
+
+                int totalShift = (shift + prevOffset) % 6;
+
+                for (int day = 1; day <= daysInMonth; day++)
+                {
+                    // Работает, если день входит в его 3-дневную рабочую смену
+                    int cyclePosition = (day + totalShift) % 6;
+                    // cyclePosition 0,1,2 - работает; 3,4,5 - отдыхает
+                    empSchedule.Days[day] = (cyclePosition >= 0 && cyclePosition <= 2) ? "р" : "в";
+                }
+
+                _scheduleData.Add(empSchedule);
+                System.Diagnostics.Debug.WriteLine($"Мойщик {worker.FullName}: сдвиг={shift}, работает в дни: {string.Join(",", Enumerable.Range(1, 31).Where(d => ((d + shift) % 6) <= 2).Take(10))}...");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"Создан график для {_scheduleData.Count} сотрудников");
+
+            // Проверяем количество мойщиков в первый день
+            var firstDayWorkers = _scheduleData
+                .Where(s => s.Position == "Мойщик" && s.Days[1] == "р")
+                .Count();
+            System.Diagnostics.Debug.WriteLine($"В первый день работает {firstDayWorkers} мойщиков (должно быть 3)");
         }
 
         private void BuildScheduleTable()
@@ -251,31 +446,6 @@ namespace MyPanelCarWashing
                 if (border.Child is TextBlock textBlock) textBlock.Text = "";
                 border.Background = Brushes.White;
             }
-        }
-
-        private void PrevMonth_Click(object sender, RoutedEventArgs e)
-        {
-            _currentDate = _currentDate.AddMonths(-1);
-            LoadSchedule();
-        }
-
-        private void NextMonth_Click(object sender, RoutedEventArgs e)
-        {
-            _currentDate = _currentDate.AddMonths(1);
-            LoadSchedule();
-        }
-
-        private void SaveButton_Click(object sender, RoutedEventArgs e)
-        {
-            _dataService.SaveSchedule(_currentDate.Year, _currentDate.Month, _scheduleData);
-            MessageBox.Show($"График на {_currentDate:MMMM yyyy} сохранен", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void TemplateButton_Click(object sender, RoutedEventArgs e)
-        {
-            CreateDefaultSchedule();
-            BuildScheduleTable();
-            MessageBox.Show("Шаблон графика создан (все сотрудники загружены)", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
