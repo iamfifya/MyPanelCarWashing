@@ -2,6 +2,7 @@ using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,6 +22,17 @@ namespace MyPanelCarWashing
             var viewModel = App.GetService<AppointmentViewModel>();
             _viewModel = viewModel;
             DataContext = _viewModel;
+            var bodyTypes = new List<KeyValuePair<string, string>>
+{
+    new KeyValuePair<string, string>("Категория 1 (Легковая)", "1"),
+    new KeyValuePair<string, string>("Категория 2 (Универсал)", "2"),
+    new KeyValuePair<string, string>("Категория 3 (Кроссовер)", "3"),
+    new KeyValuePair<string, string>("Категория 4 (Внедорожник)", "4")
+};
+            BodyTypeComboBox.ItemsSource = bodyTypes;
+            BodyTypeComboBox.DisplayMemberPath = "Key";
+            BodyTypeComboBox.SelectedValuePath = "Value";
+            BodyTypeComboBox.SelectedValue = "1";
 
             // Устанавливаем начальные значения
             AppointmentDatePicker.SelectedDate = DateTime.Now.AddDays(1);

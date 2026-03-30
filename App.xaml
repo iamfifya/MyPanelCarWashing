@@ -6,9 +6,9 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Styles/OrderCardTemplate.xaml"/>
-                <ResourceDictionary Source="Styles/AppStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/AppStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/CustomComboBoxStyle.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            
 
             <!-- Конвертеры -->
             <local:BoolToRoleConverter x:Key="BoolToRoleConverter"/>
@@ -28,7 +28,7 @@
             <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
             <local:SafePriceConverter x:Key="SafePriceConverter"/>
             <local:CurrencyConverter x:Key="CurrencyConverter"/>
-
+            <local:InverseBoolConverter x:Key="InverseBoolConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

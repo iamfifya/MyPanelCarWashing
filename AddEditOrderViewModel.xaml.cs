@@ -17,7 +17,6 @@ namespace MyPanelCarWashing
         private readonly Shift _currentShift;
         private readonly AddEditOrderViewModel _viewModel;
 
-        // Используем DI для ViewModel
         public AddEditOrderWindow(
             DataService dataService,
             AddEditOrderViewModel viewModel,
@@ -27,8 +26,8 @@ namespace MyPanelCarWashing
             InitializeComponent();
             _dataService = dataService;
             _currentShift = currentShift;
+            ClientComboBox.SelectionChanged += ClientComboBox_SelectionChanged;
 
-            // Инициализируем ViewModel через DI, передавая dataService
             viewModel.Initialize(currentShift, order);
             _viewModel = viewModel;
             DataContext = _viewModel;
@@ -36,6 +35,40 @@ namespace MyPanelCarWashing
             // Загружаем ВСЕХ сотрудников для выбора мойщика
             var allUsers = _dataService.GetAllUsers();
             WasherComboBox.ItemsSource = allUsers;
+
+            // ========== ЗАПОЛНЯЕМ КАТЕГОРИИ КУЗОВА ==========
+            var bodyTypes = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("Категория 1 (Легковая)", "1"),
+                new KeyValuePair<string, string>("Категория 2 (Универсал)", "2"),
+                new KeyValuePair<string, string>("Категория 3 (Кроссовер)", "3"),
+                new KeyValuePair<string, string>("Категория 4 (Внедорожник)", "4")
+            };
+            BodyTypeComboBox.ItemsSource = bodyTypes;
+            BodyTypeComboBox.DisplayMemberPath = "Key";
+            BodyTypeComboBox.SelectedValuePath = "Value";
+
+            // ========== ЗАПОЛНЯЕМ СТАТУСЫ ЗАКАЗА ==========
+            var statuses = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("🟢 Выполняется", "Выполняется"),
+                new KeyValuePair<string, string>("✅ Выполнен", "Выполнен"),
+                new KeyValuePair<string, string>("❌ Отменен", "Отменен")
+            };
+            StatusComboBox.ItemsSource = statuses;
+            StatusComboBox.DisplayMemberPath = "Key";
+            StatusComboBox.SelectedValuePath = "Value";
+
+            // ========== ЗАПОЛНЯЕМ СПОСОБЫ ОПЛАТЫ ==========
+            var payments = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("💵 Наличные", "Наличные"),
+                new KeyValuePair<string, string>("💳 Карта", "Карта"),
+                new KeyValuePair<string, string>("📱 Перевод", "Перевод")
+            };
+            PaymentMethodComboBox.ItemsSource = payments;
+            PaymentMethodComboBox.DisplayMemberPath = "Key";
+            PaymentMethodComboBox.SelectedValuePath = "Value";
 
             // Заполняем дату/время
             if (order != null)
@@ -52,27 +85,19 @@ namespace MyPanelCarWashing
             // Выбираем статус, если редактируем
             if (_viewModel.IsEditMode && order != null && !string.IsNullOrEmpty(order.Status))
             {
-                foreach (ComboBoxItem item in StatusComboBox.Items)
-                {
-                    if (item.Tag?.ToString() == order.Status)
-                    {
-                        StatusComboBox.SelectedItem = item;
-                        break;
-                    }
-                }
+                StatusComboBox.SelectedValue = order.Status;
             }
 
             // Выбираем способ оплаты
             if (order != null && !string.IsNullOrEmpty(order.PaymentMethod))
             {
-                foreach (ComboBoxItem item in PaymentMethodComboBox.Items)
-                {
-                    if (item.Tag?.ToString() == order.PaymentMethod)
-                    {
-                        PaymentMethodComboBox.SelectedItem = item;
-                        break;
-                    }
-                }
+                PaymentMethodComboBox.SelectedValue = order.PaymentMethod;
+            }
+
+            // Выбираем категорию кузова
+            if (order != null && order.BodyTypeCategory > 0)
+            {
+                BodyTypeComboBox.SelectedValue = order.BodyTypeCategory.ToString();
             }
 
             // Подписываемся на выбор услуг
@@ -99,7 +124,7 @@ namespace MyPanelCarWashing
 
             if (_viewModel.IsAppointment && WasherComboBox.Items.Count > 0)
             {
-                WasherComboBox.SelectedIndex = 0;
+                WasherComboBox.SelectedItem = WasherComboBox.Items[0];
             }
 
             if (!_viewModel.IsAppointment && order != null && order.WasherId > 0)
@@ -135,18 +160,24 @@ namespace MyPanelCarWashing
                 }
 
                 // Обновляем статус для редактирования
-                if (_viewModel.IsEditMode && StatusComboBox.SelectedItem is ComboBoxItem statusItem)
+                if (_viewModel.IsEditMode && StatusComboBox.SelectedValue != null)
                 {
-                    _viewModel.CurrentOrder.Status = statusItem.Tag?.ToString() ?? statusItem.Content.ToString();
+                    _viewModel.CurrentOrder.Status = StatusComboBox.SelectedValue.ToString();
                 }
 
                 // Обновляем способ оплаты
-                if (PaymentMethodComboBox.SelectedItem is ComboBoxItem selectedPayment)
+                if (PaymentMethodComboBox.SelectedValue != null)
                 {
-                    _viewModel.CurrentOrder.PaymentMethod = selectedPayment.Tag?.ToString() ?? "Наличные";
+                    _viewModel.CurrentOrder.PaymentMethod = PaymentMethodComboBox.SelectedValue.ToString();
                 }
 
-                // Обновляем мойщика (для всех типов заказов, включая записи)
+                // Обновляем категорию кузова
+                if (BodyTypeComboBox.SelectedValue != null && int.TryParse(BodyTypeComboBox.SelectedValue.ToString(), out int category))
+                {
+                    _viewModel.SelectedBodyTypeCategory = category;
+                }
+
+                // Обновляем мойщика
                 if (WasherComboBox.SelectedItem is User selectedWasher)
                 {
                     _viewModel.CurrentOrder.WasherId = selectedWasher.Id;
@@ -158,11 +189,9 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // ВАЖНО: Обновляем ExtraCost из ViewModel в CurrentOrder
                 _viewModel.CurrentOrder.ExtraCost = _viewModel.ExtraCost;
                 _viewModel.CurrentOrder.ExtraCostReason = _viewModel.CurrentOrder.ExtraCostReason;
 
-                // Сохраняем
                 _viewModel.SaveOrder(out bool success, out string message);
 
                 if (success)
@@ -183,11 +212,27 @@ namespace MyPanelCarWashing
             }
         }
 
+        private void ClientComboBox_SelectionChanged(object sender, RoutedEventArgs e)
+        {
+            if (ClientComboBox.SelectedItem is Client selectedClient)
+            {
+                _viewModel.CurrentOrder.ClientId = selectedClient.Id;
+
+                if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarModel))
+                {
+                    _viewModel.CurrentOrder.CarModel = selectedClient.CarModel;
+                }
+                if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarNumber))
+                {
+                    _viewModel.CurrentOrder.CarNumber = selectedClient.CarNumber;
+                }
+            }
+        }
+
         private async void ConvertToOrderButton_Click(object sender, RoutedEventArgs e)
         {
             if (!_viewModel.IsAppointment) return;
 
-            // Проверяем, выбран ли мойщик
             if (WasherComboBox.SelectedItem == null)
             {
                 MessageBox.Show("Выберите мойщика для выполнения заказа!", "Ошибка",
@@ -203,7 +248,6 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            // Проверяем, работает ли выбранный мойщик в текущей смене
             if (_currentShift == null || !_currentShift.EmployeeIds.Contains(selectedWasher.Id))
             {
                 MessageBox.Show($"Мойщик \"{selectedWasher.FullName}\" не работает в текущей смене!\n\n" +
@@ -244,38 +288,15 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем способ оплаты
-                string paymentMethod = "Наличные";
-                if (PaymentMethodComboBox.SelectedItem is ComboBoxItem selectedPaymentItem)
-                {
-                    paymentMethod = selectedPaymentItem.Tag?.ToString() ?? "Наличные";
-                    if (string.IsNullOrEmpty(paymentMethod) || paymentMethod == "Наличные")
-                    {
-                        string content = selectedPaymentItem.Content.ToString();
-                        paymentMethod = content.Replace("💵 ", "").Replace("💳 ", "").Replace("📱 ", "");
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.PaymentMethod))
-                {
-                    paymentMethod = _viewModel.CurrentOrder.PaymentMethod
-                        .Replace("💵 ", "").Replace("💳 ", "").Replace("📱 ", "");
-                }
-
+                string paymentMethod = PaymentMethodComboBox.SelectedValue?.ToString() ?? "Наличные";
                 string bodyTypeName = GetCategoryName(_viewModel.SelectedBodyTypeCategory);
 
-                // ИСПОЛЬЗУЕМ ТРАНЗАКЦИОННОЕ СОХРАНЕНИЕ
                 var order = await Task.Run(() => TransactionService.ExecuteInTransaction(appData =>
                 {
-                    // Находим оригинальную запись
                     var appointment = appData.Appointments.FirstOrDefault(a => a.Id == _viewModel.CurrentOrder.AppointmentId.Value);
                     if (appointment == null)
                         throw new Exception("Запись не найдена!");
 
-                    System.Diagnostics.Debug.WriteLine($"=== ПРЕОБРАЗОВАНИЕ ЗАПИСИ (ТРАНЗАКЦИЯ) ===");
-                    System.Diagnostics.Debug.WriteLine($"Appointment ID: {appointment.Id}");
-                    System.Diagnostics.Debug.WriteLine($"Выбранный мойщик: {selectedWasher.FullName} (ID: {selectedWasher.Id})");
-
-                    // Создаем новый заказ
                     var newOrder = new CarWashOrder
                     {
                         Id = GetNextOrderId(appData),
@@ -299,11 +320,9 @@ namespace MyPanelCarWashing
                         ShiftId = _currentShift.Id
                     };
 
-                    // Обновляем запись
                     appointment.IsCompleted = true;
                     appointment.OrderId = newOrder.Id;
 
-                    // Добавляем заказ в смену
                     var shift = appData.Shifts.FirstOrDefault(s => s.Id == _currentShift.Id);
                     if (shift == null)
                         throw new Exception("Смена не найдена!");
@@ -312,7 +331,6 @@ namespace MyPanelCarWashing
                         shift.Orders = new List<CarWashOrder>();
                     shift.Orders.Add(newOrder);
 
-                    // Обновляем статистику клиента
                     if (newOrder.ClientId.HasValue)
                     {
                         var client = appData.Clients.FirstOrDefault(c => c.Id == newOrder.ClientId.Value);
@@ -321,14 +339,12 @@ namespace MyPanelCarWashing
                             client.VisitsCount++;
                             client.TotalSpent += newOrder.FinalPrice;
                             client.LastVisitDate = DateTime.Now;
-                            System.Diagnostics.Debug.WriteLine($"Обновлена статистика клиента {client.FullName}: визитов={client.VisitsCount}, сумма={client.TotalSpent:N0} ₽");
                         }
                     }
 
                     return newOrder;
                 }));
 
-                // Обновляем ViewModel
                 _viewModel.CurrentOrder.Id = order.Id;
                 _viewModel.CurrentOrder.IsAppointment = false;
 
@@ -354,27 +370,19 @@ namespace MyPanelCarWashing
             }
             catch (TransactionException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Транзакция не удалась: {ex}");
                 MessageBox.Show($"Ошибка при сохранении: {ex.Message}\n\nДанные не были сохранены.",
                     "Ошибка транзакции", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-            catch (DataIntegrityException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ошибка целостности: {ex}");
-                MessageBox.Show($"Ошибка целостности данных: {ex.Message}\n\nОперация отменена.",
-                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Ошибка при преобразовании: {ex}");
                 MessageBox.Show($"Ошибка при преобразовании: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
         private string GetClientName(int? clientId)
         {
             if (!clientId.HasValue) return "Не указан";
-
             var client = _dataService.GetClientById(clientId.Value);
             return client?.FullName ?? $"Клиент #{clientId}";
         }
@@ -383,23 +391,12 @@ namespace MyPanelCarWashing
         {
             switch (categoryId)
             {
-                case 1:
-                    return "Категория 1 (Легковая)";
-                case 2:
-                    return "Категория 2 (Универсал)";
-                case 3:
-                    return "Категория 3 (Кроссовер)";
-                case 4:
-                    return "Категория 4 (Внедорожник)";
-                default:
-                    return "Категория 1 (Легковая)";
+                case 1: return "Категория 1 (Легковая)";
+                case 2: return "Категория 2 (Универсал)";
+                case 3: return "Категория 3 (Кроссовер)";
+                case 4: return "Категория 4 (Внедорожник)";
+                default: return "Категория 1 (Легковая)";
             }
-        }
-
-        private string GetWasherName(int washerId)
-        {
-            var washer = _dataService.GetAllUsers().FirstOrDefault(u => u.Id == washerId);
-            return washer?.FullName ?? "Не назначен";
         }
 
         private int GetNextOrderId(AppData appData)
@@ -415,6 +412,7 @@ namespace MyPanelCarWashing
             }
             return maxId + 1;
         }
+
         private void LoadClients()
         {
             var clients = _dataService.GetAllClients();
@@ -426,24 +424,6 @@ namespace MyPanelCarWashing
                 if (client != null)
                 {
                     ClientComboBox.SelectedItem = client;
-                }
-            }
-        }
-
-        private void ClientComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (ClientComboBox.SelectedItem is Client selectedClient)
-            {
-                _viewModel.CurrentOrder.ClientId = selectedClient.Id;
-
-                // Автозаполнение данных из карточки клиента
-                if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarModel))
-                {
-                    _viewModel.CurrentOrder.CarModel = selectedClient.CarModel;
-                }
-                if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarNumber))
-                {
-                    _viewModel.CurrentOrder.CarNumber = selectedClient.CarNumber;
                 }
             }
         }
