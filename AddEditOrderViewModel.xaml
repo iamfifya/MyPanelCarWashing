@@ -154,13 +154,13 @@
 
             <!-- Статус заказа (только для редактирования) -->
             <Label Content="📋 Статус заказа:" Grid.Row="19" Margin="0,5" FontWeight="SemiBold"
-                   Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+       Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
             <ComboBox x:Name="StatusComboBox" Grid.Row="20" Margin="0,5" Height="50"
-                      Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}">
-                <ComboBoxItem Content="🟡 В ожидании"/>
-                <ComboBoxItem Content="🟢 Выполняется"/>
-                <ComboBoxItem Content="✅ Выполнен"/>
-                <ComboBoxItem Content="❌ Отменен"/>
+          SelectedValue="{Binding CurrentOrder.Status}"
+          Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ComboBoxItem Content="🟢 Выполняется" Tag="Выполняется"/>
+                <ComboBoxItem Content="✅ Выполнен" Tag="Выполнен"/>
+                <ComboBoxItem Content="❌ Отменен" Tag="Отменен"/>
             </ComboBox>
             <!-- Выбор клиента -->
             <Label Content="👤 Клиент:" Grid.Row="21" Margin="0,5" FontWeight="SemiBold"/>

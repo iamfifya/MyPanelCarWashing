@@ -53,6 +53,34 @@ public static class FileDataService
             }
         }
     }
+    public static void CreateAutoBackup()
+    {
+        try
+        {
+            if (File.Exists(dataPath))
+            {
+                var backupPath = Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    $"backups/appdata_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+
+                var backupDir = Path.GetDirectoryName(backupPath);
+                if (!Directory.Exists(backupDir))
+                    Directory.CreateDirectory(backupDir);
+
+                File.Copy(dataPath, backupPath, true);
+
+                // Удаляем старые бэкапы (старше 7 дней)
+                var oldBackups = Directory.GetFiles(backupDir, "appdata_*.json")
+                    .Where(f => File.GetCreationTime(f) < DateTime.Now.AddDays(-7));
+                foreach (var old in oldBackups)
+                    File.Delete(old);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Backup failed: {ex.Message}");
+        }
+    }
 
 
     public static AppData LoadData()

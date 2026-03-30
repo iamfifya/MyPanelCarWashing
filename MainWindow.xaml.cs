@@ -1,5 +1,6 @@
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
+using MyPanelCarWashing.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -216,7 +217,6 @@ namespace MyPanelCarWashing
                     _allOrders = _currentShift.Orders ?? new List<CarWashOrder>();
                     System.Diagnostics.Debug.WriteLine($"Orders count: {_allOrders.Count}");
 
-                    // Выводим все заказы для отладки
                     foreach (var order in _allOrders)
                     {
                         System.Diagnostics.Debug.WriteLine($"  Order ID: {order.Id}, Car: {order.CarNumber}, Time: {order.Time}, IsAppointment: {order.IsAppointment}");
@@ -228,20 +228,21 @@ namespace MyPanelCarWashing
                     System.Diagnostics.Debug.WriteLine("Нет активной смены или смена закрыта");
                 }
 
-                // Получаем записи на сегодня
-                var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+                // Получаем записи на сегодня (только если есть активная смена)
+                var todayAppointments = new List<Appointment>();
+                if (_currentShift != null && !_currentShift.IsClosed)
+                {
+                    todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+                }
+
                 var allServices = _dataService.GetAllServices();
 
                 System.Diagnostics.Debug.WriteLine($"Appointments today: {todayAppointments.Count}");
-                foreach (var app in todayAppointments)
-                {
-                    System.Diagnostics.Debug.WriteLine($"  App ID: {app.Id}, Car: {app.CarNumber}, IsCompleted: {app.IsCompleted}, OrderId: {app.OrderId}");
-                }
 
                 // Создаем отображаемые элементы для заказов
                 var orderItems = _allOrders.Select(o => new OrderDisplayItem
                 {
-                    Id = o.Id,                           // ← Уникальный ID заказа
+                    Id = o.Id,
                     CarModel = o.CarModel,
                     CarNumber = o.CarNumber,
                     Time = o.Time,
@@ -263,7 +264,7 @@ namespace MyPanelCarWashing
                     .Where(a => !a.IsCompleted)
                     .Select(a => new OrderDisplayItem
                     {
-                        Id = 0,                          // У записей ID заказа = 0
+                        Id = 0,
                         CarModel = a.CarModel,
                         CarNumber = a.CarNumber,
                         Time = a.AppointmentDate,
@@ -276,7 +277,7 @@ namespace MyPanelCarWashing
                         Status = "Предварительная запись",
                         IsAppointment = true,
                         IsCompleted = a.IsCompleted,
-                        AppointmentId = a.Id          // ← Сохраняем ID записи отдельно
+                        AppointmentId = a.Id
                     }).ToList();
 
                 // Объединяем и сортируем по времени
@@ -291,10 +292,8 @@ namespace MyPanelCarWashing
                 Box2Items = allItems.Where(i => i.BoxNumber == 2).ToList();
                 Box3Items = allItems.Where(i => i.BoxNumber == 3).ToList();
 
-                // Обновляем статистику и UI
                 UpdateInfo();
 
-                // Принудительно обновляем привязки
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box1Items)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box2Items)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box3Items)));
@@ -353,7 +352,13 @@ namespace MyPanelCarWashing
         private void OnDataChanged()
         {
             // Обновляем данные в UI потоке
-            Dispatcher.Invoke(() => LoadData());
+            Dispatcher.Invoke(() =>
+            {
+                System.Diagnostics.Debug.WriteLine("=== OnDataChanged: Обновляем данные ===");
+                // Принудительно пересоздаём DataService, чтобы получить свежие данные
+                _dataService = new DataService();
+                LoadData();
+            });
         }
 
         // Метод для установки пользователя (используется если MainWindow создается через DI)
@@ -459,18 +464,26 @@ namespace MyPanelCarWashing
             {
                 CurrentShiftInfo = $"📅 Смена: {_currentShift.Date:dd.MM.yyyy} | Начало: {_currentShift.StartTime:HH:mm}";
 
-                TotalRevenue = _allOrders.Sum(o => o.FinalPrice);
-                var totalWasherEarnings = _allOrders.Sum(o => o.WasherEarnings);
-                CompanyEarnings = _allOrders.Sum(o => o.CompanyEarnings);
+                // Только выполненные заказы идут в выручку
+                var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
+                TotalRevenue = completedOrders.Sum(o => o.FinalPrice);
+                var totalWasherEarnings = completedOrders.Sum(o => o.WasherEarnings);
+                CompanyEarnings = completedOrders.Sum(o => o.CompanyEarnings);
 
-                TotalOrdersInfo = $"🚗 Всего машин: {_allOrders.Count} | " +
+                var inProgressCount = _allOrders.Count(o => o.Status == "Выполняется");
+                var cancelledCount = _allOrders.Count(o => o.Status == "Отменен");
+
+                TotalOrdersInfo = $"🚗 Выполнено: {completedOrders.Count} | " +
+                    $"🟢 В работе: {inProgressCount} | " +
+                    $"❌ Отменено: {cancelledCount} | " +
                     $"👤 Мойщикам: {totalWasherEarnings:N0} ₽";
             }
             else if (_currentShift != null && _currentShift.IsClosed)
             {
                 CurrentShiftInfo = $"📅 Смена закрыта: {_currentShift.Date:dd.MM.yyyy}";
-                TotalRevenue = _allOrders.Sum(o => o.FinalPrice);
-                TotalOrdersInfo = $"🚗 Итого за смену: {_allOrders.Count} машин | 💰 {TotalRevenue:N0} ₽";
+                var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
+                TotalRevenue = completedOrders.Sum(o => o.FinalPrice);
+                TotalOrdersInfo = $"🚗 Итого за смену: {completedOrders.Count} машин | 💰 {TotalRevenue:N0} ₽";
                 CompanyEarnings = 0;
             }
             else
@@ -482,7 +495,7 @@ namespace MyPanelCarWashing
             }
 
             UpdateWashersStats();
-            UpdatePaymentStats(); // Добавьте эту строку
+            UpdatePaymentStats();
 
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentShiftInfo)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalOrdersInfo)));
@@ -490,7 +503,6 @@ namespace MyPanelCarWashing
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarnings)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalRevenue)));
 
-            // Добавьте уведомления для новых свойств
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CashCount)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CashAmount)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CardCount)));
@@ -508,9 +520,11 @@ namespace MyPanelCarWashing
             }
 
             var allUsers = _dataService.GetAllUsers();
-            var totalShiftRevenue = _allOrders.Sum(o => o.FinalPrice);
+            // Только выполненные заказы влияют на статистику мойщиков
+            var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
+            var totalShiftRevenue = completedOrders.Sum(o => o.FinalPrice);
 
-            var stats = _allOrders
+            var stats = completedOrders
                 .GroupBy(o => o.WasherId)
                 .Select(g =>
                 {
@@ -575,29 +589,33 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            var addWin = new AddEditOrderWindow(_dataService, _currentShift);
+            var orderViewModel = App.GetService<AddEditOrderViewModel>();
+            var addWin = new AddEditOrderWindow(_dataService, orderViewModel, _currentShift);
+
             if (addWin.ShowDialog() == true)
             {
+                System.Diagnostics.Debug.WriteLine("=== ЗАКАЗ ДОБАВЛЕН, ОБНОВЛЯЕМ ДАННЫЕ ===");
+                _dataService = new DataService(); // Принудительно обновляем сервис
                 LoadData();
             }
         }
 
+
         private void OpenEditOrder(OrderDisplayItem orderDisplay)
         {
-            // Для записей (IsAppointment = true)
             if (orderDisplay.IsAppointment && orderDisplay.AppointmentId.HasValue)
             {
                 var appointment = _dataService.GetAppointmentById(orderDisplay.AppointmentId.Value);
                 if (appointment != null)
                 {
-                    // Если запись уже преобразована в заказ
                     if (appointment.IsCompleted && appointment.OrderId.HasValue)
                     {
-                        // Находим заказ по ID из записи
                         var order = _allOrders.FirstOrDefault(o => o.Id == appointment.OrderId.Value);
                         if (order != null)
                         {
-                            var orderEditWin = new AddEditOrderWindow(_dataService, _currentShift, order);
+                            // Переименовал переменную в editViewModel
+                            var editViewModel = App.GetService<AddEditOrderViewModel>();
+                            var orderEditWin = new AddEditOrderWindow(_dataService, editViewModel, _currentShift, order);
                             if (orderEditWin.ShowDialog() == true)
                             {
                                 _dataService = new DataService();
@@ -607,7 +625,6 @@ namespace MyPanelCarWashing
                         }
                     }
 
-                    // Иначе открываем как запись (Id = 0, AppointmentId есть)
                     var tempOrder = new CarWashOrder
                     {
                         Id = 0,
@@ -625,58 +642,36 @@ namespace MyPanelCarWashing
                         AppointmentId = appointment.Id
                     };
 
-                    var appointmentEditWin = new AddEditOrderWindow(_dataService, _currentShift, tempOrder);
+                    // Переименовал переменную в appointmentViewModel
+                    var appointmentViewModel = App.GetService<AddEditOrderViewModel>();
+                    var appointmentEditWin = new AddEditOrderWindow(_dataService, appointmentViewModel, _currentShift, tempOrder);
                     if (appointmentEditWin.ShowDialog() == true)
                     {
                         _dataService = new DataService();
                         LoadData();
                     }
                 }
-                return;
             }
-
-            // Для обычных заказов (IsAppointment = false) - используем ID
-            if (!orderDisplay.IsAppointment && orderDisplay.Id > 0)
+            else if (!orderDisplay.IsAppointment && orderDisplay.Id > 0)
             {
                 var originalOrder = _allOrders.FirstOrDefault(o => o.Id == orderDisplay.Id);
                 if (originalOrder != null)
                 {
-                    var orderEditWin = new AddEditOrderWindow(_dataService, _currentShift, originalOrder);
+                    // Переименовал переменную в orderViewModel
+                    var orderViewModel = App.GetService<AddEditOrderViewModel>();
+                    var orderEditWin = new AddEditOrderWindow(_dataService, orderViewModel, _currentShift, originalOrder);
                     if (orderEditWin.ShowDialog() == true)
                     {
                         _dataService = new DataService();
                         LoadData();
                     }
                 }
-                else
-                {
-                    MessageBox.Show("Заказ не найден. Возможно, он был удален.", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-                return;
-            }
-
-            // Fallback: если по какой-то причине ID нет, пробуем найти по номеру+времени (старый способ)
-            var fallbackOrder = _allOrders.FirstOrDefault(o => o.CarNumber == orderDisplay.CarNumber && o.Time == orderDisplay.Time);
-            if (fallbackOrder != null)
-            {
-                var orderEditWin = new AddEditOrderWindow(_dataService, _currentShift, fallbackOrder);
-                if (orderEditWin.ShowDialog() == true)
-                {
-                    _dataService = new DataService();
-                    LoadData();
-                }
-            }
-            else
-            {
-                MessageBox.Show("Заказ не найден для редактирования.", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
         private void EmployeesButton_Click(object sender, RoutedEventArgs e)
         {
-            var empWin = new EmployeeCardWindow(_dataService);
+            var empWin = App.GetService<EmployeeCardWindow>();
             empWin.ShowDialog();
         }
 
@@ -709,11 +704,16 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            var totalRevenue = _allOrders.Sum(o => o.FinalPrice);
-            var totalWasherEarnings = _allOrders.Sum(o => o.WasherEarnings);
-            var totalCompanyEarnings = _allOrders.Sum(o => o.CompanyEarnings);
+            // ПРОВЕРКА: можно ли закрыть смену
+            string canCloseError = _dataService.CanCloseShift(_currentShift.Id);
+            if (canCloseError != null)
+            {
+                MessageBox.Show(canCloseError, "Невозможно закрыть смену",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
-            // Сначала объявляем переменные
+            // Объявляем переменные ДО их использования
             int cashCount = 0;
             decimal cashAmount = 0;
             int cardCount = 0;
@@ -721,8 +721,14 @@ namespace MyPanelCarWashing
             int transferCount = 0;
             decimal transferAmount = 0;
 
-            // Затем собираем статистику по оплатам
-            foreach (var order in _allOrders)
+            // Только выполненные заказы идут в отчёт
+            var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
+            var totalRevenue = completedOrders.Sum(o => o.FinalPrice);
+            var totalWasherEarnings = completedOrders.Sum(o => o.WasherEarnings);
+            var totalCompanyEarnings = completedOrders.Sum(o => o.CompanyEarnings);
+
+            // Собираем статистику по оплатам ТОЛЬКО для выполненных заказов
+            foreach (var order in completedOrders)
             {
                 switch (order.PaymentMethod)
                 {
@@ -740,25 +746,40 @@ namespace MyPanelCarWashing
                         break;
                 }
             }
-            foreach (var order in _allOrders)
+
+            // Проверяем статистику клиентов
+            foreach (var order in completedOrders)
             {
-                if (order.Status == "Выполнен" && order.ClientId.HasValue)
+                if (order.ClientId.HasValue)
                 {
-                    // Статистика уже должна быть обновлена при изменении статуса
-                    // Добавляем проверку целостности (опционально)
                     ValidateClientStats(order.ClientId.Value);
                 }
             }
 
+            // Подсчитываем заказы со статусом "Выполняется" для предупреждения
+            var inProgressOrders = _allOrders.Where(o => o.Status == "Выполняется").ToList();
+            var pendingAppointments = _dataService.GetAppointmentsByDate(DateTime.Now).Where(a => !a.IsCompleted).ToList();
+
+            string warningMessage = "";
+            if (inProgressOrders.Any())
+            {
+                warningMessage += $"\n⚠️ Заказов в работе: {inProgressOrders.Count} (не войдут в отчёт)";
+            }
+            if (pendingAppointments.Any())
+            {
+                warningMessage += $"\n⚠️ Предварительных записей: {pendingAppointments.Count} (не войдут в отчёт)";
+            }
+
             var result = MessageBox.Show($"Закрыть смену?\n\n" +
                 $"📅 Дата: {_currentShift.Date:dd.MM.yyyy}\n" +
-                $"🚗 Всего машин: {_allOrders.Count}\n" +
+                $"🚗 Выполнено машин: {completedOrders.Count}\n" +
                 $"💰 Общая выручка: {totalRevenue:N0} ₽\n" +
                 $"👤 Мойщикам (35%): {totalWasherEarnings:N0} ₽\n" +
                 $"🏢 Компании (65%): {totalCompanyEarnings:N0} ₽\n\n" +
                 $"💳 Наличные: {cashCount} шт. / {cashAmount:N0} ₽\n" +
                 $"💳 Карта: {cardCount} шт. / {cardAmount:N0} ₽\n" +
-                $"📱 Перевод: {transferCount} шт. / {transferAmount:N0} ₽\n\n" +
+                $"📱 Перевод: {transferCount} шт. / {transferAmount:N0} ₽\n" +
+                $"{warningMessage}\n\n" +
                 $"Это действие нельзя отменить!",
                 "Подтверждение закрытия смены",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -770,13 +791,16 @@ namespace MyPanelCarWashing
                 _currentShift.EndTime = DateTime.Now;
                 _currentShift.IsClosed = true;
 
+                // Получаем всех пользователей ДО использования
+                var allUsers = _dataService.GetAllUsers();
+
                 var report = new ShiftReport
                 {
                     Id = Guid.NewGuid().GetHashCode(),
                     Date = _currentShift.Date,
                     StartTime = _currentShift.StartTime.Value,
                     EndTime = _currentShift.EndTime.Value,
-                    TotalCars = _allOrders.Count,
+                    TotalCars = completedOrders.Count,
                     TotalRevenue = totalRevenue,
                     TotalWasherEarnings = totalWasherEarnings,
                     TotalCompanyEarnings = totalCompanyEarnings,
@@ -789,14 +813,12 @@ namespace MyPanelCarWashing
                     Notes = "Смена закрыта штатно"
                 };
 
-                var allUsers = _dataService.GetAllUsers();
-
                 foreach (var empId in _currentShift.EmployeeIds)
                 {
                     var employee = allUsers.FirstOrDefault(u => u.Id == empId);
                     if (employee != null)
                     {
-                        var employeeOrders = _allOrders.Where(o => o.WasherId == empId).ToList();
+                        var employeeOrders = completedOrders.Where(o => o.WasherId == empId).ToList();
                         var employeeRevenue = employeeOrders.Sum(o => o.FinalPrice);
                         var employeeEarnings = employeeOrders.Sum(o => o.WasherEarnings);
 
@@ -825,11 +847,13 @@ namespace MyPanelCarWashing
                 appData.Shifts = allShifts;
                 FileDataService.SaveData(appData);
 
+                // Обновляем данные в MainWindow
+                _dataService = new DataService();
                 LoadData();
 
                 MessageBox.Show($"Смена успешно закрыта!\n\n" +
                     $"📅 Дата: {report.Date:dd.MM.yyyy}\n" +
-                    $"🚗 Машин: {report.TotalCars}\n" +
+                    $"🚗 Выполнено машин: {report.TotalCars}\n" +
                     $"💰 Выручка: {report.TotalRevenue:N0} ₽\n" +
                     $"👤 Мойщикам (35%): {report.TotalWasherEarnings:N0} ₽\n" +
                     $"🏢 Компании (65%): {report.TotalCompanyEarnings:N0} ₽\n\n" +
@@ -893,15 +917,16 @@ namespace MyPanelCarWashing
 
         private void ServicesButton_Click(object sender, RoutedEventArgs e)
         {
-            var servicesWin = new ServiceManagementWindow(); // Без параметров
+            var servicesWin = App.GetService<ServiceManagementWindow>();
             servicesWin.ShowDialog();
         }
 
         private void ReportsButton_Click(object sender, RoutedEventArgs e)
         {
-            var reportsWin = new ReportsWindow(_dataService);
+            var reportsWin = new ReportsWindow(_dataService); // DataService уже в DI
             reportsWin.ShowDialog();
         }
+
 
         private void ExitButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1110,23 +1135,30 @@ namespace MyPanelCarWashing
         }
         private void AppointmentButton_Click(object sender, RoutedEventArgs e)
         {
-            var appointmentWin = new AppointmentWindow(_dataService);
+            // Используем DI для создания окна
+            var appointmentWin = App.GetService<AppointmentWindow>();
+
             // Подписываемся на закрытие окна
             appointmentWin.Closed += (s, args) =>
             {
-                // Обновляем данные после добавления записи
-                LoadData();
+                System.Diagnostics.Debug.WriteLine($"=== AppointmentWindow Closed: DialogResult = {appointmentWin.DialogResult} ===");
+
+                // Проверяем, что окно закрыто с сохранением
+                if (appointmentWin.DialogResult == true)
+                {
+                    System.Diagnostics.Debug.WriteLine("=== Запись добавлена, обновляем MainWindow ===");
+                    // Полностью перезагружаем данные
+                    _dataService = new DataService();
+                    LoadData();
+                }
             };
+
             appointmentWin.ShowDialog();
         }
 
         private void ViewAppointmentsButton_Click(object sender, RoutedEventArgs e)
         {
-            var appointmentsWin = new AppointmentsWindow(_dataService);
-            appointmentsWin.Closed += (s, args) =>
-            {
-                LoadData(); // Обновляем главное окно после закрытия окна записей
-            };
+            var appointmentsWin = App.GetService<AppointmentsWindow>();
             appointmentsWin.ShowDialog();
         }
 
@@ -1183,7 +1215,7 @@ namespace MyPanelCarWashing
             // Создаем временные отображаемые элементы для записей
             var allServices = _dataService.GetAllServices();
 
-            var appointmentDisplayItems = appointments.Select(a => new OrderDisplayItem
+            var warningAppointmentItems = appointments.Select(a => new OrderDisplayItem
             {
                 CarModel = a.CarModel,
                 CarNumber = a.CarNumber,
@@ -1199,9 +1231,9 @@ namespace MyPanelCarWashing
             }).ToList();
 
             // Распределяем по боксам
-            Box1ItemsControl.ItemsSource = appointmentDisplayItems.Where(i => i.BoxNumber == 1).ToList();
-            Box2ItemsControl.ItemsSource = appointmentDisplayItems.Where(i => i.BoxNumber == 2).ToList();
-            Box3ItemsControl.ItemsSource = appointmentDisplayItems.Where(i => i.BoxNumber == 3).ToList();
+            Box1ItemsControl.ItemsSource = warningAppointmentItems.Where(i => i.BoxNumber == 1).ToList();
+            Box2ItemsControl.ItemsSource = warningAppointmentItems.Where(i => i.BoxNumber == 2).ToList();
+            Box3ItemsControl.ItemsSource = warningAppointmentItems.Where(i => i.BoxNumber == 3).ToList();
 
             // Показываем сообщение пользователю
             CurrentShiftInfo = "⏰ Нет активной смены. Для выполнения записей начните смену!";
@@ -1223,7 +1255,7 @@ namespace MyPanelCarWashing
         }
         private void ClientsButton_Click(object sender, RoutedEventArgs e)
         {
-            var clientsWin = new ClientsWindow(_dataService);
+            var clientsWin = App.GetService<ClientsWindow>();
             clientsWin.ShowDialog();
         }
     }

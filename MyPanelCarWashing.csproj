@@ -191,7 +191,6 @@
       <DependentUpon>ClientsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="CompletedToStatusConverter.cs" />
-    <Compile Include="Core.cs" />
     <Compile Include="CurrencyConverter.cs" />
     <Compile Include="CustomDatePicker.xaml.cs">
       <DependentUpon>CustomDatePicker.xaml</DependentUpon>

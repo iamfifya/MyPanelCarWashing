@@ -194,31 +194,32 @@ namespace MyPanelCarWashing.Services
         // Заказы
         public void AddOrder(CarWashOrder order, List<int> serviceIds)
         {
-            var appData = FileDataService.LoadData();
-            var shift = appData.Shifts.FirstOrDefault(s => s.Id == order.ShiftId);
+            // ВАЖНО: перезагружаем данные перед добавлением
+            LoadData();
+
+            FileDataService.CreateAutoBackup();
+
+            var shift = _data.Shifts.FirstOrDefault(s => s.Id == order.ShiftId);
 
             if (shift != null)
             {
                 if (shift.Orders == null) shift.Orders = new List<CarWashOrder>();
 
-                // Устанавливаем ID заказа
-                order.Id = GetNextOrderId(appData);
+                order.Id = GetNextOrderId(_data);
                 order.ServiceIds = serviceIds;
-
-                // Рассчитываем сумму с учетом категории кузова (сохраняем существующую логику)
-                order.TotalPrice = appData.Services
+                order.TotalPrice = _data.Services
                     .Where(s => serviceIds.Contains(s.Id))
                     .Sum(s => s.GetPrice(order.BodyTypeCategory));
 
                 shift.Orders.Add(order);
 
-                // Обновляем статистику клиента (если клиент выбран)
                 if (order.ClientId.HasValue)
                 {
                     UpdateClientStats(order.ClientId.Value, order.FinalPrice);
                 }
 
-                FileDataService.SaveData(appData);
+                SaveData();
+                NotifyDataChanged();
             }
         }
 
@@ -575,11 +576,16 @@ namespace MyPanelCarWashing.Services
         // Добавить запись
         public void AddAppointment(Appointment appointment)
         {
+            // ВАЖНО: перезагружаем данные перед добавлением
+            LoadData();
+
             // Проверяем доступность перед добавлением
             if (!IsBoxAvailable(appointment.BoxNumber, appointment.AppointmentDate, appointment.DurationMinutes))
             {
                 throw new Exception("Выбранное время уже занято!");
             }
+
+            FileDataService.CreateAutoBackup();
 
             appointment.Id = _data.GetNextAppointmentId();
             _data.Appointments.Add(appointment);
@@ -588,6 +594,9 @@ namespace MyPanelCarWashing.Services
             System.Diagnostics.Debug.WriteLine($"=== ЗАПИСЬ ДОБАВЛЕНА ===");
             System.Diagnostics.Debug.WriteLine($"ID: {appointment.Id}");
             System.Diagnostics.Debug.WriteLine($"Время: {appointment.AppointmentDate:HH:mm} - {appointment.EndTime:HH:mm}");
+
+            // Оповещаем об изменении
+            NotifyDataChanged();
         }
 
         // Удалить запись
@@ -605,8 +614,7 @@ namespace MyPanelCarWashing.Services
         public CarWashOrder ConvertAppointmentToOrder(Appointment appointment, int shiftId, int washerId)
         {
             var selectedServices = _data.Services.Where(s => appointment.ServiceIds.Contains(s.Id)).ToList();
-            // Исправлено: используем GetPrice с категорией по умолчанию 1
-            decimal totalPrice = selectedServices.Sum(s => s.GetPrice(1));
+            decimal totalPrice = selectedServices.Sum(s => s.GetPrice(appointment.BodyTypeCategory));
 
             var order = new CarWashOrder
             {
@@ -614,6 +622,7 @@ namespace MyPanelCarWashing.Services
                 CarNumber = appointment.CarNumber,
                 CarModel = appointment.CarModel,
                 CarBodyType = appointment.CarBodyType,
+                BodyTypeCategory = appointment.BodyTypeCategory,
                 Time = appointment.AppointmentDate,
                 ShiftId = shiftId,
                 BoxNumber = appointment.BoxNumber,
@@ -622,7 +631,7 @@ namespace MyPanelCarWashing.Services
                 ExtraCost = appointment.ExtraCost,
                 ExtraCostReason = appointment.ExtraCostReason,
                 Notes = appointment.Notes,
-                Status = "В ожидании",
+                Status = "Выполняется", // ← ИСПРАВЛЕНО: было "В ожидании"
                 TotalPrice = totalPrice,
                 IsAppointment = true,
                 AppointmentId = appointment.Id
@@ -837,7 +846,6 @@ namespace MyPanelCarWashing.Services
         {
             var appData = FileDataService.LoadData();
 
-            // Находим заказ
             CarWashOrder order = null;
             Shift shift = null;
 
@@ -857,6 +865,7 @@ namespace MyPanelCarWashing.Services
             var client = appData.Clients.FirstOrDefault(c => c.Id == order.ClientId.Value);
             if (client == null) return;
 
+            // Только статус "Выполнен" влияет на статистику
             bool wasCompleted = oldStatus == "Выполнен";
             bool willBeCompleted = newStatus == "Выполнен";
 
@@ -874,7 +883,7 @@ namespace MyPanelCarWashing.Services
             }
             else if (!willBeCompleted && wasCompleted)
             {
-                // Заказ был выполнен, но стал отменен/в ожидании - вычитаем статистику
+                // Заказ был выполнен, но стал отменен - вычитаем статистику
                 client.VisitsCount--;
                 client.TotalSpent -= order.FinalPrice;
 
@@ -890,6 +899,36 @@ namespace MyPanelCarWashing.Services
             }
 
             FileDataService.SaveData(appData);
+        }
+        public string CanCloseShift(int shiftId)
+        {
+            var shift = _data.Shifts.FirstOrDefault(s => s.Id == shiftId);
+            if (shift == null)
+                return "Смена не найдена";
+
+            if (shift.IsClosed)
+                return "Смена уже закрыта";
+
+            // Проверяем заказы со статусом "Выполняется"
+            var inProgressOrders = shift.Orders?.Where(o => o.Status == "Выполняется").ToList();
+            if (inProgressOrders != null && inProgressOrders.Any())
+            {
+                var ordersList = string.Join("\n  ", inProgressOrders.Select(o => $"• {o.CarModel} ({o.CarNumber}) - {o.Time:HH:mm}"));
+                return $"Нельзя закрыть смену! Есть заказы со статусом \"Выполняется\":\n  {ordersList}\n\nЗавершите или отмените эти заказы.";
+            }
+
+            // Проверяем записи со статусом "Предварительная запись" на сегодня
+            var todayAppointments = _data.Appointments
+                .Where(a => a.AppointmentDate.Date == DateTime.Now.Date && !a.IsCompleted)
+                .ToList();
+
+            if (todayAppointments.Any())
+            {
+                var appointmentsList = string.Join("\n  ", todayAppointments.Select(a => $"• {a.CarModel} ({a.CarNumber}) - {a.AppointmentDate:HH:mm}"));
+                return $"Нельзя закрыть смену! Есть активные предварительные записи на сегодня:\n  {appointmentsList}\n\nПреобразуйте записи в заказы или перенесите их.";
+            }
+
+            return null; // Можно закрывать
         }
     }
 }

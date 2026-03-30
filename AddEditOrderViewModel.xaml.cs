@@ -1,5 +1,4 @@
 // AddEditOrderWindow.xaml.cs
-using DocumentFormat.OpenXml.Drawing.Charts;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
@@ -7,8 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Threading.Tasks;
+using System.Windows.Controls;
 
 namespace MyPanelCarWashing
 {
@@ -18,15 +17,23 @@ namespace MyPanelCarWashing
         private readonly Shift _currentShift;
         private readonly AddEditOrderViewModel _viewModel;
 
-        public AddEditOrderWindow(DataService dataService, Shift currentShift, CarWashOrder order = null)
+        // Используем DI для ViewModel
+        public AddEditOrderWindow(
+            DataService dataService,
+            AddEditOrderViewModel viewModel,
+            Shift currentShift = null,
+            CarWashOrder order = null)
         {
             InitializeComponent();
             _dataService = dataService;
             _currentShift = currentShift;
-            _viewModel = new AddEditOrderViewModel(dataService, currentShift, order);
+
+            // Инициализируем ViewModel через DI, передавая dataService
+            viewModel.Initialize(currentShift, order);
+            _viewModel = viewModel;
             DataContext = _viewModel;
 
-            // Загружаем ВСЕХ сотрудников для выбора мойщика (не только из смены)
+            // Загружаем ВСЕХ сотрудников для выбора мойщика
             var allUsers = _dataService.GetAllUsers();
             WasherComboBox.ItemsSource = allUsers;
 
@@ -47,8 +54,7 @@ namespace MyPanelCarWashing
             {
                 foreach (ComboBoxItem item in StatusComboBox.Items)
                 {
-                    string itemText = (item.Content as string)?.Replace("🟡 ", "").Replace("🟢 ", "").Replace("✅ ", "").Replace("❌ ", "") ?? "";
-                    if (itemText == order.Status)
+                    if (item.Tag?.ToString() == order.Status)
                     {
                         StatusComboBox.SelectedItem = item;
                         break;
@@ -61,8 +67,7 @@ namespace MyPanelCarWashing
             {
                 foreach (ComboBoxItem item in PaymentMethodComboBox.Items)
                 {
-                    string itemText = (item.Content as string)?.Replace("💵 ", "").Replace("💳 ", "").Replace("📱 ", "") ?? "";
-                    if (itemText == order.PaymentMethod)
+                    if (item.Tag?.ToString() == order.PaymentMethod)
                     {
                         PaymentMethodComboBox.SelectedItem = item;
                         break;
@@ -91,13 +96,12 @@ namespace MyPanelCarWashing
                     }
                 }
             }
+
             if (_viewModel.IsAppointment && WasherComboBox.Items.Count > 0)
             {
-                // По умолчанию выбираем первого сотрудника (пользователь все равно должен выбрать сам)
                 WasherComboBox.SelectedIndex = 0;
             }
 
-            // Если это обычный заказ, устанавливаем сохраненного мойщика
             if (!_viewModel.IsAppointment && order != null && order.WasherId > 0)
             {
                 var savedWasher = allUsers.FirstOrDefault(u => u.Id == order.WasherId);
@@ -133,9 +137,7 @@ namespace MyPanelCarWashing
                 // Обновляем статус для редактирования
                 if (_viewModel.IsEditMode && StatusComboBox.SelectedItem is ComboBoxItem statusItem)
                 {
-                    string status = statusItem.Content.ToString();
-                    status = status.Replace("🟡 ", "").Replace("🟢 ", "").Replace("✅ ", "").Replace("❌ ", "");
-                    _viewModel.CurrentOrder.Status = status;
+                    _viewModel.CurrentOrder.Status = statusItem.Tag?.ToString() ?? statusItem.Content.ToString();
                 }
 
                 // Обновляем способ оплаты
@@ -155,6 +157,10 @@ namespace MyPanelCarWashing
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+
+                // ВАЖНО: Обновляем ExtraCost из ViewModel в CurrentOrder
+                _viewModel.CurrentOrder.ExtraCost = _viewModel.ExtraCost;
+                _viewModel.CurrentOrder.ExtraCostReason = _viewModel.CurrentOrder.ExtraCostReason;
 
                 // Сохраняем
                 _viewModel.SaveOrder(out bool success, out string message);
@@ -284,7 +290,7 @@ namespace MyPanelCarWashing
                         ExtraCost = _viewModel.ExtraCost,
                         ExtraCostReason = _viewModel.CurrentOrder.ExtraCostReason ?? appointment.ExtraCostReason,
                         TotalPrice = _viewModel.ServicesTotal,
-                        Status = "В ожидании",
+                        Status = "Выполняется",
                         PaymentMethod = paymentMethod,
                         ClientId = _viewModel.CurrentOrder.ClientId,
                         Notes = appointment.Notes,

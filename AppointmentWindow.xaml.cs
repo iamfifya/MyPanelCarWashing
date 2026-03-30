@@ -18,7 +18,8 @@ namespace MyPanelCarWashing
         {
             InitializeComponent();
             _dataService = dataService;
-            _viewModel = new AppointmentViewModel(dataService);
+            var viewModel = App.GetService<AppointmentViewModel>();
+            _viewModel = viewModel;
             DataContext = _viewModel;
 
             // Устанавливаем начальные значения

@@ -47,7 +47,7 @@ namespace MyPanelCarWashing.Models
         public string BoxName => $"Бокс {BoxNumber}";
 
         public string Error => null;
-        public string Status { get; set; } = "В ожидании";
+        public string Status { get; set; } = "Выполняется";
 
         public string this[string columnName]
         {

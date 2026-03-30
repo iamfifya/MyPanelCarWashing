@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using MyPanelCarWashing.Services;
+using MyPanelCarWashing.ViewModels;
 using System;
 using System.Windows;
 
@@ -24,10 +25,9 @@ namespace MyPanelCarWashing
 
             DispatcherUnhandledException += (sender, args) =>
             {
-                // Не показываем ошибку при каждом сбое, только логируем
                 System.Diagnostics.Debug.WriteLine($"Ошибка UI: {args.Exception.Message}");
                 System.Diagnostics.Debug.WriteLine(args.Exception.StackTrace);
-                args.Handled = true; // Помечаем как обработанную, чтобы приложение не падало
+                args.Handled = true;
             };
 
             // Настройка DI
@@ -42,10 +42,15 @@ namespace MyPanelCarWashing
 
         private void ConfigureServices(IServiceCollection services)
         {
-            // Регистрируем сервисы
+            // Регистрируем сервисы как Singleton (один экземпляр на всё приложение)
             services.AddSingleton<DataService>();
+            services.AddSingleton<TransactionService>();
 
-            // Регистрируем окна
+            // Регистрируем ViewModels как Transient (новый экземпляр при каждом запросе)
+            services.AddTransient<AddEditOrderViewModel>();
+            services.AddTransient<AppointmentViewModel>();
+
+            // Регистрируем окна как Transient
             services.AddTransient<LoginWindow>();
             services.AddTransient<MainWindow>();
             services.AddTransient<AddEditOrderWindow>();
@@ -56,12 +61,21 @@ namespace MyPanelCarWashing
             services.AddTransient<AddEditServiceWindow>();
             services.AddTransient<ReportsWindow>();
             services.AddTransient<MonthlyReportWindow>();
+            services.AddTransient<CustomReportWindow>();
             services.AddTransient<StartShiftWindow>();
             services.AddTransient<AppointmentsWindow>();
-            services.AddTransient<ScheduleWindow>();
-            services.AddTransient<CustomDatePicker>();
-            services.AddTransient<CustomReportWindow>();
+            services.AddTransient<AppointmentWindow>();
             services.AddTransient<ClientsWindow>();
+            services.AddTransient<AddEditClientWindow>();
+            services.AddTransient<ScheduleWindow>();
+        }
+
+        public static T GetService<T>() where T : class
+        {
+            if (Current is App app && app._serviceProvider != null)
+                return app._serviceProvider.GetRequiredService<T>();
+
+            throw new InvalidOperationException("ServiceProvider is not initialized");
         }
 
         protected override void OnExit(ExitEventArgs e)

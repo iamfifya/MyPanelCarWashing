@@ -16,10 +16,10 @@ namespace MyPanelCarWashing
         private List<Service> _allServices;
         private Service _selectedService;
 
-        public ServiceManagementWindow()
+        public ServiceManagementWindow(DataService dataService)
         {
             InitializeComponent();
-            _dataService = new DataService();
+            _dataService = dataService;
             LoadServices();
         }
 
