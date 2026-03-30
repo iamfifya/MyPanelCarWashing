@@ -33,7 +33,7 @@
         </StackPanel>
 
         <!-- Список записей -->
-        <ListView Grid.Row="2" x:Name="AppointmentsListView" SelectionMode="Single" Background="White">
+        <ListView Grid.Row="2" x:Name="AppointmentsListView" SelectionMode="Single" Background="White" MouseDoubleClick="AppointmentsListView_MouseDoubleClick">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="Дата/Время" Width="120" DisplayMemberBinding="{Binding AppointmentDate, StringFormat=dd.MM.yyyy HH:mm}"/>
