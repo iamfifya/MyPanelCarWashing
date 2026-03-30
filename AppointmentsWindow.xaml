@@ -10,7 +10,10 @@
         ResizeMode="CanResize"
         MinWidth="800" MinHeight="500"
         Width="1000" Height="600"
-        Background="#F5F6FA">
+        Background="#F5F6FA"
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -26,9 +29,9 @@
         <!-- Фильтр по дате -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
             <Label Content="Показать записи за:" VerticalAlignment="Center"/>
-            <local:CustomDatePicker x:Name="FilterDatePicker" Height="30" Width="150" Margin="5"/>
+            <local:CustomDatePicker x:Name="FilterDatePicker" Height="50" Width="400" Margin="5"/>
             <Button Content="🔍 Показать" Click="FilterButton_Click" Width="100" Height="30" Margin="5"/>
-            <Button Content="➕ Новая запись" Click="NewAppointmentButton_Click" Width="120" Height="30" Margin="5" Background="#27AE60" Foreground="White"/>
+            <Button Content="➕ Новая запись" Click="NewAppointmentButton_Click" Width="130" Height="30" Margin="5" Background="#27AE60" Foreground="White"/>
             <Button Content="🗑 Удалить" Click="DeleteButton_Click" Width="100" Height="30" Margin="5" Background="#E74C3C" Foreground="White"/>
         </StackPanel>
 
@@ -36,11 +39,11 @@
         <ListView Grid.Row="2" x:Name="AppointmentsListView" SelectionMode="Single" Background="White" MouseDoubleClick="AppointmentsListView_MouseDoubleClick">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Дата/Время" Width="120" DisplayMemberBinding="{Binding AppointmentDate, StringFormat=dd.MM.yyyy HH:mm}"/>
-                    <GridViewColumn Header="Окончание" Width="120" DisplayMemberBinding="{Binding EndTime, StringFormat=HH:mm}"/>
+                    <GridViewColumn Header="Дата/Время" Width="100" DisplayMemberBinding="{Binding AppointmentDate, StringFormat=dd.MM.yyyy HH:mm}"/>
+                    <GridViewColumn Header="Окончание" Width="80" DisplayMemberBinding="{Binding EndTime, StringFormat=HH:mm}"/>
                     <GridViewColumn Header="Марка/Модель" Width="150" DisplayMemberBinding="{Binding CarModel}"/>
                     <GridViewColumn Header="Госномер" Width="100" DisplayMemberBinding="{Binding CarNumber}"/>
-                    <GridViewColumn Header="Бокс" Width="50" DisplayMemberBinding="{Binding BoxNumber}"/>
+                    <GridViewColumn Header="Бокс" Width="50" TextBlock.TextAlignment="Center" DisplayMemberBinding="{Binding BoxNumber}"/>
                     <GridViewColumn Header="Услуги" Width="150" DisplayMemberBinding="{Binding ServicesList}"/>
                     <GridViewColumn Header="Сумма" Width="100" DisplayMemberBinding="{Binding TotalPrice, StringFormat={}{0:N0} ₽}"/>
                     <GridViewColumn Header="Статус" Width="100">
@@ -57,7 +60,7 @@
 
         <!-- Кнопки -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20">
-            <Button Content="📋 Показать все записи" Click="ShowAllButton_Click" Width="150" Height="30" Margin="5"/>
+            <Button Content="📋 Показать все записи" Click="ShowAllButton_Click" Width="170" Height="35" Margin="5"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" Width="100" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>
         </StackPanel>

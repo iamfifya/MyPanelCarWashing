@@ -7,11 +7,15 @@
         mc:Ignorable="d"
         Title="Отчеты по сменам"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="None"
         ResizeMode="CanResize"
         MinWidth="900" MinHeight="550"
-        Width="1000" Height="650"
-        Background="#F5F6FA">
+        Width="1080" Height="650"
+        Background="#F5F6FA"
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None"
+        WindowState="Maximized"
+        Foreground="Black">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -34,9 +38,10 @@
                 <StackPanel>
                     <TextBlock Text="📁 Список отчетов" FontSize="16" FontWeight="Bold" 
                    Margin="0,0,0,10"/>
-                    <ListBox x:Name="ReportsListBox" Height="400" 
-                 SelectionChanged="ReportSelectionChanged"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox x:Name="ReportsListBox" MinHeight="400" 
+                             SelectionChanged="ReportSelectionChanged"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" Background="#F8F9FA"
+                             HorizontalContentAlignment="Stretch">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Padding" Value="0"/>
@@ -50,20 +55,20 @@
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
                                         <!-- Дата -->
                                         <TextBlock Margin="5,0,5,0" Grid.Column="0" FontWeight="Bold" 
                                        Text="{Binding Date, StringFormat=📅 {0:dd.MM.yyyy}}" 
-                                       FontSize="11" VerticalAlignment="Center"/>
+                                       FontSize="11" VerticalAlignment="Center" Foreground="Black"/>
 
                                         <!-- Машины -->
                                         <TextBlock Margin="5,0,5,0" Grid.Column="1" 
                                        Text="{Binding TotalCars, StringFormat=🚗 {0}}" 
                                        HorizontalAlignment="Center" FontSize="11" 
-                                       VerticalAlignment="Center"/>
+                                       VerticalAlignment="Center" Foreground="Black"/>
 
                                         <!-- Выручка -->
                                         <TextBlock Margin="5,0,5,0" Grid.Column="2" 
@@ -80,7 +85,7 @@
 
             <!-- Детали отчета -->
             <Border Grid.Column="1" Background="#F8F9FA" CornerRadius="10" Padding="15" Margin="10,0,0,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Foreground="Black">
                     <StackPanel>
                         <TextBlock Text="📋 Детали отчета" FontSize="16" FontWeight="Bold" 
                                    HorizontalAlignment="Center" Margin="0,0,0,15"/>
@@ -179,15 +184,13 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20">
             <Button Content="📅 Месячный отчет" Click="MonthlyReportButton_Click" 
-                    Width="150" Height="35" Margin="5" Background="#9B59B6" Foreground="White"/>
+                    Width="170" Height="35" Margin="5" Background="#9B59B6" Foreground="White"/>
             <Button Content="📅 Интервальный отчет" Click="CustomReportButton_Click" 
-                    Width="150" Height="35" Margin="5" Background="#16A085" Foreground="White"/>
-            <Button Content="🔄 Обновить" Click="RefreshButton_Click" 
-                    Width="150" Height="35" Margin="5" Background="#3498DB" Foreground="White"/>
+                    Width="170" Height="35" Margin="5" Background="#9B59B6" Foreground="White"/>
             <Button Content="📁 Открыть папку" Click="OpenFolderButton_Click" 
-                    Width="120" Height="35" Margin="5" Background="#27AE60" Foreground="White"/>
-            <Button Content="📄 Экспорт" Click="ExportButton_Click" 
                     Width="150" Height="35" Margin="5" Background="#F39C12" Foreground="White"/>
+            <Button Content="📄 Экспорт" Click="ExportButton_Click" 
+                    Width="150" Height="35" Margin="5" Background="#27AE60" Foreground="White"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" 
                     Width="150" Height="35" Margin="5" Background="#E74C3C" Foreground="White"/>
         </StackPanel>

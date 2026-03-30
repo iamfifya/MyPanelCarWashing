@@ -8,7 +8,10 @@
         Title="Авторизация"
         WindowStartupLocation="CenterScreen"
         Height="550" Width="400"
-        Background="#F5F6FA">
+        Background="#F5F6FA"
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None">
     
     <Grid Margin="20">
         <Grid.RowDefinitions>

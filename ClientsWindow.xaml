@@ -11,7 +11,11 @@
         MinWidth="900" MinHeight="500"
         Width="1100" Height="700"
         Background="#F5F6FA"
-        WindowState="Maximized">
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None"
+        WindowState="Maximized"
+        Foreground="Black">
 
     <Window.Resources>
         <!-- Стиль для ячейки заголовка -->
@@ -199,7 +203,8 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.ScrollUnit="Pixel"
                          VirtualizingPanel.IsVirtualizing="True"
-                         VirtualizingPanel.VirtualizationMode="Recycling">
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         Foreground="Black">
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="✏ Редактировать" Click="EditClientMenuItem_Click"/>
@@ -235,7 +240,7 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border x:Name="RowBorder" Style="{StaticResource TableRowStyle}">
-                                <Grid>
+                                <Grid> 
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="0.6*" MinWidth="40"/>
                                         <ColumnDefinition Width="1.8*" MinWidth="100"/>

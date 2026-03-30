@@ -11,7 +11,11 @@
         MinWidth="1000" MinHeight="600"
         Width="1200" Height="700"
         Background="#F5F6FA"
-        WindowState="Maximized">
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None"
+        WindowState="Maximized"
+        Foreground="Black">
 
     <Window.Resources>
         <Style x:Key="HeaderCellStyle" TargetType="TextBlock">
@@ -42,15 +46,14 @@
         <DockPanel Grid.Row="1" Margin="0,0,0,15" LastChildFill="False">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                 <Button Content="◀" Click="PrevMonth_Click" Width="35" Height="35" FontSize="16" FontWeight="Bold" Background="#3498DB" Foreground="White" BorderThickness="0"/>
-                <Border Background="White" BorderBrush="#BDC3C7" BorderThickness="1,1,1,1" Padding="15,0" Margin="5,0">
-                    <TextBlock x:Name="MonthYearText" Text="Апрель 2026" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                <Border Background="White" BorderBrush="#BDC3C7" BorderThickness="1,1,1,1" Padding="15,0" Margin="5,0" Width="200" Height="35">
+                    <TextBlock x:Name="MonthYearText" TextAlignment="Center" Text="Апрель 2026" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                 </Border>
                 <Button Content="▶" Click="NextMonth_Click" Width="35" Height="35" FontSize="16" FontWeight="Bold" Background="#3498DB" Foreground="White" BorderThickness="0"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                 <Button Content="🔧 Создать по шаблону" Click="TemplateButton_Click" Height="35" Padding="15,0" Margin="0,0,10,0" Background="#F39C12" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
-                <Button Content="💾 Сохранить изменения" Click="SaveButton_Click" Height="35" Padding="15,0" Background="#27AE60" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
             </StackPanel>
         </DockPanel>
 
@@ -85,15 +88,20 @@
 
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
             <Button x:Name="SaveButton" 
-        Content="💾 Сохранить" 
-        Click="SaveButton_Click" 
-        MinWidth="100" Height="35" 
-        Margin="20,5,5,5" 
-        Background="#27AE60" 
-        Foreground="White"
-        IsEnabled="False"/>
+                    Content="💾 Сохранить" 
+                    Click="SaveButton_Click" 
+                    MinWidth="100" Height="35" 
+                    Margin="20,5,5,5" 
+                    Background="#27AE60" 
+                    Foreground="White"
+                    IsEnabled="False"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" 
-                    MinWidth="100" Height="35" Margin="5" Background="#E74C3C" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                    MinWidth="100" Height="35"
+                    Margin="5"
+                    Background="#E74C3C"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    BorderThickness="0"/>
         </StackPanel>
     </Grid>
 </Window>

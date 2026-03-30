@@ -10,8 +10,12 @@
         ResizeMode="CanResize"
         MinWidth="800" MinHeight="600"
         Width="900" Height="700"
-        Background="White"
-        WindowState="Maximized">
+        Background="#F5F6FA"
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None"
+        WindowState="Maximized"
+        Foreground="Black">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -35,13 +39,13 @@
             </Grid.ColumnDefinitions>
 
             <Label Grid.Column="0" Content="С:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <local:CustomDatePicker x:Name="StartDatePicker" Grid.Column="1" Height="30" Width="120"/>
+            <local:CustomDatePicker x:Name="StartDatePicker" Grid.Column="1" Height="50" Width="400"/>
 
             <Label Grid.Column="2" Content="По:" VerticalAlignment="Center" Margin="10,0,5,0"/>
-            <local:CustomDatePicker x:Name="EndDatePicker" Grid.Column="3" Height="30" Width="120"/>
+            <local:CustomDatePicker x:Name="EndDatePicker" Grid.Column="3" Height="50" Width="400"/>
 
             <Button Grid.Column="4" Content="📊 Сформировать отчет" Click="GenerateReportButton_Click" 
-                    Width="150" Height="30" Margin="10,0,0,0"/>
+                    Width="180" Height="35" Margin="10,0,0,0"/>
         </Grid>
 
         <!-- Контент отчета -->
@@ -50,7 +54,7 @@
                 <StackPanel x:Name="ReportContent" Visibility="Collapsed">
                     <!-- Информация о периоде -->
                     <Border Background="#E8F0FE" CornerRadius="10" Padding="15" Margin="0,0,0,15">
-                        <StackPanel HorizontalAlignment="Center">
+                        <StackPanel HorizontalAlignment="Left">
                             <TextBlock x:Name="PeriodText" FontSize="14" FontWeight="Bold" Foreground="#2C3E50"/>
                             <TextBlock x:Name="DaysCountText" FontSize="12" Foreground="#7F8C8D" Margin="0,5,0,0"/>
                         </StackPanel>
@@ -130,7 +134,7 @@
                                Foreground="#2C3E50" Margin="0,15,0,10"/>
 
                     <Expander Header="Развернуть детальную статистику по дням" Margin="0,0,0,10">
-                        <ItemsControl x:Name="EmployeesDetailControl" Margin="0,5">
+                        <ItemsControl x:Name="EmployeesDetailControl" Margin="0,5" Foreground="Black">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="#F8F9FA" CornerRadius="8" Padding="10" Margin="0,5">
@@ -148,15 +152,15 @@
                                             <ItemsControl ItemsSource="{Binding DailyWork}" Margin="0,10,0,0">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Background="White" CornerRadius="5" Padding="8" Margin="0,2">
-                                                            <Grid>
+                                                        <Border Background="White" CornerRadius="5" Padding="8" Margin="0,2" >
+                                                            <Grid >
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="100"/>
                                                                     <ColumnDefinition Width="*"/>
                                                                     <ColumnDefinition Width="Auto"/>
                                                                 </Grid.ColumnDefinitions>
                                                                 <TextBlock Text="{Binding Date, StringFormat=dd.MM.yyyy}" 
-                                                                           FontWeight="SemiBold"/>
+                                                                           FontWeight="SemiBold" Foreground="Black"/>
                                                                 <TextBlock Grid.Column="1" Text="{Binding CarsWashed, StringFormat=🚗 {0} машин}" 
                                                                            Margin="10,0"/>
                                                                 <TextBlock Grid.Column="2" Text="{Binding Earnings, StringFormat=💰 {0:N0} ₽}" 

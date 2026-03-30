@@ -11,7 +11,11 @@
         MinWidth="800" MinHeight="500"
         Width="1000" Height="600"
         Background="#F5F6FA"
-        WindowState="Maximized">
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None"
+        WindowState="Maximized"
+        Foreground="Black">
 
     <Window.Resources>
         <!-- Стиль для ячейки заголовка -->
@@ -71,15 +75,11 @@
                     MinWidth="140" MaxWidth="180" Height="35" 
                     Margin="5" Background="#27AE60" Foreground="White"/>
             <Button x:Name="EditClientButton" Content="✏ Редактировать" Click="EditItem_Click" 
-                    MinWidth="100" MaxWidth="140" Height="35" 
+                    MinWidth="140" MaxWidth="140" Height="35" 
                     Margin="5" Background="#3498DB" Foreground="White"/>
             <Button x:Name="DeleteClientButton" Content="🗑 Удалить" Click="DeleteItem_Click" 
                     MinWidth="80" MaxWidth="120" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>
-            <Button x:Name="ScheduleButton" Content="📅 График сотрудников" 
-                    Click="ScheduleButton_Click" Padding="15,8" Margin="0,0,10,0"
-                    Background="#16A085" Foreground="White" BorderThickness="0"
-                    Cursor="Hand" Height="35"/>
             <Label Content="🔍 Поиск:" VerticalContentAlignment="Center" Margin="20,0,0,0"/>
             <TextBox x:Name="SearchFilterTextBox" 
                      Width="250" Height="35" Margin="5" Padding="5"
@@ -171,6 +171,7 @@
                             <Setter Property="Padding" Value="0"/>
                             <Setter Property="Margin" Value="0"/>
                             <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="Black"/>
                             <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                             <Setter Property="Template">
@@ -235,8 +236,11 @@
             </Grid>
         </ScrollViewer>
 
-        <!-- Кнопка закрытия -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
+            <Button x:Name="ScheduleButton" Content="📅 График сотрудников" 
+                    Click="ScheduleButton_Click" Padding="15,8" Margin="0,0,10,0"
+                    Background="#F39C12" Foreground="White" BorderThickness="0"
+                    Cursor="Hand" Height="35"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" 
                     MinWidth="80" MaxWidth="120" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>

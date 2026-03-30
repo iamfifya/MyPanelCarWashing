@@ -9,7 +9,10 @@
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
         MinWidth="1000" MinHeight="500"
-        Background="#F5F6FA" 
+        Background="#F5F6FA"
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None"
         WindowState="Maximized">
 
     <Window.Resources>
@@ -38,7 +41,7 @@
                     HorizontalAlignment="Left" VerticalAlignment="Center">
             <Button Content="➕ Добавить услугу" Click="AddButton_Click" Width="140" Height="35" 
                     Margin="5" Background="#27AE60" Foreground="White"/>
-            <Button Content="✏ Редактировать" Click="EditButton_Click" Width="120" Height="35" 
+            <Button Content="✏ Редактировать" Click="EditButton_Click" Width="140" Height="35" 
                     Margin="5" Background="#3498DB" Foreground="White"/>
             <Button Content="🗑 Удалить" Click="DeleteButton_Click" Width="100" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>

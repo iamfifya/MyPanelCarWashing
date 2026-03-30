@@ -10,7 +10,11 @@
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Width="550" Height="850"
-        Background="#F5F6FA">
+        Background="#F5F6FA"
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None"
+        Foreground="Black">
 
     <Window.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
@@ -91,13 +95,13 @@
             <!-- Выбор бокса -->
             <Label Content="🚘 Выберите бокс:" Grid.Row="9" Margin="0,5" FontWeight="SemiBold"/>
             <StackPanel Grid.Row="10" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5">
-                <RadioButton Content="Бокс 1" GroupName="BoxNumber" 
+                <RadioButton Content="Бокс 1" GroupName="BoxNumber" Foreground="Black"
                              IsChecked="{Binding CurrentOrder.BoxNumber, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" 
                              Margin="10,5"/>
-                <RadioButton Content="Бокс 2" GroupName="BoxNumber" 
+                <RadioButton Content="Бокс 2" GroupName="BoxNumber" Foreground="Black"
                              IsChecked="{Binding CurrentOrder.BoxNumber, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}" 
                              Margin="10,5"/>
-                <RadioButton Content="Бокс 3" GroupName="BoxNumber" 
+                <RadioButton Content="Бокс 3" GroupName="BoxNumber" Foreground="Black"
                              IsChecked="{Binding CurrentOrder.BoxNumber, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}" 
                              Margin="10,5"/>
             </StackPanel>
@@ -133,7 +137,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding Name}" Grid.Column="0" 
-                                       VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                       VerticalAlignment="Center" TextWrapping="Wrap" Foreground="Black"/>
                             <TextBlock Text="{Binding Price, StringFormat={}{0:N0} ₽}" Grid.Column="1" 
                                        Foreground="#27AE60" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </Grid>
@@ -210,7 +214,7 @@
                 <Button Content="✅ Сохранить" Click="SaveButton_Click" Width="120" Height="35" 
                         Margin="5" Background="#27AE60" Foreground="White" Cursor="Hand"/>
                 <Button Content="✖ Отмена" Click="CloseButton_Click" Width="100" Height="35" 
-                        Margin="5" Background="#95A5A6" Foreground="White" Cursor="Hand"/>
+                        Margin="5" Background="#E74C3C" Foreground="White" Cursor="Hand"/>
             </StackPanel>
         </Grid>
     </ScrollViewer>

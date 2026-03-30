@@ -9,7 +9,11 @@
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Width="500" Height="600"
-        Background="#F5F6FA">
+        Background="#F5F6FA"
+        BorderBrush="Black"
+        BorderThickness="1"
+        WindowStyle="None"
+        Foreground="Black">
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
@@ -45,7 +49,7 @@
             <Button Content="✓ Сохранить" Click="SaveButton_Click" Width="100" Height="35" 
                     Margin="5" Background="#27AE60" Foreground="White" Cursor="Hand"/>
             <Button Content="✗ Отмена" Click="CloseButton_Click" Width="100" Height="35" 
-                    Margin="5" Background="#95A5A6" Foreground="White" Cursor="Hand"/>
+                    Margin="5" Background="#E74C3C" Foreground="White" Cursor="Hand"/>
         </StackPanel>
     </Grid>
 </Window>
