@@ -157,7 +157,7 @@
                       VerticalScrollBarVisibility="Auto" 
                       HorizontalScrollBarVisibility="Auto"
                       CanContentScroll="True">
-            <Grid x:Name="DataGrid" MouseDown="DataGrid_MouseDown">
+            <Grid x:Name="DataGrid">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="0.6*" MinWidth="40"/>
                     <ColumnDefinition Width="Auto"/>
