@@ -18,6 +18,7 @@ namespace MyPanelCarWashing.Controls
     [TemplatePart(Name = "PART_TextBox", Type = typeof(TextBox))]
     [TemplatePart(Name = "PART_ItemsPanel", Type = typeof(StackPanel))]
     [TemplatePart(Name = "PART_ScrollViewer", Type = typeof(ScrollViewer))]
+    [TemplatePart(Name = "PART_MainBorder", Type = typeof(Border))]
     public class CustomComboBox : ItemsControl
     {
         static CustomComboBox()
@@ -31,6 +32,7 @@ namespace MyPanelCarWashing.Controls
         private TextBox _textBox;
         private StackPanel _itemsPanel;
         private ScrollViewer _scrollViewer;
+        private Border _mainBorder;
         private bool _isDropDownOpen;
 
         #region Dependency Properties
@@ -169,9 +171,24 @@ namespace MyPanelCarWashing.Controls
             _textBox = GetTemplateChild("PART_TextBox") as TextBox;
             _itemsPanel = GetTemplateChild("PART_ItemsPanel") as StackPanel;
             _scrollViewer = GetTemplateChild("PART_ScrollViewer") as ScrollViewer;
+            _mainBorder = GetTemplateChild("PART_MainBorder") as Border;
 
             if (_toggleButton != null)
                 _toggleButton.Click += ToggleButton_Click;
+
+            // Делаем весь комбобокс кликабельным
+            if (_mainBorder != null)
+            {
+                _mainBorder.MouseLeftButtonUp += MainBorder_MouseLeftButtonUp;
+                _mainBorder.Cursor = Cursors.Hand;
+            }
+
+            // Также делаем кликабельным TextBox (если он не редактируемый)
+            if (_textBox != null && !IsEditable)
+            {
+                _textBox.MouseLeftButtonUp += TextBox_MouseLeftButtonUp;
+                _textBox.Cursor = Cursors.Hand;
+            }
 
             UpdateDisplay();
         }
@@ -190,6 +207,21 @@ namespace MyPanelCarWashing.Controls
         private void ToggleButton_Click(object sender, RoutedEventArgs e)
         {
             IsDropDownOpen = !IsDropDownOpen;
+        }
+
+        private void MainBorder_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // Открываем/закрываем список при клике на любую область комбобокса
+            IsDropDownOpen = !IsDropDownOpen;
+        }
+
+        private void TextBox_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // Для нередактируемого TextBox - открываем список
+            if (!IsEditable)
+            {
+                IsDropDownOpen = !IsDropDownOpen;
+            }
         }
 
         private void Item_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -245,13 +277,25 @@ namespace MyPanelCarWashing.Controls
         {
             if (item == null) return string.Empty;
 
-            // Если это ComboBoxItem - берем Content
+            // Если это KeyValuePair (как у нас в коде)
+            var type = item.GetType();
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
+            {
+                var keyProp = type.GetProperty("Key");
+                if (keyProp != null)
+                {
+                    var value = keyProp.GetValue(item);
+                    return value?.ToString() ?? string.Empty;
+                }
+            }
+
+            // Если это ComboBoxItem
             if (item is ComboBoxItem comboBoxItem)
             {
                 return comboBoxItem.Content?.ToString() ?? string.Empty;
             }
 
-            // Если задан DisplayMemberPath - используем его
+            // Если задан DisplayMemberPath
             if (!string.IsNullOrEmpty(DisplayMemberPath))
             {
                 var prop = item.GetType().GetProperty(DisplayMemberPath);
@@ -262,7 +306,6 @@ namespace MyPanelCarWashing.Controls
                 }
             }
 
-            // Иначе ToString()
             return item.ToString();
         }
 

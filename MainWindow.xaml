@@ -286,6 +286,8 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <!-- Добавляем строку для QR -->
                                 </Grid.RowDefinitions>
 
                                 <!-- Наличные -->
@@ -321,7 +323,7 @@
                                 </Grid>
 
                                 <!-- Перевод -->
-                                <Grid Grid.Row="2">
+                                <Grid Grid.Row="2" Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
@@ -333,6 +335,22 @@
                                         <TextBlock Text="{Binding TransferCount, StringFormat={}{0} шт.}" FontSize="11" Foreground="#7F8C8D"/>
                                         <TextBlock Text=" / " FontSize="11" Foreground="#7F8C8D"/>
                                         <TextBlock Text="{Binding TransferAmount, StringFormat={}{0:N0} ₽}" FontSize="11" FontWeight="Bold" Foreground="#27AE60"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- QR-код (НОВЫЙ) -->
+                                <Grid Grid.Row="3" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="📱" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="QR-код" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <TextBlock Text="{Binding QrCount, StringFormat={}{0} шт.}" FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text=" / " FontSize="11" Foreground="#7F8C8D"/>
+                                        <TextBlock Text="{Binding QrAmount, StringFormat={}{0:N0} ₽}" FontSize="11" FontWeight="Bold" Foreground="#27AE60"/>
                                     </StackPanel>
                                 </Grid>
                             </Grid>

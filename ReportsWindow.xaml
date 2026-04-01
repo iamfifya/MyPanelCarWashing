@@ -133,6 +133,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                                 <TextBlock Text="💵 Наличные" FontWeight="SemiBold"/>
@@ -148,6 +149,11 @@
                                 <TextBlock Text="📱 Перевод" FontWeight="SemiBold"/>
                                 <TextBlock Text="{Binding SelectedReport.TransferCount, StringFormat=Кол-во: {0}}"/>
                                 <TextBlock Text="{Binding SelectedReport.TransferAmount, StringFormat=Сумма: {0:N0} ₽}" Foreground="#27AE60"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                                <TextBlock Text="📱 QR-код" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding SelectedReport.QrCount, StringFormat=Кол-во: {0}}"/>
+                                <TextBlock Text="{Binding SelectedReport.QrAmount, StringFormat=Сумма: {0:N0} ₽}" Foreground="#27AE60"/>
                             </StackPanel>
                         </Grid>
 

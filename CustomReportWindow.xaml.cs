@@ -44,7 +44,6 @@ namespace MyPanelCarWashing
             _dataService = dataService;
             DataContext = this;
 
-            // Устанавливаем даты по умолчанию (последние 7 дней)
             StartDate = DateTime.Now.AddDays(-6);
             EndDate = DateTime.Now;
 
@@ -66,7 +65,6 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Загружаем все дневные отчеты за период
                 string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
                 if (!Directory.Exists(reportsPath))
                 {
@@ -99,22 +97,38 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Формируем отчет
+                // Итоговые суммы
                 var totalCars = periodReports.Sum(r => r.TotalCars);
                 var totalRevenue = periodReports.Sum(r => r.TotalRevenue);
                 var totalWasherEarnings = periodReports.Sum(r => r.TotalWasherEarnings);
                 var totalCompanyEarnings = periodReports.Sum(r => r.TotalCompanyEarnings);
+                var totalCashCount = periodReports.Sum(r => r.CashCount);
+                var totalCashAmount = periodReports.Sum(r => r.CashAmount);
+                var totalCardCount = periodReports.Sum(r => r.CardCount);
+                var totalCardAmount = periodReports.Sum(r => r.CardAmount);
+                var totalTransferCount = periodReports.Sum(r => r.TransferCount);
+                var totalTransferAmount = periodReports.Sum(r => r.TransferAmount);
+                var totalQrCount = periodReports.Sum(r => r.QrCount);
+                var totalQrAmount = periodReports.Sum(r => r.QrAmount);
 
                 // Дневные сводки
                 var dailySummaries = periodReports
                     .OrderBy(r => r.Date)
-                    .Select(r => new DailyReportSummary
+                    .Select(r => new Models.DailyReportSummary
                     {
                         Date = r.Date,
                         Cars = r.TotalCars,
                         Revenue = r.TotalRevenue,
                         WasherEarnings = r.TotalWasherEarnings,
-                        CompanyEarnings = r.TotalCompanyEarnings
+                        CompanyEarnings = r.TotalCompanyEarnings,
+                        CashCount = r.CashCount,
+                        CashAmount = r.CashAmount,
+                        CardCount = r.CardCount,
+                        CardAmount = r.CardAmount,
+                        TransferCount = r.TransferCount,
+                        TransferAmount = r.TransferAmount,
+                        QrCount = r.QrCount,
+                        QrAmount = r.QrAmount
                     }).ToList();
 
                 // Статистика по сотрудникам за период
@@ -151,6 +165,7 @@ namespace MyPanelCarWashing
                     }
                 }
 
+                // Создаём список сотрудников для отчёта
                 var employeesReport = employeesData.Values.OrderByDescending(e => e.Earnings).ToList();
                 int daysCount = (endDate - startDate).Days + 1;
 
@@ -178,9 +193,25 @@ namespace MyPanelCarWashing
                     TotalRevenue = totalRevenue,
                     TotalWasherEarnings = totalWasherEarnings,
                     TotalCompanyEarnings = totalCompanyEarnings,
+                    TotalCashCount = totalCashCount,
+                    TotalCashAmount = totalCashAmount,
+                    TotalCardCount = totalCardCount,
+                    TotalCardAmount = totalCardAmount,
+                    TotalTransferCount = totalTransferCount,
+                    TotalTransferAmount = totalTransferAmount,
+                    TotalQrCount = totalQrCount,
+                    TotalQrAmount = totalQrAmount,
                     DailyReports = dailySummaries,
                     EmployeesReport = employeesReport
                 };
+                CustomCashCountText.Text = totalCashCount.ToString();
+                CustomCashAmountText.Text = $"{totalCashAmount:N0} ₽";
+                CustomCardCountText.Text = totalCardCount.ToString();
+                CustomCardAmountText.Text = $"{totalCardAmount:N0} ₽";
+                CustomTransferCountText.Text = totalTransferCount.ToString();
+                CustomTransferAmountText.Text = $"{totalTransferAmount:N0} ₽";
+                CustomQrCountText.Text = totalQrCount.ToString();
+                CustomQrAmountText.Text = $"{totalQrAmount:N0} ₽";
             }
             catch (Exception ex)
             {
@@ -249,7 +280,7 @@ namespace MyPanelCarWashing
                 worksheet.Cell(1, 1).Value = $"Отчет за период с {report.StartDate:dd.MM.yyyy} по {report.EndDate:dd.MM.yyyy}";
                 worksheet.Cell(1, 1).Style.Font.Bold = true;
                 worksheet.Cell(1, 1).Style.Font.FontSize = 16;
-                worksheet.Range(1, 1, 1, 5).Merge().Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                worksheet.Range(1, 1, 1, 7).Merge().Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
 
                 // Итоги
                 int row = 3;
@@ -269,16 +300,67 @@ namespace MyPanelCarWashing
                 worksheet.Cell(row, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
                 row += 2;
 
+                // Статистика по способам оплаты (итоговая)
+                worksheet.Cell(row, 1).Value = "ИТОГОВАЯ СТАТИСТИКА ПО СПОСОБАМ ОПЛАТЫ";
+                worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
+                worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                row++;
+
+                worksheet.Cell(row, 1).Value = "Способ оплаты";
+                worksheet.Cell(row, 2).Value = "Количество";
+                worksheet.Cell(row, 3).Value = "Сумма";
+                worksheet.Range(row, 1, row, 3).Style.Font.Bold = true;
+                row++;
+
+                worksheet.Cell(row, 1).Value = "💵 Наличные";
+                worksheet.Cell(row, 2).Value = report.TotalCashCount;
+                worksheet.Cell(row, 3).Value = report.TotalCashAmount;
+                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                row++;
+
+                worksheet.Cell(row, 1).Value = "💳 Карта";
+                worksheet.Cell(row, 2).Value = report.TotalCardCount;
+                worksheet.Cell(row, 3).Value = report.TotalCardAmount;
+                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                row++;
+
+                worksheet.Cell(row, 1).Value = "📱 Перевод";
+                worksheet.Cell(row, 2).Value = report.TotalTransferCount;
+                worksheet.Cell(row, 3).Value = report.TotalTransferAmount;
+                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                row++;
+
+                worksheet.Cell(row, 1).Value = "📱 QR-код";
+                worksheet.Cell(row, 2).Value = report.TotalQrCount;
+                worksheet.Cell(row, 3).Value = report.TotalQrAmount;
+                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                row++;
+
+                worksheet.Cell(row, 1).Value = "ИТОГО:";
+                worksheet.Cell(row, 2).Value = report.TotalCashCount + report.TotalCardCount + report.TotalTransferCount;
+                worksheet.Cell(row, 3).Value = report.TotalCashAmount + report.TotalCardAmount + report.TotalTransferAmount;
+                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                worksheet.Range(row, 1, row, 3).Style.Font.Bold = true;
+                row += 2;
+
                 // Таблица по дням
+                worksheet.Cell(row, 1).Value = "📅 ОТЧЕТ ПО ДНЯМ";
+                worksheet.Range(row, 1, row, 7).Merge().Style.Font.Bold = true;
+                worksheet.Range(row, 1, row, 7).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                row++;
+
                 worksheet.Cell(row, 1).Value = "Дата";
                 worksheet.Cell(row, 2).Value = "Машин";
                 worksheet.Cell(row, 3).Value = "Выручка";
                 worksheet.Cell(row, 4).Value = "Мойщикам";
                 worksheet.Cell(row, 5).Value = "Компании";
-                worksheet.Range(row, 1, row, 5).Style.Font.Bold = true;
+                worksheet.Cell(row, 6).Value = "Наличные (сумма)";
+                worksheet.Cell(row, 7).Value = "Карта (сумма)";
+                worksheet.Cell(row, 8).Value = "Перевод (сумма)";
+                worksheet.Range(row, 1, row, 8).Style.Font.Bold = true;
                 row++;
 
-                foreach (var day in report.DailyReports)
+                foreach (var day in report.DailyReports.OrderBy(d => d.Date))
                 {
                     worksheet.Cell(row, 1).Value = day.Date.ToString("dd.MM.yyyy");
                     worksheet.Cell(row, 2).Value = day.Cars;
@@ -288,20 +370,31 @@ namespace MyPanelCarWashing
                     worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
                     worksheet.Cell(row, 5).Value = day.CompanyEarnings;
                     worksheet.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    worksheet.Cell(row, 6).Value = day.CashAmount;
+                    worksheet.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    worksheet.Cell(row, 7).Value = day.CardAmount;
+                    worksheet.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    worksheet.Cell(row, 8).Value = day.TransferAmount;
+                    worksheet.Cell(row, 8).Style.NumberFormat.Format = "#,##0.00 ₽";
                     row++;
                 }
 
                 row += 2;
 
-                // Таблица сотрудников
+                // Сводная таблица сотрудников
+                worksheet.Cell(row, 1).Value = "👥 СВОДНАЯ СТАТИСТИКА СОТРУДНИКОВ";
+                worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
+                worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                row++;
+
                 worksheet.Cell(row, 1).Value = "Сотрудник";
-                worksheet.Cell(row, 2).Value = "Машин";
-                worksheet.Cell(row, 3).Value = "Выручка";
-                worksheet.Cell(row, 4).Value = "Заработок (35%)";
+                worksheet.Cell(row, 2).Value = "Кол-во машин";
+                worksheet.Cell(row, 3).Value = "Выручка сотрудника";
+                worksheet.Cell(row, 4).Value = "Заработная плата (35%)";
                 worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
                 row++;
 
-                foreach (var emp in report.EmployeesReport)
+                foreach (var emp in report.EmployeesReport.OrderByDescending(e => e.Earnings))
                 {
                     worksheet.Cell(row, 1).Value = emp.EmployeeName;
                     worksheet.Cell(row, 2).Value = emp.CarsWashed;
@@ -310,6 +403,59 @@ namespace MyPanelCarWashing
                     worksheet.Cell(row, 4).Value = emp.Earnings;
                     worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
                     row++;
+                }
+
+                row++;
+                worksheet.Cell(row, 1).Value = "ИТОГО:";
+                worksheet.Cell(row, 2).Value = report.EmployeesReport.Sum(e => e.CarsWashed);
+                worksheet.Cell(row, 3).Value = report.EmployeesReport.Sum(e => e.TotalAmount);
+                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                worksheet.Cell(row, 4).Value = report.EmployeesReport.Sum(e => e.Earnings);
+                worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
+                worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
+                row += 2;
+
+                // Детальная статистика по сотрудникам (по дням)
+                worksheet.Cell(row, 1).Value = "📋 ДЕТАЛЬНАЯ СТАТИСТИКА СОТРУДНИКОВ (ПО ДНЯМ)";
+                worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
+                worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                row++;
+
+                foreach (var emp in report.EmployeesReport.OrderBy(e => e.EmployeeName))
+                {
+                    row++;
+                    worksheet.Cell(row, 1).Value = emp.EmployeeName;
+                    worksheet.Range(row, 1, row, 1).Style.Font.Bold = true;
+                    worksheet.Range(row, 1, row, 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                    row++;
+
+                    worksheet.Cell(row, 1).Value = "Дата";
+                    worksheet.Cell(row, 2).Value = "Машин";
+                    worksheet.Cell(row, 3).Value = "Выручка";
+                    worksheet.Cell(row, 4).Value = "Заработок";
+                    worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
+                    row++;
+
+                    foreach (var day in emp.DailyWork.OrderBy(d => d.Date))
+                    {
+                        worksheet.Cell(row, 1).Value = day.Date.ToString("dd.MM.yyyy");
+                        worksheet.Cell(row, 2).Value = day.CarsWashed;
+                        worksheet.Cell(row, 3).Value = day.TotalAmount;
+                        worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                        worksheet.Cell(row, 4).Value = day.Earnings;
+                        worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
+                        row++;
+                    }
+
+                    row++;
+                    worksheet.Cell(row, 1).Value = "Итого:";
+                    worksheet.Cell(row, 2).Value = emp.CarsWashed;
+                    worksheet.Cell(row, 3).Value = emp.TotalAmount;
+                    worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    worksheet.Cell(row, 4).Value = emp.Earnings;
+                    worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
+                    row += 2;
                 }
 
                 worksheet.Columns().AdjustToContents();
@@ -328,16 +474,37 @@ namespace MyPanelCarWashing
             lines.Add($"Выплаты мойщикам (35%);{report.TotalWasherEarnings:N0} ₽");
             lines.Add($"Доход компании (65%);{report.TotalCompanyEarnings:N0} ₽");
             lines.Add("");
-            lines.Add("Дата;Машин;Выручка;Мойщикам;Компании");
-            foreach (var day in report.DailyReports)
+            lines.Add($"Наличные;{report.TotalCashCount};{report.TotalCashAmount:N0} ₽");
+            lines.Add($"Карта;{report.TotalCardCount};{report.TotalCardAmount:N0} ₽");
+            lines.Add($"Перевод;{report.TotalTransferCount};{report.TotalTransferAmount:N0} ₽");
+            lines.Add("");
+            lines.Add("ОТЧЕТ ПО ДНЯМ");
+            lines.Add("Дата;Машин;Выручка;Мойщикам;Компании;Наличные;Карта;Перевод");
+            foreach (var day in report.DailyReports.OrderBy(d => d.Date))
             {
-                lines.Add($"{day.Date:dd.MM.yyyy};{day.Cars};{day.Revenue:N0} ₽;{day.WasherEarnings:N0} ₽;{day.CompanyEarnings:N0} ₽");
+                lines.Add($"{day.Date:dd.MM.yyyy};{day.Cars};{day.Revenue:N0} ₽;{day.WasherEarnings:N0} ₽;{day.CompanyEarnings:N0} ₽;{day.CashAmount:N0} ₽;{day.CardAmount:N0} ₽;{day.TransferAmount:N0} ₽");
             }
             lines.Add("");
+            lines.Add("СВОДНАЯ СТАТИСТИКА СОТРУДНИКОВ");
             lines.Add("Сотрудник;Машин;Выручка;Заработок");
-            foreach (var emp in report.EmployeesReport)
+            foreach (var emp in report.EmployeesReport.OrderByDescending(e => e.Earnings))
             {
                 lines.Add($"{emp.EmployeeName};{emp.CarsWashed};{emp.TotalAmount:N0} ₽;{emp.Earnings:N0} ₽");
+            }
+            lines.Add("");
+            lines.Add($"ИТОГО;{report.EmployeesReport.Sum(e => e.CarsWashed)};{report.EmployeesReport.Sum(e => e.TotalAmount):N0} ₽;{report.EmployeesReport.Sum(e => e.Earnings):N0} ₽");
+            lines.Add("");
+            lines.Add("ДЕТАЛЬНАЯ СТАТИСТИКА СОТРУДНИКОВ (ПО ДНЯМ)");
+            foreach (var emp in report.EmployeesReport.OrderBy(e => e.EmployeeName))
+            {
+                lines.Add($"");
+                lines.Add($"СОТРУДНИК: {emp.EmployeeName}");
+                lines.Add($"Всего: {emp.CarsWashed} машин, выручка: {emp.TotalAmount:N0} ₽, заработок: {emp.Earnings:N0} ₽");
+                lines.Add("Дата;Машин;Выручка;Заработок");
+                foreach (var day in emp.DailyWork.OrderBy(d => d.Date))
+                {
+                    lines.Add($"{day.Date:dd.MM.yyyy};{day.CarsWashed};{day.TotalAmount:N0} ₽;{day.Earnings:N0} ₽");
+                }
             }
 
             System.IO.File.WriteAllLines(filePath, lines, System.Text.Encoding.UTF8);
@@ -349,7 +516,6 @@ namespace MyPanelCarWashing
         }
     }
 
-    // Класс для выборочного отчета
     public class CustomPeriodReport
     {
         public DateTime StartDate { get; set; }
@@ -358,7 +524,18 @@ namespace MyPanelCarWashing
         public decimal TotalRevenue { get; set; }
         public decimal TotalWasherEarnings { get; set; }
         public decimal TotalCompanyEarnings { get; set; }
-        public List<DailyReportSummary> DailyReports { get; set; } = new List<DailyReportSummary>();
+
+        // Способы оплаты
+        public int TotalCashCount { get; set; }
+        public decimal TotalCashAmount { get; set; }
+        public int TotalCardCount { get; set; }
+        public decimal TotalCardAmount { get; set; }
+        public int TotalTransferCount { get; set; }
+        public decimal TotalTransferAmount { get; set; }
+        public int TotalQrCount { get; set; }
+        public decimal TotalQrAmount { get; set; }
+
+        public List<Models.DailyReportSummary> DailyReports { get; set; } = new List<Models.DailyReportSummary>();
         public List<EmployeeMonthlyReport> EmployeesReport { get; set; } = new List<EmployeeMonthlyReport>();
     }
 }

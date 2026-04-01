@@ -56,15 +56,15 @@
 
             <!-- Марка и модель -->
             <Label Content="Марка и модель авто:" Grid.Row="1" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <TextBox x:Name="CarModelTextBox" Grid.Row="2" Margin="0,5,0,10" Height="35" Padding="5" Foreground="Black"/>
+            <TextBox x:Name="CarModelTextBox" Grid.Row="2" Margin="0,5,0,10" Height="50" Padding="5" Foreground="Black"/>
 
             <!-- Госномер -->
             <Label Content="Государственный номер:" Grid.Row="3" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <TextBox x:Name="CarNumberTextBox" Grid.Row="4" Margin="0,5,0,10" Height="35" Padding="5" Foreground="Black"/>
+            <TextBox x:Name="CarNumberTextBox" Grid.Row="4" Margin="0,5,0,10" Height="50" Padding="5" Foreground="Black"/>
 
             <!-- Тип кузова (категория) -->
             <Label Content="Категория кузова:" Grid.Row="5" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <controls:CustomComboBox x:Name="BodyTypeComboBox" Grid.Row="6" Margin="0,5,0,10" Height="35"
+            <controls:CustomComboBox x:Name="BodyTypeComboBox" Grid.Row="6" Margin="0,5,0,10" Height="50"
                          SelectedValue="{Binding SelectedBodyTypeCategory}"
                          SelectedValuePath="Tag"
                          Placeholder="Выберите категорию"/>
@@ -84,14 +84,14 @@
 
             <!-- Длительность мойки -->
             <Label Content="⏱️ Длительность мойки (минуты):" Grid.Row="9" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <TextBox x:Name="DurationTextBox" Grid.Row="10" Margin="0,5,0,10" Height="35" Padding="5" Text="60"/>
+            <TextBox x:Name="DurationTextBox" Grid.Row="10" Margin="0,5,0,10" Height="50" Padding="5" Text="60"/>
 
             <!-- Выбор бокса -->
             <Label Content="🚘 Выберите предпочтительный бокс:" Grid.Row="11" Margin="0,5,0,0" FontWeight="SemiBold"/>
             <StackPanel Grid.Row="12" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
-                <RadioButton x:Name="Box1Radio" Content="Бокс 1" GroupName="BoxNumber" IsChecked="True" Margin="10,5" FontSize="14" Foreground="Black" Height="30" VerticalAlignment="Center"/>
-                <RadioButton x:Name="Box2Radio" Content="Бокс 2" GroupName="BoxNumber" Margin="10,5" FontSize="14" Foreground="Black" Height="30" VerticalAlignment="Center"/>
-                <RadioButton x:Name="Box3Radio" Content="Бокс 3" GroupName="BoxNumber" Margin="10,5" FontSize="14" Foreground="Black" Height="30" VerticalAlignment="Center"/>
+                <RadioButton x:Name="Box1Radio" Content="Бокс 1" GroupName="BoxNumber" IsChecked="True" Margin="10,5" FontSize="14" Foreground="Black" Height="50" VerticalAlignment="Center"/>
+                <RadioButton x:Name="Box2Radio" Content="Бокс 2" GroupName="BoxNumber" Margin="10,5" FontSize="14" Foreground="Black" Height="50" VerticalAlignment="Center"/>
+                <RadioButton x:Name="Box3Radio" Content="Бокс 3" GroupName="BoxNumber" Margin="10,5" FontSize="14" Foreground="Black" Height="50" VerticalAlignment="Center"/>
             </StackPanel>
 
             <!-- Выбор услуг -->
@@ -129,7 +129,7 @@
 
             <!-- Дополнительная стоимость -->
             <Label Content="💰 Дополнительная стоимость:" Grid.Row="15" Margin="0,10,0,0" FontWeight="SemiBold"/>
-            <TextBox x:Name="ExtraCostTextBox" Grid.Row="16" Margin="0,5,0,10" Height="35" Padding="5" Text="0"/>
+            <TextBox x:Name="ExtraCostTextBox" Grid.Row="16" Margin="0,5,0,10" Height="50" Padding="5" Text="0"/>
 
             <!-- Причина доп. стоимости -->
             <Label Content="📝 Причина дополнительной стоимости:" Grid.Row="17" Margin="0,5,0,0" FontWeight="SemiBold"/>

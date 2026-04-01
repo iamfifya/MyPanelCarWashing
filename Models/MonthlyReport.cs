@@ -11,6 +11,17 @@ namespace MyPanelCarWashing.Models
         public decimal TotalRevenue { get; set; }
         public decimal TotalWasherEarnings { get; set; }
         public decimal TotalCompanyEarnings { get; set; }
+
+        // Способы оплаты
+        public int TotalCashCount { get; set; }
+        public decimal TotalCashAmount { get; set; }
+        public int TotalCardCount { get; set; }
+        public decimal TotalCardAmount { get; set; }
+        public int TotalTransferCount { get; set; }
+        public decimal TotalTransferAmount { get; set; }
+        public int TotalQrCount { get; set; }
+        public decimal TotalQrAmount { get; set; }
+
         public List<DailyReportSummary> DailyReports { get; set; } = new List<DailyReportSummary>();
         public List<EmployeeMonthlyReport> EmployeesReport { get; set; } = new List<EmployeeMonthlyReport>();
 
@@ -24,6 +35,16 @@ namespace MyPanelCarWashing.Models
         public decimal Revenue { get; set; }
         public decimal WasherEarnings { get; set; }
         public decimal CompanyEarnings { get; set; }
+
+        // Способы оплаты
+        public int CashCount { get; set; }
+        public decimal CashAmount { get; set; }
+        public int CardCount { get; set; }
+        public decimal CardAmount { get; set; }
+        public int TransferCount { get; set; }
+        public decimal TransferAmount { get; set; }
+        public int QrCount { get; set; }
+        public decimal QrAmount { get; set; }
     }
 
     public class EmployeeMonthlyReport

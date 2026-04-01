@@ -96,6 +96,64 @@
                         </Grid>
                     </Border>
 
+                    <!-- Статистика по способам оплаты -->
+                    <Border Background="#F8F9FA" CornerRadius="10" Padding="15" Margin="0,0,0,15">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="💳 Способы оплаты за период" FontSize="14" FontWeight="Bold" 
+                   Foreground="#2C3E50" Margin="0,0,0,10"/>
+
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Наличные -->
+                                <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="10" Margin="5">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="💵 Наличные" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                        <TextBlock x:Name="CustomCashCountText" FontSize="20" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="CustomCashAmountText" FontSize="12" Foreground="#7F8C8D"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Карта -->
+                                <Border Grid.Column="1" Background="White" CornerRadius="8" Padding="10" Margin="5">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="💳 Карта" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                        <TextBlock x:Name="CustomCardCountText" FontSize="20" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="CustomCardAmountText" FontSize="12" Foreground="#7F8C8D"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Перевод -->
+                                <Border Grid.Column="2" Background="White" CornerRadius="8" Padding="10" Margin="5">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📱 Перевод" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                        <TextBlock x:Name="CustomTransferCountText" FontSize="20" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="CustomTransferAmountText" FontSize="12" Foreground="#7F8C8D"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- QR-код -->
+                                <Border Grid.Column="3" Background="White" CornerRadius="8" Padding="10" Margin="5">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📱 QR-код" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                        <TextBlock x:Name="CustomQrCountText" FontSize="20" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="CustomQrAmountText" FontSize="12" Foreground="#7F8C8D"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
                     <!-- Таблица по дням -->
                     <TextBlock Text="📅 Отчет по дням" FontSize="16" FontWeight="Bold" 
                                Foreground="#2C3E50" Margin="0,0,0,10" Background="White"/>

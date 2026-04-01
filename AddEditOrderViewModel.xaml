@@ -63,16 +63,16 @@
             <!-- Марка и модель -->
             <Label Content="Марка и модель авто:" Grid.Row="1" Margin="0,5,0,0" FontWeight="SemiBold"/>
             <TextBox Text="{Binding CurrentOrder.CarModel, UpdateSourceTrigger=PropertyChanged}" 
-                     Grid.Row="2" Margin="0,5,0,10" Height="35" Padding="5" Foreground="Black"/>
+                     Grid.Row="2" Margin="0,5,0,10" Height="50" Padding="5" Foreground="Black"/>
 
             <!-- Госномер -->
             <Label Content="Государственный номер:" Grid.Row="3" Margin="0,5,0,0" FontWeight="SemiBold"/>
             <TextBox Text="{Binding CurrentOrder.CarNumber, UpdateSourceTrigger=PropertyChanged}" 
-                     Grid.Row="4" Margin="0,5,0,10" Height="35" Padding="5" Foreground="Black"/>
+                     Grid.Row="4" Margin="0,5,0,10" Height="50" Padding="5" Foreground="Black"/>
 
             <!-- Тип кузова (категория) -->
             <Label Content="Категория кузова:" Grid.Row="5" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <controls:CustomComboBox x:Name="BodyTypeComboBox" Grid.Row="6" Margin="0,5,0,10" Height="35"
+            <controls:CustomComboBox x:Name="BodyTypeComboBox" Grid.Row="6" Margin="0,5,0,10" Height="50"
                          SelectedValue="{Binding SelectedBodyTypeCategory}"
                          SelectedValuePath="Tag"
                          Placeholder="Выберите категорию"/>
@@ -106,7 +106,7 @@
 
             <!-- Выбор мойщика -->
             <Label Content="👤 Выберите мойщика:" Grid.Row="11" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <controls:CustomComboBox x:Name="WasherComboBox" Grid.Row="12" Margin="0,5,0,10" Height="35"
+            <controls:CustomComboBox x:Name="WasherComboBox" Grid.Row="12" Margin="0,5,0,10" Height="50"
                          ItemsSource="{Binding Washers}"
                          SelectedValue="{Binding CurrentOrder.WasherId}"
                          DisplayMemberPath="FullName"
@@ -150,7 +150,7 @@
             <!-- Дополнительная стоимость -->
             <Label Content="💰 Дополнительная стоимость:" Grid.Row="15" Margin="0,10,0,0" FontWeight="SemiBold"/>
             <TextBox Text="{Binding ExtraCost, UpdateSourceTrigger=PropertyChanged}" 
-                     Grid.Row="16" Margin="0,5,0,10" Height="35" Padding="5"/>
+                     Grid.Row="16" Margin="0,5,0,10" Height="50" Padding="5"/>
 
             <!-- Причина доп. стоимости -->
             <Label Content="📝 Причина дополнительной стоимости:" Grid.Row="17" Margin="0,5,0,0" FontWeight="SemiBold"/>
@@ -161,7 +161,7 @@
             <!-- Статус заказа (только для редактирования) -->
             <Label Content="📋 Статус заказа:" Grid.Row="19" Margin="0,5,0,0" FontWeight="SemiBold"
                    Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
-            <controls:CustomComboBox x:Name="StatusComboBox" Grid.Row="20" Margin="0,5,0,10" Height="35"
+            <controls:CustomComboBox x:Name="StatusComboBox" Grid.Row="20" Margin="0,5,0,10" Height="50"
                          SelectedValue="{Binding CurrentOrder.Status}"
                          SelectedValuePath="Tag"
                          Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
@@ -173,20 +173,20 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <controls:CustomComboBox x:Name="ClientComboBox" Grid.Column="0" Height="35"
+                <controls:CustomComboBox x:Name="ClientComboBox" Grid.Column="0" Height="50"
                          DisplayMemberPath="DisplayInfo"
                          SelectedValuePath="Id"
                          IsEditable="True"
                          Placeholder="Начните вводить имя или телефон"
                          SelectionChanged="ClientComboBox_SelectionChanged"/>
                 <Button Grid.Column="1" Content="➕" Click="AddNewClient_Click" 
-                        Width="35" Height="35" Margin="5,0,0,0"
+                        Width="35" Height="50" Margin="5,0,0,0"
                         Background="#27AE60" Foreground="White" FontSize="16"/>
             </Grid>
 
             <!-- Способ оплаты -->
             <Label Content="💳 Способ оплаты:" Grid.Row="23" Margin="0,10,0,0" FontWeight="SemiBold"/>
-            <controls:CustomComboBox x:Name="PaymentMethodComboBox" Grid.Row="24" Margin="0,5,0,10" Height="35"
+            <controls:CustomComboBox x:Name="PaymentMethodComboBox" Grid.Row="24" Margin="0,5,0,10" Height="50"
                          SelectedValuePath="Tag"/>
 
             <!-- Итоговая сумма -->

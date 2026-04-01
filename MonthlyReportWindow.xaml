@@ -55,6 +55,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" HorizontalAlignment="Center">
@@ -80,6 +81,64 @@
                                 <TextBlock x:Name="TotalCompanyText" FontSize="24" FontWeight="Bold" 
                                            Foreground="#E67E22" HorizontalAlignment="Center"/>
                             </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Статистика по способам оплаты -->
+                    <Border Background="#F8F9FA" CornerRadius="10" Padding="15" Margin="0,0,0,15">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="💳 Способы оплаты за месяц" FontSize="14" FontWeight="Bold" 
+                   Foreground="#2C3E50" Margin="0,0,0,10"/>
+
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Наличные -->
+                                <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="10" Margin="5">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="💵 Наличные" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                        <TextBlock x:Name="MonthlyCashCountText" FontSize="20" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="MonthlyCashAmountText" FontSize="12" Foreground="#7F8C8D"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Карта -->
+                                <Border Grid.Column="1" Background="White" CornerRadius="8" Padding="10" Margin="5">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="💳 Карта" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                        <TextBlock x:Name="MonthlyCardCountText" FontSize="20" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="MonthlyCardAmountText" FontSize="12" Foreground="#7F8C8D"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Перевод -->
+                                <Border Grid.Column="2" Background="White" CornerRadius="8" Padding="10" Margin="5">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📱 Перевод" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                        <TextBlock x:Name="MonthlyTransferCountText" FontSize="20" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="MonthlyTransferAmountText" FontSize="12" Foreground="#7F8C8D"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- QR-код -->
+                                <Border Grid.Column="3" Background="White" CornerRadius="8" Padding="10" Margin="5">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📱 QR-код" FontSize="12" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                        <TextBlock x:Name="MonthlyQrCountText" FontSize="20" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="MonthlyQrAmountText" FontSize="12" Foreground="#7F8C8D"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                         </Grid>
                     </Border>
 

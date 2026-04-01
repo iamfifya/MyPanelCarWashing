@@ -62,6 +62,28 @@ namespace MyPanelCarWashing
         private decimal _cardAmount;
         private int _transferCount;
         private decimal _transferAmount;
+        private int _qrCount;
+        private decimal _qrAmount;
+
+        public int QrCount
+        {
+            get => _qrCount;
+            set
+            {
+                _qrCount = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(QrCount)));
+            }
+        }
+
+        public decimal QrAmount
+        {
+            get => _qrAmount;
+            set
+            {
+                _qrAmount = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(QrAmount)));
+            }
+        }
 
         public int CashCount
         {
@@ -132,6 +154,8 @@ namespace MyPanelCarWashing
                 CardAmount = 0;
                 TransferCount = 0;
                 TransferAmount = 0;
+                QrCount = 0;
+                QrAmount = 0;
                 return;
             }
 
@@ -143,6 +167,9 @@ namespace MyPanelCarWashing
 
             TransferCount = _allOrders.Count(o => o.PaymentMethod == "Перевод");
             TransferAmount = _allOrders.Where(o => o.PaymentMethod == "Перевод").Sum(o => o.FinalPrice);
+
+            QrCount = _allOrders.Count(o => o.PaymentMethod == "QR-код");
+            QrAmount = _allOrders.Where(o => o.PaymentMethod == "QR-код").Sum(o => o.FinalPrice);
         }
 
         private void RefreshItems()
@@ -713,13 +740,8 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            // Объявляем переменные ДО их использования
-            int cashCount = 0;
-            decimal cashAmount = 0;
-            int cardCount = 0;
-            decimal cardAmount = 0;
-            int transferCount = 0;
-            decimal transferAmount = 0;
+            // Получаем всех пользователей ДО использования
+            var allUsers = _dataService.GetAllUsers();
 
             // Только выполненные заказы идут в отчёт
             var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
@@ -728,6 +750,15 @@ namespace MyPanelCarWashing
             var totalCompanyEarnings = completedOrders.Sum(o => o.CompanyEarnings);
 
             // Собираем статистику по оплатам ТОЛЬКО для выполненных заказов
+            int cashCount = 0;
+            decimal cashAmount = 0;
+            int cardCount = 0;
+            decimal cardAmount = 0;
+            int transferCount = 0;
+            decimal transferAmount = 0;
+            int qrCount = 0;
+            decimal qrAmount = 0;
+
             foreach (var order in completedOrders)
             {
                 switch (order.PaymentMethod)
@@ -743,6 +774,10 @@ namespace MyPanelCarWashing
                     case "Перевод":
                         transferCount++;
                         transferAmount += order.FinalPrice;
+                        break;
+                    case "QR-код":
+                        qrCount++;
+                        qrAmount += order.FinalPrice;
                         break;
                 }
             }
@@ -791,9 +826,6 @@ namespace MyPanelCarWashing
                 _currentShift.EndTime = DateTime.Now;
                 _currentShift.IsClosed = true;
 
-                // Получаем всех пользователей ДО использования
-                var allUsers = _dataService.GetAllUsers();
-
                 var report = new ShiftReport
                 {
                     Id = Guid.NewGuid().GetHashCode(),
@@ -810,25 +842,55 @@ namespace MyPanelCarWashing
                     CardAmount = cardAmount,
                     TransferCount = transferCount,
                     TransferAmount = transferAmount,
+                    QrCount = qrCount,
+                    QrAmount = qrAmount,
                     Notes = "Смена закрыта штатно"
                 };
 
+                // Группируем выполненные заказы по мойщикам
+                var washerGroups = completedOrders
+                    .Where(o => o.WasherId > 0)
+                    .GroupBy(o => o.WasherId)
+                    .Select(g => new
+                    {
+                        WasherId = g.Key,
+                        CarsWashed = g.Count(),
+                        TotalAmount = g.Sum(o => o.FinalPrice),
+                        Earnings = g.Sum(o => o.WasherEarnings)
+                    })
+                    .ToList();
+
+                // Добавляем сотрудников, у которых нет выполненных заказов (для полноты отчёта)
                 foreach (var empId in _currentShift.EmployeeIds)
                 {
                     var employee = allUsers.FirstOrDefault(u => u.Id == empId);
                     if (employee != null)
                     {
-                        var employeeOrders = completedOrders.Where(o => o.WasherId == empId).ToList();
-                        var employeeRevenue = employeeOrders.Sum(o => o.FinalPrice);
-                        var employeeEarnings = employeeOrders.Sum(o => o.WasherEarnings);
-
+                        var group = washerGroups.FirstOrDefault(g => g.WasherId == empId);
                         report.EmployeesWork.Add(new EmployeeWorkReport
                         {
                             EmployeeId = empId,
                             EmployeeName = employee.FullName,
-                            CarsWashed = employeeOrders.Count,
-                            TotalAmount = employeeRevenue,
-                            Earnings = employeeEarnings
+                            CarsWashed = group?.CarsWashed ?? 0,
+                            TotalAmount = group?.TotalAmount ?? 0,
+                            Earnings = group?.Earnings ?? 0
+                        });
+                    }
+                }
+
+                // Также добавляем мойщиков, которые есть в заказах, но не в смене (на всякий случай)
+                foreach (var group in washerGroups.Where(g => !_currentShift.EmployeeIds.Contains(g.WasherId)))
+                {
+                    var employee = allUsers.FirstOrDefault(u => u.Id == group.WasherId);
+                    if (employee != null)
+                    {
+                        report.EmployeesWork.Add(new EmployeeWorkReport
+                        {
+                            EmployeeId = group.WasherId,
+                            EmployeeName = employee.FullName,
+                            CarsWashed = group.CarsWashed,
+                            TotalAmount = group.TotalAmount,
+                            Earnings = group.Earnings
                         });
                     }
                 }

@@ -64,7 +64,8 @@ namespace MyPanelCarWashing
             {
                 new KeyValuePair<string, string>("💵 Наличные", "Наличные"),
                 new KeyValuePair<string, string>("💳 Карта", "Карта"),
-                new KeyValuePair<string, string>("📱 Перевод", "Перевод")
+                new KeyValuePair<string, string>("📱 Перевод", "Перевод"),
+                new KeyValuePair<string, string>("📱 QR-код", "QR-код")
             };
             PaymentMethodComboBox.ItemsSource = payments;
             PaymentMethodComboBox.DisplayMemberPath = "Key";

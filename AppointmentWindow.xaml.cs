@@ -127,19 +127,19 @@ namespace MyPanelCarWashing
                 }
 
                 var endTime = startTime.AddMinutes(duration);
-                var workingStart = date.Value.Date.AddHours(8);
-                var workingEnd = date.Value.Date.AddHours(22);
+                var workingStart = date.Value.Date.AddHours(9);
+                var workingEnd = date.Value.Date.AddHours(19);
 
                 if (startTime < workingStart)
                 {
-                    AvailabilityText.Text = $"⚠️ Рабочий день начинается с 8:00";
+                    AvailabilityText.Text = $"⚠️ Рабочий день начинается с 9:00";
                     AvailabilityText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Orange);
                     return;
                 }
 
                 if (endTime > workingEnd)
                 {
-                    AvailabilityText.Text = $"⚠️ Рабочий день заканчивается в 22:00";
+                    AvailabilityText.Text = $"⚠️ Рабочий день заканчивается в 19:00";
                     AvailabilityText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Orange);
                     return;
                 }
@@ -234,15 +234,15 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                if (startTime < date.Value.Date.AddHours(8))
+                if (startTime < date.Value.Date.AddHours(9))
                 {
-                    MessageBox.Show("Рабочий день начинается в 8:00", "Ошибка");
+                    MessageBox.Show("Рабочий день начинается в 9:00", "Ошибка");
                     return;
                 }
 
-                if (startTime.AddMinutes(duration) > date.Value.Date.AddHours(22))
+                if (startTime.AddMinutes(duration) > date.Value.Date.AddHours(19))
                 {
-                    MessageBox.Show("Рабочий день заканчивается в 22:00", "Ошибка");
+                    MessageBox.Show("Рабочий день заканчивается в 19:00", "Ошибка");
                     return;
                 }
 

@@ -36,19 +36,19 @@
 
         <Label Content="ФИО:" Grid.Row="1" Margin="0,5" FontWeight="SemiBold"/>
         <TextBox Text="{Binding CurrentClient.FullName, UpdateSourceTrigger=PropertyChanged}" 
-                 Grid.Row="2" Margin="0,5" Height="40" Padding="5"/>
+                 Grid.Row="2" Margin="0,5" Height="50" Padding="5"/>
 
         <Label Content="Телефон:" Grid.Row="3" Margin="0,5" FontWeight="SemiBold"/>
         <TextBox Text="{Binding CurrentClient.Phone, UpdateSourceTrigger=PropertyChanged}" 
-                 Grid.Row="4" Margin="0,5" Height="40" Padding="5"/>
+                 Grid.Row="4" Margin="0,5" Height="50" Padding="5"/>
 
         <Label Content="Марка/Модель авто:" Grid.Row="5" Margin="0,5" FontWeight="SemiBold"/>
         <TextBox Text="{Binding CurrentClient.CarModel, UpdateSourceTrigger=PropertyChanged}" 
-                 Grid.Row="6" Margin="0,5" Height="40" Padding="5"/>
+                 Grid.Row="6" Margin="0,5" Height="50" Padding="5"/>
 
         <Label Content="Государственный номер:" Grid.Row="7" Margin="0,5" FontWeight="SemiBold"/>
         <TextBox Text="{Binding CurrentClient.CarNumber, UpdateSourceTrigger=PropertyChanged}" 
-                 Grid.Row="8" Margin="0,5" Height="40" Padding="5"/>
+                 Grid.Row="8" Margin="0,5" Height="50" Padding="5"/>
 
         <Label Content="Примечание:" Grid.Row="9" Margin="0,5" FontWeight="SemiBold"/>
         <TextBox Text="{Binding CurrentClient.Notes, UpdateSourceTrigger=PropertyChanged}" 
