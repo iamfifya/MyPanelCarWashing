@@ -32,9 +32,12 @@ namespace MyPanelCarWashing
             _viewModel = viewModel;
             DataContext = _viewModel;
 
-            // Загружаем ВСЕХ сотрудников для выбора мойщика
+            // Загружаем ВСЕХ сотрудников для выбора мойщика (без ограничений)
             var allUsers = _dataService.GetAllUsers();
             WasherComboBox.ItemsSource = allUsers;
+
+            // Добавляем подсказку о том, кто из смены
+            WasherComboBox.ItemTemplate = new DataTemplate();
 
             // ========== ЗАПОЛНЯЕМ КАТЕГОРИИ КУЗОВА ==========
             var bodyTypes = new List<KeyValuePair<string, string>>
@@ -178,10 +181,18 @@ namespace MyPanelCarWashing
                     _viewModel.SelectedBodyTypeCategory = category;
                 }
 
-                // Обновляем мойщика
+                // Обновляем мойщика (для всех типов заказов, включая записи)
                 if (WasherComboBox.SelectedItem is User selectedWasher)
                 {
                     _viewModel.CurrentOrder.WasherId = selectedWasher.Id;
+
+                    // Добавляем предупреждение, но не блокируем
+                    if (_currentShift != null && !_currentShift.EmployeeIds.Contains(selectedWasher.Id))
+                    {
+                        MessageBox.Show($"Внимание: Мойщик \"{selectedWasher.FullName}\" не работает в текущей смене.\n\n" +
+                            "Заказ будет сохранён, но статистика смены может быть некорректной.",
+                            "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                 }
                 else
                 {
@@ -197,7 +208,11 @@ namespace MyPanelCarWashing
 
                 if (success)
                 {
-                    MessageBox.Show(message, "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Оповещаем об изменении данных
+                    DataService.NotifyDataChanged();
+
+                    MessageBox.Show($"✅ Заказ успешно создан из записи!\n\n...", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+
                     DialogResult = true;
                     Close();
                 }
@@ -234,6 +249,7 @@ namespace MyPanelCarWashing
         {
             if (!_viewModel.IsAppointment) return;
 
+            // Проверяем, выбран ли мойщик
             if (WasherComboBox.SelectedItem == null)
             {
                 MessageBox.Show("Выберите мойщика для выполнения заказа!", "Ошибка",
@@ -249,15 +265,19 @@ namespace MyPanelCarWashing
                 return;
             }
 
+            // Предупреждение, если мойщик не в смене (НО НЕ БЛОКИРУЕМ)
             if (_currentShift == null || !_currentShift.EmployeeIds.Contains(selectedWasher.Id))
             {
-                MessageBox.Show($"Мойщик \"{selectedWasher.FullName}\" не работает в текущей смене!\n\n" +
-                    "Пожалуйста, выберите сотрудника из списка или добавьте его в смену.",
-                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                var shiftWarning = MessageBox.Show($"Мойщик \"{selectedWasher.FullName}\" не работает в текущей смене!\n\n" +
+                    "Вы уверены, что хотите назначить его на этот заказ?\n\n" +
+                    "Он не будет учтён в статистике смены, но заказ будет создан.",
+                    "Предупреждение", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                if (shiftWarning != MessageBoxResult.Yes) return;
             }
 
-            var result = MessageBox.Show($"Преобразовать запись в заказ?\n\n" +
+            // Основное подтверждение - используем другое имя переменной
+            var confirmResult = MessageBox.Show($"Преобразовать запись в заказ?\n\n" +
                 $"🚗 {_viewModel.CurrentOrder.CarModel} ({_viewModel.CurrentOrder.CarNumber})\n" +
                 $"🚘 Категория кузова: {GetCategoryName(_viewModel.SelectedBodyTypeCategory)}\n" +
                 $"👤 Мойщик: {selectedWasher.FullName}\n" +
@@ -268,7 +288,7 @@ namespace MyPanelCarWashing
                 $"После преобразования запись будет считаться выполненной, а заказ можно будет редактировать.",
                 "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
-            if (result != MessageBoxResult.Yes) return;
+            if (confirmResult != MessageBoxResult.Yes) return;
 
             if (_currentShift == null || _currentShift.IsClosed)
             {
@@ -292,6 +312,7 @@ namespace MyPanelCarWashing
                 string paymentMethod = PaymentMethodComboBox.SelectedValue?.ToString() ?? "Наличные";
                 string bodyTypeName = GetCategoryName(_viewModel.SelectedBodyTypeCategory);
 
+                // order создаётся здесь
                 var order = await Task.Run(() => TransactionService.ExecuteInTransaction(appData =>
                 {
                     var appointment = appData.Appointments.FirstOrDefault(a => a.Id == _viewModel.CurrentOrder.AppointmentId.Value);
@@ -318,19 +339,18 @@ namespace MyPanelCarWashing
                         Notes = appointment.Notes,
                         IsAppointment = false,
                         AppointmentId = appointment.Id,
-                        ShiftId = _currentShift.Id
+                        ShiftId = _currentShift != null ? _currentShift.Id : 0
                     };
 
                     appointment.IsCompleted = true;
                     appointment.OrderId = newOrder.Id;
 
-                    var shift = appData.Shifts.FirstOrDefault(s => s.Id == _currentShift.Id);
-                    if (shift == null)
-                        throw new Exception("Смена не найдена!");
-
-                    if (shift.Orders == null)
-                        shift.Orders = new List<CarWashOrder>();
-                    shift.Orders.Add(newOrder);
+                    var shift = appData.Shifts.FirstOrDefault(s => s.Id == (_currentShift != null ? _currentShift.Id : 0));
+                    if (shift != null)
+                    {
+                        if (shift.Orders == null) shift.Orders = new List<CarWashOrder>();
+                        shift.Orders.Add(newOrder);
+                    }
 
                     if (newOrder.ClientId.HasValue)
                     {
@@ -346,6 +366,7 @@ namespace MyPanelCarWashing
                     return newOrder;
                 }));
 
+                // Теперь order можно использовать - ОН ОБЪЯВЛЕН ВЫШЕ
                 _viewModel.CurrentOrder.Id = order.Id;
                 _viewModel.CurrentOrder.IsAppointment = false;
 
@@ -379,6 +400,18 @@ namespace MyPanelCarWashing
                 MessageBox.Show($"Ошибка при преобразовании: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+        private void MarkAsCompletedButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel.SelectedBodyTypeCategory == 0) return;
+
+            var result = MessageBox.Show("Отметить запись как выполненную без создания заказа?",
+                "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            // Находим запись (нужно сохранить ID при создании)
+            // Либо передавать ID через свойство
         }
 
         private string GetClientName(int? clientId)

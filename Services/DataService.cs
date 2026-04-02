@@ -703,6 +703,9 @@ namespace MyPanelCarWashing.Services
             appointment.OrderId = order.Id;
             SaveData();
 
+            // Оповещаем об изменении
+            NotifyDataChanged();
+
             return order;
         }
         public Appointment GetAppointmentById(int appointmentId)

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace MyPanelCarWashing.Controls
@@ -17,6 +18,7 @@ namespace MyPanelCarWashing.Controls
         public event PropertyChangedEventHandler PropertyChanged;
 
         private DataService _dataService;
+        private Shift _currentShift;
         private List<AppointmentDisplayItem> _box1Items;
         private List<AppointmentDisplayItem> _box2Items;
         private List<AppointmentDisplayItem> _box3Items;
@@ -33,6 +35,16 @@ namespace MyPanelCarWashing.Controls
                     FilterDatePicker.SelectedDate = DateTime.Now;
                     LoadAppointments();
                 }
+            }
+        }
+
+        public Shift CurrentShift
+        {
+            get => _currentShift;
+            set
+            {
+                _currentShift = value;
+                System.Diagnostics.Debug.WriteLine($"AppointmentsOverlay: CurrentShift updated (Id={_currentShift?.Id})");
             }
         }
 
@@ -88,8 +100,32 @@ namespace MyPanelCarWashing.Controls
             InitializeComponent();
             DataContext = this;
 
+            // Подписываемся на глобальное событие изменения данных
+            DataService.DataChanged += OnDataChanged;
+
             // Подписываемся на изменение даты
             FilterDatePicker.SelectedDateChanged += FilterDatePicker_SelectedDateChanged;
+
+            // Подписываемся на событие выгрузки контрола
+            this.Unloaded += AppointmentsOverlay_Unloaded;
+
+            // Устанавливаем дату по умолчанию
+            FilterDatePicker.SelectedDate = DateTime.Now;
+        }
+        private void OnDataChanged()
+        {
+            // Обновляем данные в UI потоке
+            Dispatcher.Invoke(() =>
+            {
+                System.Diagnostics.Debug.WriteLine("AppointmentsOverlay: DataChanged received, reloading...");
+                LoadAppointments();
+            });
+        }
+        private void AppointmentsOverlay_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // Отписываемся от событий при выгрузке контрола
+            DataService.DataChanged -= OnDataChanged;
+            FilterDatePicker.SelectedDateChanged -= FilterDatePicker_SelectedDateChanged;
         }
 
         private void FilterDatePicker_SelectedDateChanged(object sender, DateTime? selectedDate)
@@ -98,22 +134,20 @@ namespace MyPanelCarWashing.Controls
             LoadAppointments();
         }
 
-        private void FilterButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Кнопка "Показать" - для ручного обновления
-            LoadAppointments();
-        }
-
         public void Show()
         {
             System.Diagnostics.Debug.WriteLine("=== AppointmentsOverlay.Show() ===");
+
+            // Делаем видимым
+            this.Visibility = Visibility.Visible;
+            OverlayBackground.Visibility = Visibility.Visible;
+            PopupPanel.Visibility = Visibility.Visible;
+
+            // Загружаем данные
             if (_dataService != null)
             {
                 LoadAppointments();
             }
-
-            this.Visibility = Visibility.Visible;
-            OverlayBackground.Visibility = Visibility.Visible;
 
             // Запускаем анимацию появления
             var showAnimation = Resources["ShowAnimation"] as Storyboard;
@@ -135,6 +169,7 @@ namespace MyPanelCarWashing.Controls
                 {
                     this.Visibility = Visibility.Collapsed;
                     OverlayBackground.Visibility = Visibility.Collapsed;
+                    PopupPanel.Visibility = Visibility.Collapsed;
                 };
                 hideAnimation.Begin();
             }
@@ -142,15 +177,27 @@ namespace MyPanelCarWashing.Controls
             {
                 this.Visibility = Visibility.Collapsed;
                 OverlayBackground.Visibility = Visibility.Collapsed;
+                PopupPanel.Visibility = Visibility.Collapsed;
             }
         }
 
         private void LoadAppointments()
         {
-            if (_dataService == null) return;
+            if (_dataService == null)
+            {
+                System.Diagnostics.Debug.WriteLine("LoadAppointments: DataService is null!");
+                return;
+            }
 
             DateTime? filterDate = FilterDatePicker.SelectedDate;
-            if (!filterDate.HasValue) return;
+            if (!filterDate.HasValue)
+            {
+                System.Diagnostics.Debug.WriteLine("LoadAppointments: No date selected, using today");
+                filterDate = DateTime.Now;
+                FilterDatePicker.SelectedDate = filterDate;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"LoadAppointments: Loading for date {filterDate:dd.MM.yyyy}");
 
             var allAppointments = _dataService.GetAllAppointments();
             var allServices = _dataService.GetAllServices();
@@ -158,6 +205,8 @@ namespace MyPanelCarWashing.Controls
             var appointments = allAppointments
                 .Where(a => a.AppointmentDate.Date == filterDate.Value.Date && !a.IsCompleted)
                 .ToList();
+
+            System.Diagnostics.Debug.WriteLine($"LoadAppointments: Found {appointments.Count} appointments");
 
             var displayItems = appointments.Select(a => new AppointmentDisplayItem
             {
@@ -182,6 +231,13 @@ namespace MyPanelCarWashing.Controls
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box1Items)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box2Items)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box3Items)));
+
+            System.Diagnostics.Debug.WriteLine($"LoadAppointments: Box1={Box1Items.Count}, Box2={Box2Items.Count}, Box3={Box3Items.Count}");
+        }
+
+        private void FilterButton_Click(object sender, RoutedEventArgs e)
+        {
+            LoadAppointments();
         }
 
         private void NewAppointmentButton_Click(object sender, RoutedEventArgs e)
@@ -222,8 +278,9 @@ namespace MyPanelCarWashing.Controls
                     AppointmentId = appointment.Id
                 };
 
+                // Используем App.GetService, а не _viewModel
                 var viewModel = App.GetService<AddEditOrderViewModel>();
-                var editWin = new AddEditOrderWindow(_dataService, viewModel, null, tempOrder);
+                var editWin = new AddEditOrderWindow(_dataService, viewModel, _currentShift, tempOrder);
                 editWin.Closed += (s, args) =>
                 {
                     LoadAppointments();
@@ -232,6 +289,8 @@ namespace MyPanelCarWashing.Controls
                 editWin.ShowDialog();
             }
         }
+
+        
 
         private void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
@@ -262,35 +321,6 @@ namespace MyPanelCarWashing.Controls
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Hide();
-        }
-    }
-
-    public class AppointmentDisplayItem : INotifyPropertyChanged
-    {
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public int Id { get; set; }
-        public string CarNumber { get; set; }
-        public string CarModel { get; set; }
-        public DateTime Time { get; set; }
-        public DateTime EndTime { get; set; }
-        public string ServicesList { get; set; }
-        public decimal FinalPrice { get; set; }
-        public decimal ExtraCost { get; set; }
-        public string ExtraCostReason { get; set; }
-        public int BoxNumber { get; set; }
-        public string Status { get; set; }
-        public bool IsCompleted { get; set; }
-
-        private bool _isSelected;
-        public bool IsSelected
-        {
-            get => _isSelected;
-            set
-            {
-                _isSelected = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-            }
         }
     }
 }

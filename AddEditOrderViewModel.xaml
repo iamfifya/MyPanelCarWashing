@@ -10,7 +10,7 @@
         Title="{Binding WindowTitle}"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Width="550" Height="850"
+        Width="550" Height="1850"
         Background="#F5F6FA"
         BorderBrush="Black"
         BorderThickness="1"
@@ -203,6 +203,7 @@
 
             <!-- Кнопки -->
             <StackPanel Grid.Row="26" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,20">
+                <Button Content="✅ Выполнено" Click="MarkAsCompletedButton_Click" Height="35" Margin="5" Background="#27AE60" Foreground="White"/>
                 <Button x:Name="ConvertToOrderButton" Content="📅 Преобразовать в заказ" Click="ConvertToOrderButton_Click" 
                         Width="185" Height="35" Margin="0,5" Background="#9B59B6" Foreground="White"
                         Visibility="{Binding IsAppointment, Converter={StaticResource BoolToVisibilityConverter}}"/>

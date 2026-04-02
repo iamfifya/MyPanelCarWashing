@@ -374,6 +374,11 @@ namespace MyPanelCarWashing
             // Устанавливаем DataService для оверлея
             if (AppointmentsOverlay != null)
             {
+                if (AppointmentsOverlay != null)
+                {
+                    AppointmentsOverlay.DataService = dataService;
+                    AppointmentsOverlay.CurrentShift = _currentShift;
+                }
                 AppointmentsOverlay.DataService = dataService;
                 System.Diagnostics.Debug.WriteLine("DataService set to AppointmentsOverlay");
             }
@@ -390,12 +395,19 @@ namespace MyPanelCarWashing
 
         private void OnDataChanged()
         {
-            // Обновляем данные в UI потоке
             Dispatcher.Invoke(() =>
             {
                 System.Diagnostics.Debug.WriteLine("=== OnDataChanged: Обновляем данные ===");
-                // Принудительно пересоздаём DataService, чтобы получить свежие данные
+
                 _dataService = new DataService();
+                _currentShift = _dataService.GetCurrentOpenShift(); // Обновляем смену
+
+                if (AppointmentsOverlay != null)
+                {
+                    AppointmentsOverlay.DataService = _dataService;
+                    AppointmentsOverlay.CurrentShift = _currentShift; // Передаём обновлённую смену
+                }
+
                 LoadData();
             });
         }
@@ -719,8 +731,15 @@ namespace MyPanelCarWashing
             var startWin = new StartShiftWindow(_dataService);
             if (startWin.ShowDialog() == true)
             {
-                // Обновляем _dataService, чтобы получить свежие данные
                 _dataService = new DataService();
+                _currentShift = _dataService.GetCurrentOpenShift();
+
+                if (AppointmentsOverlay != null)
+                {
+                    AppointmentsOverlay.DataService = _dataService;
+                    AppointmentsOverlay.CurrentShift = _currentShift;
+                }
+
                 LoadData();
                 MessageBox.Show($"Смена успешно начата!", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
@@ -859,7 +878,7 @@ namespace MyPanelCarWashing
                     Notes = "Смена закрыта штатно"
                 };
 
-                // Группируем выполненные заказы по мойщикам
+                // Группируем выполненные заказы по мойщикам (ВСЕ мойщики, даже если их нет в смене)
                 var washerGroups = completedOrders
                     .Where(o => o.WasherId > 0)
                     .GroupBy(o => o.WasherId)
@@ -923,6 +942,10 @@ namespace MyPanelCarWashing
 
                 // Обновляем данные в MainWindow
                 _dataService = new DataService();
+                if (AppointmentsOverlay != null)
+                {
+                    AppointmentsOverlay.DataService = _dataService;
+                }
                 LoadData();
 
                 MessageBox.Show($"Смена успешно закрыта!\n\n" +

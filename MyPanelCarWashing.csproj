@@ -178,12 +178,6 @@
     <Compile Include="AddEditServiceWindow.xaml.cs">
       <DependentUpon>AddEditServiceWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="AppointmentsBoardWindow.xaml.cs">
-      <DependentUpon>AppointmentsBoardWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="AppointmentsWindow.xaml.cs">
-      <DependentUpon>AppointmentsWindow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="AppointmentToBackgroundConverter.cs" />
     <Compile Include="AppointmentToStyleConverter.cs" />
     <Compile Include="AppointmentWindow.xaml.cs">
@@ -212,6 +206,7 @@
     <Compile Include="InverseBoolToVisibilityConverter.cs" />
     <Compile Include="ItemStyleConverter.cs" />
     <Compile Include="Models\Appointment.cs" />
+    <Compile Include="Models\AppointmentDisplayItem.cs" />
     <Compile Include="Models\Client.cs" />
     <Compile Include="Models\EmployeeShiftReport.cs" />
     <Compile Include="Models\MonthlyReport.cs" />
@@ -269,14 +264,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="AddEditServiceWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="AppointmentsBoardWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="AppointmentsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

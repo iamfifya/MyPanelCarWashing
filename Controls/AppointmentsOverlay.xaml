@@ -5,7 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:MyPanelCarWashing"
              xmlns:controls="clr-namespace:MyPanelCarWashing.Controls"
-             mc:Ignorable="d">
+             xmlns:models="clr-namespace:MyPanelCarWashing.Models"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
 
     <UserControl.Resources>
         <local:StatusToBackgroundConverter x:Key="StatusToBackgroundConverter"/>
@@ -13,30 +15,37 @@
 
         <!-- Анимация появления -->
         <Storyboard x:Key="ShowAnimation">
-            <!-- Анимация прозрачности -->
+            <!-- Анимация прозрачности для фона -->
             <DoubleAnimation Storyboard.TargetName="OverlayBackground" 
                              Storyboard.TargetProperty="Opacity"
-                             From="0" To="1" Duration="0:0:0.1"/>
-            <!-- Анимация масштаба для центральной панели -->
+                             From="0" To="1" Duration="0:0:0.25"/>
+            <!-- Анимация масштаба для popup панели -->
             <DoubleAnimation Storyboard.TargetName="PopupPanel" 
                              Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                             From="0.8" To="1" Duration="0:0:0.1"/>
+                             From="0.8" To="1" Duration="0:0:0.25"/>
             <DoubleAnimation Storyboard.TargetName="PopupPanel" 
                              Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                             From="0.8" To="1" Duration="0:0:0.1"/>
+                             From="0.8" To="1" Duration="0:0:0.25"/>
+            <!-- Анимация прозрачности для popup панели -->
+            <DoubleAnimation Storyboard.TargetName="PopupPanel" 
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:0.2"/>
         </Storyboard>
 
         <!-- Анимация скрытия -->
         <Storyboard x:Key="HideAnimation">
             <DoubleAnimation Storyboard.TargetName="OverlayBackground" 
                              Storyboard.TargetProperty="Opacity"
-                             From="1" To="0" Duration="0:0:0.1"/>
+                             From="1" To="0" Duration="0:0:0.2"/>
             <DoubleAnimation Storyboard.TargetName="PopupPanel" 
                              Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                             From="1" To="0.9" Duration="0:0:0.1"/>
+                             From="1" To="0.9" Duration="0:0:0.2"/>
             <DoubleAnimation Storyboard.TargetName="PopupPanel" 
                              Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                             From="1" To="0.9" Duration="0:0:0.1"/>
+                             From="1" To="0.9" Duration="0:0:0.2"/>
+            <DoubleAnimation Storyboard.TargetName="PopupPanel" 
+                             Storyboard.TargetProperty="Opacity"
+                             From="1" To="0" Duration="0:0:0.15"/>
         </Storyboard>
 
         <Style x:Key="AppointmentCardBorderStyle" TargetType="Border">
@@ -60,7 +69,7 @@
             </Style.Triggers>
         </Style>
 
-        <DataTemplate x:Key="AppointmentTemplate" DataType="{x:Type local:AppointmentDisplayItem}">
+        <DataTemplate x:Key="AppointmentTemplate" DataType="{x:Type models:AppointmentDisplayItem}">
             <Border Style="{StaticResource AppointmentCardBorderStyle}">
                 <StackPanel>
                     <DockPanel LastChildFill="False" Margin="0,0,0,8">
@@ -126,7 +135,7 @@
             Visibility="Collapsed"
             Opacity="0">
 
-        <!-- Основная панель с записями (с RenderTransform для анимации масштаба) -->
+        <!-- Основная панель с записями -->
         <Border x:Name="PopupPanel"
                 Background="#F5F6FA" 
                 CornerRadius="15" 
@@ -135,11 +144,12 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 BorderBrush="#BDC3C7"
-                BorderThickness="1">
+                BorderThickness="1"
+                Opacity="0">
 
             <!-- RenderTransform для анимации масштаба -->
             <Border.RenderTransform>
-                <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
             </Border.RenderTransform>
 
             <Grid Margin="15">
@@ -176,8 +186,8 @@
                 <!-- Фильтр по дате -->
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,15,0,15">
                     <Label Content="📅 Показать записи за:" VerticalAlignment="Center"/>
-                    <local:CustomDatePicker x:Name="FilterDatePicker" Width="400" Height="50" Margin="5"/>
-                    <Button Content="➕ Новая запись" Click="NewAppointmentButton_Click" Height="35" Margin="5" Background="#27AE60" Foreground="White"/>
+                    <local:CustomDatePicker x:Name="FilterDatePicker" Height="50" Width="400" Margin="5"/>
+                    <Button Content="➕ Новая запись" Click="NewAppointmentButton_Click" Height="35" Margin="5" Background="#3498DB" Foreground="White"/>
                     <Button Content="🗑 Удалить" Click="DeleteButton_Click" Height="35" Margin="5" Background="#E74C3C" Foreground="White"/>
                     <Button Content="✏ Редактировать" Click="EditButton_Click" Height="35" Margin="5" Background="#F39C12" Foreground="White"/>
                 </StackPanel>
@@ -226,7 +236,7 @@
 
                 <!-- Кнопка закрытия внизу -->
                 <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20">
-                    <Button Content="✖ Закрыть" Click="CloseButton_Click" Width="100" Height="35" 
+                    <Button Content="✖ Закрыть" Click="CloseButton_Click" Height="35" 
                             Margin="5" Background="#E74C3C" Foreground="White"/>
                 </StackPanel>
             </Grid>
