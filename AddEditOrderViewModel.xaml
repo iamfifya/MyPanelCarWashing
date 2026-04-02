@@ -10,7 +10,7 @@
         Title="{Binding WindowTitle}"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Width="550" Height="1850"
+        Width="550" Height="850"
         Background="#F5F6FA"
         BorderBrush="Black"
         BorderThickness="1"
