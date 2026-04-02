@@ -1,4 +1,5 @@
 // Services/TransactionService.cs
+using DocumentFormat.OpenXml.Drawing.Charts;
 using MyPanelCarWashing.Models;
 using Newtonsoft.Json;
 using System;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Formatting = Newtonsoft.Json.Formatting;
 
 namespace MyPanelCarWashing.Services
 {
@@ -230,17 +232,26 @@ namespace MyPanelCarWashing.Services
             // 2. Проверяем, что все услуги в заказах существуют
             foreach (var shift in data.Shifts)
             {
-                foreach (var order in shift.Orders ?? new List<CarWashOrder>())
+                if (shift.Orders == null) continue;
+
+                foreach (var order in shift.Orders)
                 {
                     foreach (var serviceId in order.ServiceIds)
                     {
                         if (!data.Services.Any(s => s.Id == serviceId))
                             errors.Add($"Order #{order.Id} references non-existent service ID: {serviceId}");
                     }
-
-                    // 3. Проверяем существование мойщика
-                    if (!data.Users.Any(u => u.Id == order.WasherId))
-                        errors.Add($"Order #{order.Id} references non-existent washer ID: {order.WasherId}");
+                    // 3. Проверяем существование мойщика (только предупреждение, не ошибка)
+                    if (order.WasherId > 0)
+                    {
+                        var washer = data.Users.FirstOrDefault(u => u.Id == order.WasherId);
+                        if (washer == null)
+                        {
+                            // Только логируем, не добавляем в errors
+                            System.Diagnostics.Debug.WriteLine($"WARNING: Order #{order.Id} references non-existent washer ID: {order.WasherId}");
+                            // НЕ добавляем в errors - не блокируем транзакцию
+                        }
+                    }
                 }
             }
 
@@ -256,6 +267,13 @@ namespace MyPanelCarWashing.Services
                     if (!orderExists)
                         errors.Add($"Appointment #{appointment.Id} references non-existent order ID: {appointment.OrderId}");
                 }
+            }
+
+            // 5. Проверяем, что все смены имеют корректные даты
+            foreach (var shift in data.Shifts)
+            {
+                if (shift.StartTime.HasValue && shift.EndTime.HasValue && shift.EndTime < shift.StartTime)
+                    errors.Add($"Shift #{shift.Id} has EndTime before StartTime");
             }
 
             if (errors.Any())

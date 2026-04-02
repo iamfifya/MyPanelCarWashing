@@ -1,3 +1,4 @@
+using MyPanelCarWashing.Controls;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
@@ -369,6 +370,17 @@ namespace MyPanelCarWashing
             _dataService = dataService;
             _currentUser = user;
             DataContext = this;
+
+            // Устанавливаем DataService для оверлея
+            if (AppointmentsOverlay != null)
+            {
+                AppointmentsOverlay.DataService = dataService;
+                System.Diagnostics.Debug.WriteLine("DataService set to AppointmentsOverlay");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("AppointmentsOverlay is NULL in constructor!");
+            }
 
             // Подписываемся на глобальное событие изменения данных
             DataService.DataChanged += OnDataChanged;
@@ -1220,8 +1232,19 @@ namespace MyPanelCarWashing
 
         private void ViewAppointmentsButton_Click(object sender, RoutedEventArgs e)
         {
-            var appointmentsWin = App.GetService<AppointmentsWindow>();
-            appointmentsWin.ShowDialog();
+            AppointmentsOverlay.Show();
+        }
+
+        private void AppointmentsBoardButton_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("=== AppointmentsBoardButton_Click ===");
+            if (AppointmentsOverlay == null)
+            {
+                System.Diagnostics.Debug.WriteLine("AppointmentsOverlay is NULL!");
+                return;
+            }
+            System.Diagnostics.Debug.WriteLine("Calling AppointmentsOverlay.Show()");
+            AppointmentsOverlay.Show();
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
@@ -1320,6 +1343,7 @@ namespace MyPanelCarWashing
             var clientsWin = App.GetService<ClientsWindow>();
             clientsWin.ShowDialog();
         }
+
     }
 
     public class OrderDisplayItem : INotifyPropertyChanged

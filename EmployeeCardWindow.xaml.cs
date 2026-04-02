@@ -35,6 +35,7 @@ namespace MyPanelCarWashing
             InitializeComponent();
             _dataService = dataService;
             DataContext = this;
+            DataService.DataChanged += OnDataChanged;
 
             EmployeesListView.LostFocus += (s, e) =>
             {
@@ -45,6 +46,7 @@ namespace MyPanelCarWashing
                 bool isControlButton = focusedElement is Button &&
                     (focusedElement.Name == "EditClientButton" ||
                      focusedElement.Name == "DeleteClientButton" ||
+                     focusedElement.Name == "ActivateButton" ||
                      focusedElement.Name == "ShowStatsButton");
 
                 if (!isControlButton)
@@ -59,8 +61,24 @@ namespace MyPanelCarWashing
 
         private void LoadEmployees()
         {
-            _allEmployees = _dataService.GetAllUsers();
+            // Используем GetAllUsersIncludingInactive для отображения всех сотрудников
+            _allEmployees = _dataService.GetAllUsersIncludingInactive();
             ApplyFilter();
+        }
+        private bool _isUpdating = false;
+        private DateTime _lastUpdate = DateTime.MinValue;
+
+        private void OnDataChanged()
+        {
+            // Не обновляем чаще чем раз в 100 мс
+            if ((DateTime.Now - _lastUpdate).TotalMilliseconds < 100) return;
+            _lastUpdate = DateTime.Now;
+
+            Dispatcher.Invoke(() =>
+            {
+                _allEmployees = _dataService.GetAllUsersIncludingInactive();
+                ApplyFilter();
+            });
         }
 
         private void ApplyFilter()
@@ -152,52 +170,60 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            var result = MessageBox.Show($"Удалить сотрудника {employee.FullName}?\n\nЭто действие нельзя отменить.",
-                "Подтверждение удаления",
+            // Проверяем, есть ли у сотрудника заказы в текущей открытой смене
+            var currentShift = _dataService.GetCurrentOpenShift();
+            var hasOrdersInCurrentShift = false;
+
+            if (currentShift != null && currentShift.Orders != null)
+            {
+                hasOrdersInCurrentShift = currentShift.Orders.Any(o => o.WasherId == employee.Id);
+            }
+
+            string warningMessage = hasOrdersInCurrentShift
+                ? $"\n\n⚠️ ВНИМАНИЕ: У сотрудника есть заказы в текущей открытой смене!\n" +
+                  "При деактивации эти заказы останутся, но новый сотрудник не сможет их взять.\n" +
+                  "Рекомендуется сначала завершить или переназначить эти заказы."
+                : "";
+
+            var result = MessageBox.Show($"Деактивировать сотрудника {employee.FullName}?\n\n" +
+                $"Сотрудник будет скрыт из списка активных, но все его заказы останутся в системе.\n" +
+                $"{warningMessage}\n\nЭто действие можно отменить (снова активировать).",
+                "Подтверждение деактивации",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (result == MessageBoxResult.Yes)
             {
                 try
                 {
-                    var allUsers = _dataService.GetAllUsers();
-                    var userToDelete = allUsers.FirstOrDefault(u => u.Id == employee.Id);
+                    employee.IsActive = false;
+                    _dataService.UpdateUser(employee);
 
-                    if (userToDelete != null)
-                    {
-                        allUsers.Remove(userToDelete);
+                    // Оповещаем об изменении
+                    DataService.NotifyDataChanged();
 
-                        var appData = FileDataService.LoadData();
-                        appData.Users = allUsers;
-                        FileDataService.SaveData(appData);
+                    LoadEmployees();
+                    _selectedEmployee = null;
 
-                        LoadEmployees();
-                        _selectedEmployee = null;
-
-                        MessageBox.Show($"Сотрудник {employee.FullName} успешно удален", "Успешно",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
+                    MessageBox.Show($"Сотрудник {employee.FullName} деактивирован.", "Успешно",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
+                    MessageBox.Show($"Ошибка при деактивации: {ex.Message}", "Ошибка",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
 
-        // Обновите метод EditItem_Click
-        private void EditItem_Click(object sender, RoutedEventArgs e)
+        private void ActivateEmployee(User employee)
         {
-            if (_selectedEmployee != null)
-            {
-                OpenEditEmployee(_selectedEmployee);
-            }
-            else
-            {
-                MessageBox.Show("Выберите сотрудника для редактирования", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+            employee.IsActive = true;
+            _dataService.UpdateUser(employee);
+
+            // Оповещаем об изменении
+            DataService.NotifyDataChanged();
+
+            LoadEmployees();
         }
 
         // Обновите метод DeleteItem_Click
@@ -213,6 +239,32 @@ namespace MyPanelCarWashing
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+        // Обновите метод EditItem_Click
+        private void EditItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedEmployee != null)
+            {
+                OpenEditEmployee(_selectedEmployee);
+            }
+            else
+            {
+                MessageBox.Show("Выберите сотрудника для редактирования", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        private void ActivateButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedEmployee != null)
+            {
+                ActivateEmployee(_selectedEmployee);
+            }
+            else
+            {
+                MessageBox.Show("Выберите сотрудника для активации", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
         private void ScheduleButton_Click(object sender, RoutedEventArgs e)
         {
             var scheduleWin = new ScheduleWindow(_dataService);

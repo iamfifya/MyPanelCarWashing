@@ -15,8 +15,9 @@ namespace MyPanelCarWashing.Services
         public DataService()
         {
             LoadData();
-            CleanupDuplicateServices(); // Очищаем дубликаты при загрузке
-            CleanupInvalidData(); // Добавляем очистку некорректных данных
+            CleanupDuplicateServices();
+            CleanupInvalidData();
+            FixInvalidData();
             _data.UpdateIds();
         }
 
@@ -30,8 +31,72 @@ namespace MyPanelCarWashing.Services
         {
             FileDataService.SaveData(_data);
         }
+        /// <summary>
+        /// Исправляет некорректные данные (удаляет ссылки на несуществующих сотрудников)
+        /// </summary>
+        public void FixInvalidData()
+        {
+            LoadData();
+            bool needSave = false;
+            var allUsers = _data.Users.Select(u => u.Id).ToHashSet();
 
-        // Services/DataService.cs - добавьте эти методы
+            foreach (var shift in _data.Shifts)
+            {
+                if (shift.Orders != null)
+                {
+                    foreach (var order in shift.Orders)
+                    {
+                        // Если мойщик не существует, сбрасываем WasherId на 0 или первого доступного
+                        if (order.WasherId > 0 && !allUsers.Contains(order.WasherId))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Исправлен заказ #{order.Id}: WasherId {order.WasherId} -> 0");
+                            order.WasherId = 0;
+                            needSave = true;
+                        }
+                    }
+                }
+            }
+
+            if (needSave)
+            {
+                SaveData();
+                System.Diagnostics.Debug.WriteLine("Некорректные данные исправлены");
+            }
+        }
+
+        // Получить только активных пользователей
+        public List<User> GetAllActiveUsers()
+        {
+            return _data.Users.Where(u => u.IsActive).ToList();
+        }
+
+        // Получить всех (включая неактивных) для администрирования
+        public List<User> GetAllUsersIncludingInactive()
+        {
+            return _data.Users.ToList();
+        }
+
+        // Получить всех для аутентификации и других нужд
+        public List<User> GetAllUsers()
+        {
+            return _data.Users.Where(u => u.IsActive).ToList();
+        }
+        public void UpdateUser(User user)
+        {
+            var existing = _data.Users.FirstOrDefault(u => u.Id == user.Id);
+            if (existing != null)
+            {
+                existing.FullName = user.FullName;
+                existing.Login = user.Login;
+                existing.IsAdmin = user.IsAdmin;
+                existing.IsActive = user.IsActive;
+                if (!string.IsNullOrWhiteSpace(user.Password))
+                {
+                    existing.Password = user.Password;
+                }
+                SaveData();
+            }
+        }
 
         public void AddOrderTransactional(CarWashOrder order, List<int> serviceIds)
         {
@@ -133,11 +198,6 @@ namespace MyPanelCarWashing.Services
         public User AuthenticateUser(string login, string password)
         {
             return _data.Users.FirstOrDefault(u => u.Login == login && u.Password == password);
-        }
-
-        public List<User> GetAllUsers()
-        {
-            return _data.Users.ToList();
         }
 
         public void AddUser(User user)
@@ -461,9 +521,11 @@ namespace MyPanelCarWashing.Services
         {
             var endTime = startTime.AddMinutes(durationMinutes);
 
-            // Получаем ВСЕ записи на эту дату (независимо от бокса, так как мойка одна)
+            // Получаем ВСЕ записи на эту дату для конкретного бокса
             var appointments = _data.Appointments
-                .Where(a => !a.IsCompleted && a.AppointmentDate.Date == startTime.Date)
+                .Where(a => !a.IsCompleted &&
+                            a.AppointmentDate.Date == startTime.Date &&
+                            a.BoxNumber == boxNumber)  // ← Проверяем конкретный бокс
                 .ToList();
 
             // Проверяем пересечения

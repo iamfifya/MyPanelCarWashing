@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MyPanelCarWashing.Controls;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
 using System;
@@ -62,11 +63,11 @@ namespace MyPanelCarWashing
             services.AddTransient<MonthlyReportWindow>();
             services.AddTransient<CustomReportWindow>();
             services.AddTransient<StartShiftWindow>();
-            services.AddTransient<AppointmentsWindow>();
             services.AddTransient<AppointmentWindow>();
             services.AddTransient<ClientsWindow>();
             services.AddTransient<AddEditClientWindow>();
             services.AddTransient<ScheduleWindow>();
+            services.AddTransient<AppointmentsOverlay>();
         }
 
         public static T GetService<T>() where T : class

@@ -18,15 +18,14 @@
         Foreground="Black">
 
     <Window.Resources>
-        <!-- Стиль для ячейки заголовка -->
         <Style x:Key="HeaderCellStyle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
 
-        <!-- Стиль для строки (при наведении) -->
         <Style x:Key="TableRowStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -39,7 +38,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Стиль для GridSplitter -->
         <Style x:Key="GridSplitterStyle" TargetType="GridSplitter">
             <Setter Property="Width" Value="4"/>
             <Setter Property="Background" Value="#BDC3C7"/>
@@ -72,13 +70,13 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15" 
                     HorizontalAlignment="Left" VerticalAlignment="Center">
             <Button Content="➕ Добавить сотрудника" Click="AddButton_Click" 
-                    MinWidth="140" MaxWidth="180" Height="35" 
+                    MinWidth="140" Height="35" 
                     Margin="5" Background="#27AE60" Foreground="White"/>
-            <Button x:Name="EditClientButton" Content="✏ Редактировать" Click="EditItem_Click" 
-                    MinWidth="140" MaxWidth="140" Height="35" 
+            <Button Content="✏ Редактировать" Click="EditItem_Click" 
+                    MinWidth="120" Height="35" 
                     Margin="5" Background="#3498DB" Foreground="White"/>
-            <Button x:Name="DeleteClientButton" Content="🗑 Удалить" Click="DeleteItem_Click" 
-                    MinWidth="80" MaxWidth="120" Height="35" 
+            <Button Content="🗑 Деактивировать" Click="DeleteItem_Click" 
+                    MinWidth="120" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>
             <Label Content="🔍 Поиск:" VerticalContentAlignment="Center" Margin="20,0,0,0"/>
             <TextBox x:Name="SearchFilterTextBox" 
@@ -97,10 +95,11 @@
                     <ColumnDefinition Width="2*" MinWidth="100"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="2*" MinWidth="120"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.2*" MinWidth="80"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Text="ID" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Center" Padding="10,8"/>
+                <TextBlock Text="ID" Style="{StaticResource HeaderCellStyle}" Padding="10,8"/>
 
                 <GridSplitter Grid.Column="1" Style="{StaticResource GridSplitterStyle}"/>
 
@@ -116,6 +115,11 @@
 
                 <TextBlock Text="Должность" Style="{StaticResource HeaderCellStyle}" 
                            HorizontalAlignment="Center" Padding="10,8" Grid.Column="6"/>
+
+                <GridSplitter Grid.Column="7" Style="{StaticResource GridSplitterStyle}"/>
+
+                <TextBlock Text="Статус" Style="{StaticResource HeaderCellStyle}" 
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="8"/>
             </Grid>
         </Border>
 
@@ -133,30 +137,31 @@
                     <ColumnDefinition Width="2*" MinWidth="100"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="2*" MinWidth="120"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.2*" MinWidth="80"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- GridSplitter для данных -->
                 <GridSplitter Grid.Column="1" Style="{StaticResource GridSplitterStyle}"/>
                 <GridSplitter Grid.Column="3" Style="{StaticResource GridSplitterStyle}"/>
                 <GridSplitter Grid.Column="5" Style="{StaticResource GridSplitterStyle}"/>
+                <GridSplitter Grid.Column="7" Style="{StaticResource GridSplitterStyle}"/>
 
-                <!-- Список сотрудников -->
                 <ListBox x:Name="EmployeesListView" 
-         Grid.ColumnSpan="7"
-         SelectionMode="Single" 
-         Background="White"
-         BorderThickness="0"
-         SelectionChanged="EmployeesListView_SelectionChanged"
-         MouseDoubleClick="EmployeesListView_MouseDoubleClick"
-         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-         VirtualizingPanel.ScrollUnit="Pixel"
-         VirtualizingPanel.IsVirtualizing="True"
-         VirtualizingPanel.VirtualizationMode="Recycling">
+                         Grid.ColumnSpan="9"
+                         SelectionMode="Single" 
+                         Background="White"
+                         BorderThickness="0"
+                         SelectionChanged="EmployeesListView_SelectionChanged"
+                         MouseDoubleClick="EmployeesListView_MouseDoubleClick"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.ScrollUnit="Pixel"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling">
 
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="✏ Редактировать" Click="EditEmployeeMenuItem_Click"/>
-                            <MenuItem Header="🗑 Удалить" Click="DeleteEmployeeMenuItem_Click"/>
+                            <MenuItem Header="🗑 Деактивировать" Click="DeleteEmployeeMenuItem_Click"/>
                         </ContextMenu>
                     </ListBox.ContextMenu>
 
@@ -193,6 +198,7 @@
                                         <ColumnDefinition Width="3*" MinWidth="150"/>
                                         <ColumnDefinition Width="2*" MinWidth="100"/>
                                         <ColumnDefinition Width="2*" MinWidth="120"/>
+                                        <ColumnDefinition Width="1.2*" MinWidth="80"/>
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Text="{Binding Id}" 
@@ -221,6 +227,25 @@
                                                VerticalAlignment="Center" 
                                                Padding="10,8"
                                                Grid.Column="3"/>
+
+                                    <!-- Статус с использованием триггера -->
+                                    <TextBlock Grid.Column="4" 
+                                               HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" 
+                                               Padding="10,8">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="Активен"/>
+                                                <Setter Property="Foreground" Value="Green"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                        <Setter Property="Text" Value="Деактивирован"/>
+                                                        <Setter Property="Foreground" Value="Red"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </Grid>
                             </Border>
                             <DataTemplate.Triggers>
@@ -242,7 +267,7 @@
                     Background="#F39C12" Foreground="White" BorderThickness="0"
                     Cursor="Hand" Height="35"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" 
-                    MinWidth="80" MaxWidth="120" Height="35" 
+                    MinWidth="80" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>
         </StackPanel>
     </Grid>

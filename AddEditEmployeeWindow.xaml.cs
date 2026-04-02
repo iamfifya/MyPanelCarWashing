@@ -19,13 +19,24 @@ namespace MyPanelCarWashing
 
             if (employee == null)
             {
-                CurrentEmployee = new User();
-                Title = "Добавление сотрудника";
+                CurrentEmployee = new User
+                {
+                    IsActive = true  // Новый сотрудник активен по умолчанию
+                };
+                Title = "➕ Добавление сотрудника";
             }
             else
             {
-                CurrentEmployee = employee;
-                Title = "Редактирование сотрудника";
+                CurrentEmployee = new User
+                {
+                    Id = employee.Id,
+                    FullName = employee.FullName,
+                    Login = employee.Login,
+                    Password = employee.Password,
+                    IsAdmin = employee.IsAdmin,
+                    IsActive = employee.IsActive
+                };
+                Title = "✏ Редактирование сотрудника";
             }
 
             DataContext = this;
@@ -71,26 +82,13 @@ namespace MyPanelCarWashing
                 }
                 else
                 {
-                    var allUsers = _dataService.GetAllUsers();
-                    var existing = allUsers.FirstOrDefault(u => u.Id == CurrentEmployee.Id);
-                    if (existing != null)
-                    {
-                        existing.FullName = CurrentEmployee.FullName;
-                        existing.Login = CurrentEmployee.Login;
-                        existing.IsAdmin = CurrentEmployee.IsAdmin;
-                        if (!string.IsNullOrWhiteSpace(password))
-                        {
-                            existing.Password = CurrentEmployee.Password;
-                        }
-
-                        var appData = FileDataService.LoadData();
-                        appData.Users = allUsers;
-                        FileDataService.SaveData(appData);
-
-                        MessageBox.Show("Данные обновлены", "Успешно",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
+                    _dataService.UpdateUser(CurrentEmployee);
+                    MessageBox.Show("Данные обновлены", "Успешно",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
+
+                // Оповещаем об изменении
+                DataService.NotifyDataChanged();
 
                 DialogResult = true;
                 Close();

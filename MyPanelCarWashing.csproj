@@ -178,6 +178,9 @@
     <Compile Include="AddEditServiceWindow.xaml.cs">
       <DependentUpon>AddEditServiceWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="AppointmentsBoardWindow.xaml.cs">
+      <DependentUpon>AppointmentsBoardWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="AppointmentsWindow.xaml.cs">
       <DependentUpon>AppointmentsWindow.xaml</DependentUpon>
     </Compile>
@@ -192,6 +195,9 @@
       <DependentUpon>ClientsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="CompletedToStatusConverter.cs" />
+    <Compile Include="Controls\AppointmentsOverlay.xaml.cs">
+      <DependentUpon>AppointmentsOverlay.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Controls\CustomComboBox.cs" />
     <Compile Include="CurrencyConverter.cs" />
     <Compile Include="CustomDatePicker.xaml.cs">
@@ -266,6 +272,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="AppointmentsBoardWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="AppointmentsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -275,6 +285,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="ClientsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Controls\AppointmentsOverlay.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

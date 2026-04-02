@@ -1,4 +1,4 @@
-﻿namespace MyPanelCarWashing.Models
+namespace MyPanelCarWashing.Models
 {
     public class User
     {
@@ -7,5 +7,6 @@
         public string Password { get; set; }
         public string FullName { get; set; }
         public bool IsAdmin { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }
