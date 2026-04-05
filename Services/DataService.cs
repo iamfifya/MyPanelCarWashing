@@ -100,10 +100,11 @@ namespace MyPanelCarWashing.Services
             var existing = _data.Users.FirstOrDefault(u => u.Id == user.Id);
             if (existing != null)
             {
-                string oldLogin = existing.Login;
+                string oldPhone = existing.Phone ?? "не указан";
                 string oldRole = existing.IsAdmin ? "Админ" : "Сотрудник";
 
                 existing.FullName = user.FullName;
+                existing.Phone = user.Phone;
                 existing.Login = user.Login;
                 existing.IsAdmin = user.IsAdmin;
                 existing.IsActive = user.IsActive;
@@ -113,7 +114,7 @@ namespace MyPanelCarWashing.Services
                 }
                 SaveData();
 
-                Logger.Info($"Сотрудник обновлён | ID: {user.Id} | Логин: {oldLogin}→{user.Login} | Роль: {oldRole}→{(user.IsAdmin ? "Админ" : "Сотрудник")}", "USER");
+                Logger.Info($"Сотрудник обновлён | ID: {user.Id} | ФИО: {user.FullName} | Тел: {oldPhone}→{user.Phone ?? "не указан"} | Роль: {oldRole}→{(user.IsAdmin ? "Админ" : "Сотрудник")}", "USER");
             }
         }
 
@@ -225,8 +226,10 @@ namespace MyPanelCarWashing.Services
             _data.Users.Add(user);
             SaveData();
 
-            Logger.Info($"Сотрудник добавлен | ФИО: {user.FullName} | Логин: {user.Login} | Роль: {(user.IsAdmin ? "Админ" : "Сотрудник")}", "USER");
+            Logger.Info($"Сотрудник добавлен | ФИО: {user.FullName} | Логин: {user.Login} | Тел: {user.Phone ?? "не указан"} | Роль: {(user.IsAdmin ? "Админ" : "Сотрудник")}", "USER");
         }
+
+        
 
         // Услуги
         public List<Service> GetAllServices()

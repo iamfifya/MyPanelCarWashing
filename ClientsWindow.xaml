@@ -114,22 +114,22 @@
                 <GridSplitter Grid.Column="1" Style="{StaticResource GridSplitterStyle}"/>
 
                 <TextBlock Text="ФИО" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Left" Padding="10,8" Grid.Column="2"/>
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="2"/>
 
                 <GridSplitter Grid.Column="3" Style="{StaticResource GridSplitterStyle}"/>
 
                 <TextBlock Text="Телефон" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Left" Padding="10,8" Grid.Column="4"/>
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="4"/>
 
                 <GridSplitter Grid.Column="5" Style="{StaticResource GridSplitterStyle}"/>
 
                 <TextBlock Text="Марка/Модель" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Left" Padding="10,8" Grid.Column="6"/>
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="6"/>
 
                 <GridSplitter Grid.Column="7" Style="{StaticResource GridSplitterStyle}"/>
 
                 <TextBlock Text="Госномер" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Left" Padding="10,8" Grid.Column="8"/>
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="8"/>
 
                 <GridSplitter Grid.Column="9" Style="{StaticResource GridSplitterStyle}"/>
 
@@ -139,12 +139,12 @@
                 <GridSplitter Grid.Column="11" Style="{StaticResource GridSplitterStyle}"/>
 
                 <TextBlock Text="Сумма" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Right" Padding="10,8" Grid.Column="12"/>
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="12"/>
 
                 <GridSplitter Grid.Column="13" Style="{StaticResource GridSplitterStyle}"/>
 
                 <TextBlock Text="Ср. чек" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Right" Padding="10,8" Grid.Column="14"/>
+                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="14"/>
 
                 <GridSplitter Grid.Column="15" Style="{StaticResource GridSplitterStyle}"/>
 

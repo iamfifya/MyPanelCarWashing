@@ -90,6 +90,8 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="3*" MinWidth="150"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="2*" MinWidth="120"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="2*" MinWidth="100"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="2*" MinWidth="120"/>
@@ -98,26 +100,16 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="ID" Style="{StaticResource HeaderCellStyle}" Padding="10,8"/>
-
                 <GridSplitter Grid.Column="1" Style="{StaticResource GridSplitterStyle}"/>
-
-                <TextBlock Text="ФИО" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Left" Padding="10,8" Grid.Column="2"/>
-
+                <TextBlock Text="ФИО" Style="{StaticResource HeaderCellStyle}" HorizontalAlignment="Left" Padding="10,8" Grid.Column="2"/>
                 <GridSplitter Grid.Column="3" Style="{StaticResource GridSplitterStyle}"/>
-
-                <TextBlock Text="Логин" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Left" Padding="10,8" Grid.Column="4"/>
-
+                <TextBlock Text="Телефон" Style="{StaticResource HeaderCellStyle}" HorizontalAlignment="Left" Padding="10,8" Grid.Column="4"/>
                 <GridSplitter Grid.Column="5" Style="{StaticResource GridSplitterStyle}"/>
-
-                <TextBlock Text="Должность" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="6"/>
-
+                <TextBlock Text="Логин" Style="{StaticResource HeaderCellStyle}" HorizontalAlignment="Left" Padding="10,8" Grid.Column="6"/>
                 <GridSplitter Grid.Column="7" Style="{StaticResource GridSplitterStyle}"/>
-
-                <TextBlock Text="Статус" Style="{StaticResource HeaderCellStyle}" 
-                           HorizontalAlignment="Center" Padding="10,8" Grid.Column="8"/>
+                <TextBlock Text="Должность" Style="{StaticResource HeaderCellStyle}" HorizontalAlignment="Center" Padding="10,8" Grid.Column="8"/>
+                <GridSplitter Grid.Column="9" Style="{StaticResource GridSplitterStyle}"/>
+                <TextBlock Text="Статус" Style="{StaticResource HeaderCellStyle}" HorizontalAlignment="Center" Padding="10,8" Grid.Column="10"/>
             </Grid>
         </Border>
 
@@ -137,15 +129,18 @@
                     <ColumnDefinition Width="2*" MinWidth="120"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="1.2*" MinWidth="80"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="1.2*" MinWidth="80"/>
                 </Grid.ColumnDefinitions>
 
                 <GridSplitter Grid.Column="1" Style="{StaticResource GridSplitterStyle}"/>
                 <GridSplitter Grid.Column="3" Style="{StaticResource GridSplitterStyle}"/>
                 <GridSplitter Grid.Column="5" Style="{StaticResource GridSplitterStyle}"/>
                 <GridSplitter Grid.Column="7" Style="{StaticResource GridSplitterStyle}"/>
+                <GridSplitter Grid.Column="9" Style="{StaticResource GridSplitterStyle}"/>
 
                 <ListBox x:Name="EmployeesListView" 
-                         Grid.ColumnSpan="9"
+                         Grid.ColumnSpan="11"
                          SelectionMode="Single" 
                          Background="White"
                          BorderThickness="0"
@@ -194,6 +189,7 @@
                                         <ColumnDefinition Width="0.8*" MinWidth="50"/>
                                         <ColumnDefinition Width="3*" MinWidth="150"/>
                                         <ColumnDefinition Width="2*" MinWidth="100"/>
+                                        <ColumnDefinition Width="2*" MinWidth="100"/>
                                         <ColumnDefinition Width="2*" MinWidth="120"/>
                                         <ColumnDefinition Width="1.2*" MinWidth="80"/>
                                     </Grid.ColumnDefinitions>
@@ -205,28 +201,36 @@
                                                TextTrimming="CharacterEllipsis"/>
 
                                     <TextBlock Text="{Binding FullName}" 
-                                               HorizontalAlignment="Left" 
+                                               HorizontalAlignment="Center" 
                                                VerticalAlignment="Center" 
                                                Padding="10,8"
                                                TextWrapping="Wrap"
                                                TextTrimming="CharacterEllipsis"
                                                Grid.Column="1"/>
 
-                                    <TextBlock Text="{Binding Login}" 
-                                               HorizontalAlignment="Left" 
+                                    <TextBlock Text="{Binding Phone}" 
+                                               HorizontalAlignment="Center" 
                                                VerticalAlignment="Center" 
                                                Padding="10,8"
                                                TextTrimming="CharacterEllipsis"
-                                               Grid.Column="2"/>
+                                               Grid.Column="2"
+                                               Foreground="#7F8C8D"/>
+                                    
+                                    <TextBlock Text="{Binding Login}" 
+                                               HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" 
+                                               Padding="10,8"
+                                               TextTrimming="CharacterEllipsis"
+                                               Grid.Column="3"/>
 
                                     <TextBlock Text="{Binding IsAdmin, Converter={StaticResource BoolToRoleConverter}}" 
                                                HorizontalAlignment="Center" 
                                                VerticalAlignment="Center" 
                                                Padding="10,8"
-                                               Grid.Column="3"/>
+                                               Grid.Column="4"/>
 
                                     <!-- Статус с использованием триггера -->
-                                    <TextBlock Grid.Column="4" 
+                                    <TextBlock Grid.Column="5" 
                                                HorizontalAlignment="Center" 
                                                VerticalAlignment="Center" 
                                                Padding="10,8">

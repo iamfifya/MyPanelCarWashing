@@ -3,6 +3,7 @@ using MyPanelCarWashing.Services;
 using System;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace MyPanelCarWashing
 {
@@ -40,6 +41,30 @@ namespace MyPanelCarWashing
             }
 
             DataContext = this;
+        }
+
+        private void PhoneTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            var tb = sender as TextBox;
+            if (tb == null) return;
+
+            // Убираем всё кроме цифр
+            string digits = new string(tb.Text.Where(char.IsDigit).ToArray());
+
+            if (digits.Length == 0) return;
+
+            // Форматируем: 8 (999) 609-43-63
+            string formatted = "8";
+            if (digits.Length > 1) formatted += " (" + digits.Substring(1, Math.Min(3, digits.Length - 1));
+            if (digits.Length > 4) formatted += ") " + digits.Substring(4, Math.Min(3, digits.Length - 4));
+            if (digits.Length > 7) formatted += "-" + digits.Substring(7, Math.Min(2, digits.Length - 7));
+            if (digits.Length > 9) formatted += "-" + digits.Substring(9, Math.Min(2, digits.Length - 9));
+
+            if (tb.Text != formatted)
+            {
+                tb.Text = formatted;
+                tb.CaretIndex = tb.Text.Length;
+            }
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -99,7 +124,10 @@ namespace MyPanelCarWashing
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
+        private void PhoneTextBox_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            e.Handled = !System.Text.RegularExpressions.Regex.IsMatch(e.Text, @"^[\d\+\s\-\(\)]+$");
+        }
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
