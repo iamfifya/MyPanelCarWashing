@@ -33,6 +33,10 @@ namespace MyPanelCarWashing.ViewModels
             LoadWashers();
             LoadServices();
         }
+        public void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
         private CarWashOrder _currentOrder;
         private List<ServiceViewModel> _services;

@@ -18,6 +18,7 @@ namespace MyPanelCarWashing.Services
             CleanupDuplicateServices();
             CleanupInvalidData();
             FixInvalidData();
+            RecalculateAllClientsStats();
             _data.UpdateIds();
         }
 
@@ -294,12 +295,55 @@ namespace MyPanelCarWashing.Services
 
                 if (order.ClientId.HasValue)
                 {
-                    UpdateClientStats(order.ClientId.Value, order.FinalPrice);
+                    RecalculateClientStats(order.ClientId.Value);
                 }
 
                 SaveData();
                 NotifyDataChanged();
             }
+        }
+
+        public void RecalculateClientStats(int clientId)
+        {
+            var appData = FileDataService.LoadData();
+            var client = appData.Clients.FirstOrDefault(c => c.Id == clientId);
+            if (client == null) return;
+
+            // Находим все выполненные заказы клиента
+            var completedOrders = appData.Shifts
+                .SelectMany(s => s.Orders ?? new List<CarWashOrder>())
+                .Where(o => o.ClientId == clientId && o.Status == "Выполнен")
+                .ToList();
+
+            // Обновляем статистику
+            client.VisitsCount = completedOrders.Count;
+            client.TotalSpent = completedOrders.Sum(o => o.FinalPrice);
+            client.LastVisitDate = completedOrders.Any() ? completedOrders.Max(o => o.Time) : (DateTime?)null;
+
+            FileDataService.SaveData(appData);
+
+            System.Diagnostics.Debug.WriteLine($"=== ПЕРЕСЧЕТ СТАТИСТИКИ ===");
+            System.Diagnostics.Debug.WriteLine($"Клиент: {client.FullName}");
+            System.Diagnostics.Debug.WriteLine($"Найдено выполненных заказов: {completedOrders.Count}");
+            System.Diagnostics.Debug.WriteLine($"Общая сумма: {client.TotalSpent}");
+        }
+
+        public void RecalculateAllClientsStats()
+        {
+            var appData = FileDataService.LoadData();
+            foreach (var client in appData.Clients)
+            {
+                var completedOrders = appData.Shifts
+                    .SelectMany(s => s.Orders ?? new List<CarWashOrder>())
+                    .Where(o => o.ClientId == client.Id && o.Status == "Выполнен")
+                    .ToList();
+
+                client.VisitsCount = completedOrders.Count;
+                client.TotalSpent = completedOrders.Sum(o => o.FinalPrice);
+                client.LastVisitDate = completedOrders.Any() ? completedOrders.Max(o => o.Time) : (DateTime?)null;
+            }
+            FileDataService.SaveData(appData);
+            System.Diagnostics.Debug.WriteLine($"Пересчитана статистика для {appData.Clients.Count} клиентов");
         }
 
         public void UpdateOrderServices(int orderId, List<int> serviceIds)
@@ -314,8 +358,6 @@ namespace MyPanelCarWashing.Services
                 SaveData();
             }
         }
-
-        // DataService.cs
         public CarWashOrder GetOrderById(int orderId)
         {
             try

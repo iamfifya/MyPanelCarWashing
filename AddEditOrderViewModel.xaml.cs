@@ -1,15 +1,16 @@
 // AddEditOrderWindow.xaml.cs
+using Microsoft.VisualBasic;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
-using System.Windows;
-using System.Windows.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
-using Microsoft.VisualBasic;
+using System.Windows.Threading;
 
 namespace MyPanelCarWashing
 {
@@ -186,6 +187,7 @@ namespace MyPanelCarWashing
                 }
             }
         }
+
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -318,11 +320,19 @@ namespace MyPanelCarWashing
 
                 if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarModel))
                 {
-                    _viewModel.CurrentOrder.CarModel = selectedClient.CarModel;
+                    // Временно сохраняем значение, обновляем, потом возвращаем
+                    var temp = _viewModel.CurrentOrder;
+                    temp.CarModel = selectedClient.CarModel;
+                    _viewModel.CurrentOrder = null;
+                    _viewModel.CurrentOrder = temp;
                 }
+
                 if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarNumber))
                 {
-                    _viewModel.CurrentOrder.CarNumber = selectedClient.CarNumber;
+                    var temp = _viewModel.CurrentOrder;
+                    temp.CarNumber = selectedClient.CarNumber;
+                    _viewModel.CurrentOrder = null;
+                    _viewModel.CurrentOrder = temp;
                 }
             }
         }
