@@ -20,6 +20,17 @@ namespace MyPanelCarWashing.Models
         private int _visitsCount;
         private string _notes;
 
+        // Персональная скидка клиента в процентах (0-100). 
+        // Задаётся вручную в карточке клиента.
+        public decimal DefaultDiscountPercent { get; set; } = 0;
+
+        // Для ComboBox в интерфейсе
+        public string DisplayInfo => $"{FullName} ({Phone}) {CarNumber}";
+
+        // Средний чек (для отображения)
+        public decimal AverageCheck => VisitsCount > 0 ? TotalSpent / VisitsCount : 0;
+
+
         public int Id
         {
             get => _id;
@@ -79,10 +90,5 @@ namespace MyPanelCarWashing.Models
             get => _notes;
             set { _notes = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Notes))); }
         }
-
-        // Вычисляемое свойство для отображения
-        public string DisplayInfo => $"{FullName} | {Phone} | {CarNumber}";
-
-        public string AverageCheck => VisitsCount > 0 ? (TotalSpent / VisitsCount).ToString("N0") : "0";
     }
 }

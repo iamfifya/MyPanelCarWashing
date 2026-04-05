@@ -291,6 +291,10 @@ namespace MyPanelCarWashing.Services
                     .Where(s => serviceIds.Contains(s.Id))
                     .Sum(s => s.GetPrice(order.BodyTypeCategory));
 
+                order.OriginalTotalPrice = order.TotalPrice;
+                order.DiscountPercent = order.DiscountPercent;
+                order.DiscountAmount = order.DiscountAmount;
+
                 shift.Orders.Add(order);
 
                 if (order.ClientId.HasValue)
@@ -778,8 +782,14 @@ namespace MyPanelCarWashing.Services
             var order = GetOrderById(orderId);
             if (order != null)
             {
+                string oldStatus = order.Status; // ← ОБЯЗАТЕЛЬНО объявляем ДО изменения
                 order.Status = status;
                 SaveData();
+
+                if (status == "Выполнен" && oldStatus != "Выполнен" && order.ClientId.HasValue)
+                {
+                    UpdateClientLoyalty(order.ClientId.Value); // ← Вызов метода
+                }
             }
         }
         private int GetNextOrderId(AppData appData)
@@ -1055,6 +1065,23 @@ namespace MyPanelCarWashing.Services
             }
 
             return null; // Можно закрывать
+        }
+        public void UpdateClientLoyalty(int clientId)
+        {
+            var appData = FileDataService.LoadData();
+            var client = appData.Clients.FirstOrDefault(c => c.Id == clientId);
+            if (client == null) return;
+
+            var completedOrders = appData.Shifts
+                .SelectMany(s => s.Orders ?? new List<CarWashOrder>())
+                .Where(o => o.ClientId == clientId && o.Status == "Выполнен")
+                .ToList();
+
+            client.VisitsCount = completedOrders.Count;
+            client.TotalSpent = completedOrders.Sum(o => o.FinalPrice);
+            client.LastVisitDate = completedOrders.Any() ? completedOrders.Max(o => o.Time) : (DateTime?)null;
+
+            FileDataService.SaveData(appData);
         }
     }
 }

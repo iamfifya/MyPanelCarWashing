@@ -110,7 +110,6 @@ namespace MyPanelCarWashing.ViewModels
             }
         }
 
-        public decimal FinalTotal => ServicesTotal + ExtraCost;
         public string WindowTitle => _windowTitle;
         public bool IsEditMode => _isEditMode;
         public bool IsAppointment => _isAppointment;
@@ -139,8 +138,13 @@ namespace MyPanelCarWashing.ViewModels
                     AppointmentId = _existingOrder.AppointmentId,
                     ShiftId = _existingOrder.ShiftId,
                     ClientId = _existingOrder.ClientId,
-                    Notes = _existingOrder.Notes
+                    Notes = _existingOrder.Notes,
+                    DiscountPercent = _existingOrder.DiscountPercent,
+                    DiscountAmount = _existingOrder.DiscountAmount,
+                    OriginalTotalPrice = _existingOrder.OriginalTotalPrice
                 };
+                _discountPercent = CurrentOrder.DiscountPercent;
+                _discountAmount = CurrentOrder.DiscountAmount;
                 SelectedBodyTypeCategory = CurrentOrder.BodyTypeCategory;
                 ExtraCost = CurrentOrder.ExtraCost;
                 _windowTitle = "✏ Редактирование заказа";
@@ -164,7 +168,10 @@ namespace MyPanelCarWashing.ViewModels
                     IsAppointment = true,
                     AppointmentId = _existingOrder.AppointmentId,
                     ClientId = _existingOrder.ClientId,
-                    Notes = _existingOrder.Notes
+                    Notes = _existingOrder.Notes,
+                    DiscountPercent = _existingOrder.DiscountPercent,
+                    DiscountAmount = _existingOrder.DiscountAmount,
+                    OriginalTotalPrice = _existingOrder.OriginalTotalPrice
                 };
                 SelectedBodyTypeCategory = CurrentOrder.BodyTypeCategory;
                 ExtraCost = CurrentOrder.ExtraCost;
@@ -195,7 +202,20 @@ namespace MyPanelCarWashing.ViewModels
                 ExtraCost = 0;
             }
         }
+        private void ApplyClientDiscount(Client client)
+        {
+            if (client == null) return;
 
+            // Применяем персональную скидку клиента, если она > 0
+            // И только если пользователь ещё не задал свою скидку вручную
+            if (client.DefaultDiscountPercent > 0 && DiscountPercent == 0 && DiscountAmount == 0)
+            {
+                DiscountPercent = client.DefaultDiscountPercent;
+
+                // Показываем уведомление (опционально)
+                System.Diagnostics.Debug.WriteLine($"Применена скидка клиента {client.FullName}: {client.DefaultDiscountPercent}%");
+            }
+        }
         private void LoadWashers()
         {
             var allUsers = _dataService.GetAllUsers();
@@ -250,12 +270,6 @@ namespace MyPanelCarWashing.ViewModels
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Services)));
             }
         }
-
-        public void CalculateTotal()
-        {
-            ServicesTotal = Services?.Where(s => s.IsSelected).Sum(s => s.Price) ?? 0;
-        }
-
         public bool Validate()
         {
             if (string.IsNullOrWhiteSpace(CurrentOrder.CarModel))
@@ -306,6 +320,11 @@ namespace MyPanelCarWashing.ViewModels
                 CurrentOrder.TotalPrice = ServicesTotal;
                 CurrentOrder.BodyTypeCategory = SelectedBodyTypeCategory;
                 CurrentOrder.ExtraCost = ExtraCost;
+
+                // Сохраняем скидку
+                CurrentOrder.OriginalTotalPrice = ServicesTotal;
+                CurrentOrder.DiscountPercent = DiscountPercent;
+                CurrentOrder.DiscountAmount = DiscountAmount;
 
                 if (!IsEditMode && !IsAppointment)
                 {
@@ -368,7 +387,91 @@ namespace MyPanelCarWashing.ViewModels
             }
         }
 
-        // Добавьте этот вспомогательный метод в класс AddEditOrderViewModel
+        private decimal _discountPercent;
+        private decimal _discountAmount;
+
+        public decimal DiscountPercent
+        {
+            get => _discountPercent;
+            set
+            {
+                if (_discountPercent != value)
+                {
+                    _discountPercent = value;
+                    OnPropertyChanged(nameof(DiscountPercent));
+                    if (value > 0)
+                    {
+                        DiscountAmount = 0;
+                    }
+                    CalculateTotal();
+                }
+            }
+        }
+
+        public decimal DiscountAmount
+        {
+            get => _discountAmount;
+            set
+            {
+                if (_discountAmount != value)
+                {
+                    _discountAmount = value;
+                    OnPropertyChanged(nameof(DiscountAmount));
+                    if (value > 0)
+                    {
+                        DiscountPercent = 0;
+                    }
+                    CalculateTotal();
+                }
+            }
+        }
+
+        // Обновите CalculateTotal
+        public void CalculateTotal()
+        {
+            ServicesTotal = Services?.Where(s => s.IsSelected).Sum(s => s.Price) ?? 0;
+
+            // Важно: уведомляем о всех свойствах, которые зависят от расчётов
+            OnPropertyChanged(nameof(ServicesTotal));
+            OnPropertyChanged(nameof(FinalTotal));           // ← зависит от ServicesTotal, DiscountPercent, DiscountAmount, ExtraCost
+            OnPropertyChanged(nameof(WasherEarningsDisplay)); // ← зависит от ServicesTotal
+            OnPropertyChanged(nameof(CompanyEarningsDisplay)); // ← зависит от вышеуказанных
+        }
+
+        public decimal FinalTotal
+        {
+            get
+            {
+                // Если задан процент — считаем скидку от суммы услуг
+                // Если задана сумма — используем её напрямую
+                decimal actualDiscount = DiscountPercent > 0
+                    ? ServicesTotal * (DiscountPercent / 100m)
+                    : DiscountAmount;
+
+                return ServicesTotal - actualDiscount + ExtraCost;
+            }
+        }
+        public decimal WasherEarningsDisplay
+        {
+            get
+            {
+                // Мойщик получает 35% от стоимости услуг (до применения скидки)
+                // Или от суммы после скидки — зависит от вашей бизнес-логики
+                decimal baseAmount = ServicesTotal; // или: ServicesTotal - (DiscountPercent > 0 ? ServicesTotal * (DiscountPercent / 100m) : DiscountAmount)
+                return baseAmount * 0.35m;
+            }
+        }
+        public decimal CompanyEarningsDisplay
+        {
+            get
+            {
+                decimal actualDiscount = DiscountPercent > 0
+                    ? ServicesTotal * (DiscountPercent / 100m)
+                    : DiscountAmount;
+
+                return (ServicesTotal - actualDiscount + ExtraCost) * 0.65m;
+            }
+        }
         private void UpdateClientStatsForOrder(AppData appData, CarWashOrder order, string oldStatus, string newStatus)
         {
             var client = appData.Clients.FirstOrDefault(c => c.Id == order.ClientId.Value);

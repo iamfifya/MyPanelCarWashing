@@ -19,6 +19,7 @@
     <Window.Resources>
         <local:StatusToBackgroundConverter x:Key="StatusToBackgroundConverter"/>
         <local:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
 
         <Style x:Key="OrderCardBorderStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
@@ -68,12 +69,37 @@
 
                     <Grid Margin="0,5,0,0">
                         <StackPanel>
-                            <TextBlock Text="{Binding FinalPrice, StringFormat={}{0:N0} ₽}" FontSize="16" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Left"/>
-                            <TextBlock Text="{Binding PaymentMethod, StringFormat=💳 {0}}" FontSize="10" Foreground="#3498DB" Margin="0,2,0,0"/>
+                            <!-- Оригинальная цена (зачёркнута, если есть скидка) -->
+                            <TextBlock Text="{Binding OriginalPriceDisplay}" 
+                   FontSize="12" 
+                   Foreground="#95A5A6" 
+                   HorizontalAlignment="Left"
+                   TextDecorations="Strikethrough"
+                   Visibility="{Binding ShowOriginalPrice, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                            <!-- Итоговая цена со скидкой -->
+                            <TextBlock Text="{Binding FinalPrice, StringFormat={}{0:N0} ₽}" 
+                   FontSize="16" 
+                   FontWeight="Bold" 
+                   Foreground="#27AE60" 
+                   HorizontalAlignment="Left"/>
+
+                            <!-- Бейдж скидки -->
+                            <TextBlock Text="{Binding DiscountDisplay}" 
+                   FontSize="11" 
+                   Foreground="#E74C3C" 
+                   FontWeight="Bold"
+                   Visibility="{Binding HasDiscount, Converter={StaticResource BoolToVisibilityConverter}}"
+                   Margin="0,2,0,0"/>
+
+                            <TextBlock Text="{Binding PaymentMethod, StringFormat=💳 {0}}" 
+                   FontSize="10" 
+                   Foreground="#3498DB" 
+                   Margin="0,2,0,0"/>
                         </StackPanel>
 
                         <Border Background="{Binding Status, Converter={StaticResource StatusToBackgroundConverter}}" 
-                                CornerRadius="4" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center">
+            CornerRadius="4" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Status}" Foreground="White" FontSize="10" FontWeight="Bold"/>
                         </Border>
                     </Grid>

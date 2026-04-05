@@ -37,11 +37,37 @@ namespace MyPanelCarWashing.Models
         public int? ClientId { get; set; }
         public string ExtraCostReason { get; set; }
 
+        public decimal DiscountPercent { get; set; } = 0; // Скидка в процентах (0-100)
+        public decimal DiscountAmount { get; set; } = 0; // Скидка в деньгах (переопределяет процент)
+        public decimal OriginalTotalPrice { get; set; } // Цена услуг ДО скидки
+
         public decimal BasePrice => TotalPrice;
-        public decimal FinalPrice => TotalPrice + ExtraCost;
+        public decimal FinalPrice
+        {
+            get
+            {
+                // Определяем реальную сумму скидки
+                decimal actualDiscount = 0;
+
+                if (DiscountPercent > 0)
+                {
+                    // Если задан процент — считаем от оригинальной суммы услуг
+                    decimal basePrice = OriginalTotalPrice > 0 ? OriginalTotalPrice : TotalPrice;
+                    actualDiscount = basePrice * (DiscountPercent / 100m);
+                }
+                else
+                {
+                    // Если задана фикс. сумма — используем её
+                    actualDiscount = DiscountAmount;
+                }
+
+                // Финальная цена: услуги - скидка + доп. расходы
+                return TotalPrice - actualDiscount + ExtraCost;
+            }
+        }
         public string PaymentMethod { get; set; } = "Наличные";
-        public decimal WasherEarnings => FinalPrice * 0.35m;
-        public decimal CompanyEarnings => FinalPrice * 0.65m;
+        public decimal WasherEarnings => OriginalTotalPrice * 0.35m; // ЗП от полной цены ДО скидки
+        public decimal CompanyEarnings => FinalPrice * 0.65m; // Доход компании после скидки
         public int DurationMinutes { get; set; } = 60;
 
         public string ServicesCount => ServiceIds.Count > 0 ? $"{ServiceIds.Count} услуг" : "нет услуг";

@@ -77,9 +77,6 @@
             <Button x:Name="EditClientButton" Content="✏ Редактировать" Click="EditClient_Click" 
                     MinWidth="100" MaxWidth="140" Height="35" 
                     Margin="5" Background="#3498DB" Foreground="White"/>
-            <Button x:Name="DeleteClientButton" Content="🗑 Удалить" Click="DeleteClient_Click" 
-                    MinWidth="80" MaxWidth="120" Height="35" 
-                    Margin="5" Background="#E74C3C" Foreground="White"/>
             <Button x:Name="ShowStatsButton" Content="📊 Статистика клиента" Click="ShowStatsButton_Click" 
                     MinWidth="100" MaxWidth="180" Height="35" 
                     Margin="5" Background="#F39C12" Foreground="White"/>
@@ -208,7 +205,6 @@
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="✏ Редактировать" Click="EditClientMenuItem_Click"/>
-                            <MenuItem Header="🗑 Удалить" Click="DeleteClientMenuItem_Click"/>
                             <Separator/>
                             <MenuItem Header="📊 Показать статистику" Click="ShowStatsMenuItem_Click"/>
                         </ContextMenu>

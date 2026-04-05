@@ -32,7 +32,6 @@ namespace MyPanelCarWashing
                 // Если фокус ушел на кнопки управления - не снимаем выделение
                 bool isControlButton = focusedElement is Button &&
                     (focusedElement.Name == "EditClientButton" ||
-                     focusedElement.Name == "DeleteClientButton" ||
                      focusedElement.Name == "ShowStatsButton");
 
                 if (!isControlButton)
@@ -148,19 +147,6 @@ namespace MyPanelCarWashing
             }
         }
 
-        private void DeleteClientMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedClient != null)
-            {
-                DeleteClient(_selectedClient);
-            }
-            else
-            {
-                MessageBox.Show("Выберите клиента для удаления", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
         private void ShowStatsMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedClient != null)
@@ -170,36 +156,6 @@ namespace MyPanelCarWashing
             else
             {
                 MessageBox.Show("Выберите клиента для просмотра статистики", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        // Вынесите удаление в отдельный метод
-        private void DeleteClient(Client client)
-        {
-            var result = MessageBox.Show($"Удалить клиента \"{client.FullName}\"?\n\n" +
-                $"Все заказы клиента останутся в системе, но потеряют связь с клиентом.",
-                "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                _dataService.DeleteClient(client.Id);
-                LoadClients();
-                _selectedClient = null;
-                MessageBox.Show("Клиент удален", "Успешно");
-            }
-        }
-
-        // Обновите метод DeleteClient_Click
-        private void DeleteClient_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedClient != null)
-            {
-                DeleteClient(_selectedClient);
-            }
-            else
-            {
-                MessageBox.Show("Выберите клиента для удаления", "Внимание",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }

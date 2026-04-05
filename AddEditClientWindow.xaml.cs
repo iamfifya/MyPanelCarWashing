@@ -2,6 +2,8 @@ using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using System;
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace MyPanelCarWashing
 {
@@ -40,6 +42,17 @@ namespace MyPanelCarWashing
             }
 
             DataContext = this;
+
+            // Подписка на изменение скидки для валидации
+            if (CurrentClient != null)
+            {
+                // Можно добавить PropertyChanged, но для простоты валидируем при сохранении
+            }
+        }
+        private void DiscountPercentTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Разрешаем только цифры
+            e.Handled = !int.TryParse(e.Text, out _);
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -59,6 +72,15 @@ namespace MyPanelCarWashing
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+
+                // === ВАЛИДАЦИЯ СКИДКИ ===
+                if (CurrentClient.DefaultDiscountPercent < 0 || CurrentClient.DefaultDiscountPercent > 100)
+                {
+                    MessageBox.Show("Скидка должна быть в диапазоне 0-100%", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                // === КОНЕЦ ВАЛИДАЦИИ ===
 
                 if (CurrentClient.Id == 0)
                 {
@@ -82,6 +104,7 @@ namespace MyPanelCarWashing
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {

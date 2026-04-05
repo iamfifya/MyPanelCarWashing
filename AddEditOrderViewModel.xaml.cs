@@ -276,7 +276,9 @@ namespace MyPanelCarWashing
                 {
                     _viewModel.SelectedBodyTypeCategory = category;
                 }
-
+                _viewModel.CurrentOrder.DiscountPercent = _viewModel.DiscountPercent;
+                _viewModel.CurrentOrder.DiscountAmount = _viewModel.DiscountAmount;
+                _viewModel.CurrentOrder.OriginalTotalPrice = _viewModel.ServicesTotal;
                 _viewModel.CurrentOrder.ExtraCost = _viewModel.ExtraCost;
                 _viewModel.CurrentOrder.ExtraCostReason = _viewModel.CurrentOrder.ExtraCostReason;
 
@@ -318,9 +320,21 @@ namespace MyPanelCarWashing
             {
                 _viewModel.CurrentOrder.ClientId = selectedClient.Id;
 
+                // === АВТО-ПОДСТАНОВКА СКИДКИ КЛИЕНТА ===
+                // Применяем ТОЛЬКО если пользователь ещё не менял скидку вручную
+                // (т.е. оба поля скидки равны 0)
+                if (selectedClient.DefaultDiscountPercent > 0 &&
+                    _viewModel.DiscountPercent == 0 &&
+                    _viewModel.DiscountAmount == 0)
+                {
+                    _viewModel.DiscountPercent = selectedClient.DefaultDiscountPercent;
+                    System.Diagnostics.Debug.WriteLine($"[AUTO] Применена скидка клиента: {selectedClient.DefaultDiscountPercent}%");
+                }
+                // === КОНЕЦ АВТО-ПОДСТАНОВКИ ===
+
+                // Авто-заполнение авто, если поля пустые
                 if (string.IsNullOrWhiteSpace(_viewModel.CurrentOrder.CarModel))
                 {
-                    // Временно сохраняем значение, обновляем, потом возвращаем
                     var temp = _viewModel.CurrentOrder;
                     temp.CarModel = selectedClient.CarModel;
                     _viewModel.CurrentOrder = null;

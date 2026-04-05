@@ -275,8 +275,15 @@ namespace MyPanelCarWashing
                     CarNumber = o.CarNumber,
                     Time = o.Time,
                     WasherName = GetWasherName(o.WasherId),
-                    ServicesList = string.Join(", ", o.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
+                    ServicesList = string.Join(", ", (o.ServiceIds ?? new List<int>()).Select(id =>
+                    {
+                        var svc = allServices.FirstOrDefault(s => s.Id == id);
+                        return svc != null ? svc.Name : "Unknown";
+                    })),
                     FinalPrice = o.FinalPrice,
+                    OriginalTotalPrice = o.OriginalTotalPrice,
+                    DiscountPercent = o.DiscountPercent,
+                    DiscountAmount = o.DiscountAmount,
                     ExtraCost = o.ExtraCost,
                     ExtraCostReason = o.ExtraCostReason,
                     BoxNumber = o.BoxNumber,
@@ -297,8 +304,26 @@ namespace MyPanelCarWashing
                         CarNumber = a.CarNumber,
                         Time = a.AppointmentDate,
                         WasherName = "📅 Запись",
-                        ServicesList = string.Join(", ", a.ServiceIds.Select(id => allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "Unknown")),
-                        FinalPrice = a.ServiceIds.Sum(id => allServices.FirstOrDefault(s => s.Id == id)?.GetPrice(a.BodyTypeCategory) ?? 0) + a.ExtraCost,
+                        ServicesList = string.Join(", ", (a.ServiceIds ?? new List<int>()).Select(id =>
+                        {
+                            var svc = allServices.FirstOrDefault(s => s.Id == id);
+                            return svc != null ? svc.Name : "Unknown";
+                        })),
+
+                        // === ЦЕНА И СКИДКИ ДЛЯ ЗАПИСЕЙ ===
+                        // У записей ещё нет финальной цены со скидкой, считаем базовую
+                        FinalPrice = (a.ServiceIds ?? new List<int>()).Sum(id =>
+                        {
+                            var svc = allServices.FirstOrDefault(s => s.Id == id);
+                            return svc != null ? svc.GetPrice(a.BodyTypeCategory) : 0;
+                        }) + a.ExtraCost,
+
+                        // Скидки для записей пока не применяются — ставим 0
+                        OriginalTotalPrice = 0,
+                        DiscountPercent = 0,
+                        DiscountAmount = 0,
+                        // === КОНЕЦ ПОЛЕЙ СКИДОК ===
+
                         ExtraCost = a.ExtraCost,
                         ExtraCostReason = a.ExtraCostReason,
                         BoxNumber = a.BoxNumber,
@@ -1399,6 +1424,28 @@ namespace MyPanelCarWashing
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
             }
         }
+
+        public decimal DiscountPercent { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal OriginalTotalPrice { get; set; }
+
+        public string DiscountDisplay
+        {
+            get
+            {
+                if (DiscountPercent > 0) return $"−{DiscountPercent:F0}%";
+                if (DiscountAmount > 0) return $"−{DiscountAmount:N0} ₽";
+                return "";
+            }
+        }
+
+        public bool HasDiscount => DiscountPercent > 0 || DiscountAmount > 0;
+
+        public string OriginalPriceDisplay => OriginalTotalPrice > 0
+            ? $"{OriginalTotalPrice:N0} ₽"
+            : "";
+
+        public bool ShowOriginalPrice => HasDiscount && OriginalTotalPrice > 0;
     }
 
 
