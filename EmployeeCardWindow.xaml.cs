@@ -139,79 +139,12 @@ namespace MyPanelCarWashing
             }
         }
 
-        private void DeleteEmployeeMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedEmployee != null)
-            {
-                DeleteEmployee(_selectedEmployee);
-            }
-            else
-            {
-                MessageBox.Show("Выберите сотрудника для удаления", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
         private void OpenEditEmployee(User employee)
         {
             var editWin = new AddEditEmployeeWindow(_dataService, employee);
             if (editWin.ShowDialog() == true)
             {
                 LoadEmployees();
-            }
-        }
-
-        private void DeleteEmployee(User employee)
-        {
-            if (employee.IsAdmin && employee.Login == "admin")
-            {
-                MessageBox.Show("Нельзя удалить главного администратора!", "Предупреждение",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            // Проверяем, есть ли у сотрудника заказы в текущей открытой смене
-            var currentShift = _dataService.GetCurrentOpenShift();
-            var hasOrdersInCurrentShift = false;
-
-            if (currentShift != null && currentShift.Orders != null)
-            {
-                hasOrdersInCurrentShift = currentShift.Orders.Any(o => o.WasherId == employee.Id);
-            }
-
-            string warningMessage = hasOrdersInCurrentShift
-                ? $"\n\n⚠️ ВНИМАНИЕ: У сотрудника есть заказы в текущей открытой смене!\n" +
-                  "При деактивации эти заказы останутся, но новый сотрудник не сможет их взять.\n" +
-                  "Рекомендуется сначала завершить или переназначить эти заказы."
-                : "";
-
-            var result = MessageBox.Show($"Деактивировать сотрудника {employee.FullName}?\n\n" +
-                $"Сотрудник будет скрыт из списка активных, но все его заказы останутся в системе.\n" +
-                $"{warningMessage}\n\nЭто действие можно отменить (снова активировать).",
-                "Подтверждение деактивации",
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                try
-                {
-                    employee.IsActive = false;
-                    _dataService.UpdateUser(employee);
-
-                    // Оповещаем об изменении
-                    DataService.NotifyDataChanged();
-
-                    LoadEmployees();
-                    _selectedEmployee = null;
-
-                    MessageBox.Show($"Сотрудник {employee.FullName} деактивирован.", "Успешно",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Ошибка при деактивации: {ex.Message}", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
             }
         }
 
@@ -226,19 +159,6 @@ namespace MyPanelCarWashing
             LoadEmployees();
         }
 
-        // Обновите метод DeleteItem_Click
-        private void DeleteItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedEmployee != null)
-            {
-                DeleteEmployee(_selectedEmployee);
-            }
-            else
-            {
-                MessageBox.Show("Выберите сотрудника для удаления", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
         // Обновите метод EditItem_Click
         private void EditItem_Click(object sender, RoutedEventArgs e)
         {

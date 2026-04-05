@@ -72,12 +72,10 @@
             <Button Content="➕ Добавить сотрудника" Click="AddButton_Click" 
                     MinWidth="140" Height="35" 
                     Margin="5" Background="#27AE60" Foreground="White"/>
-            <Button Content="✏ Редактировать" Click="EditItem_Click" 
-                    MinWidth="120" Height="35" 
-                    Margin="5" Background="#3498DB" Foreground="White"/>
-            <Button Content="🗑 Деактивировать" Click="DeleteItem_Click" 
-                    MinWidth="120" Height="35" 
-                    Margin="5" Background="#E74C3C" Foreground="White"/>
+            <Button x:Name="ScheduleButton" Content="📅 График сотрудников" 
+                    Click="ScheduleButton_Click" Padding="15,8" Margin="0,0,10,0"
+                    Background="#F39C12" Foreground="White" BorderThickness="0"
+                    Cursor="Hand" Height="35"/>
             <Label Content="🔍 Поиск:" VerticalContentAlignment="Center" Margin="20,0,0,0"/>
             <TextBox x:Name="SearchFilterTextBox" 
                      Width="250" Height="35" Margin="5" Padding="5"
@@ -161,7 +159,6 @@
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="✏ Редактировать" Click="EditEmployeeMenuItem_Click"/>
-                            <MenuItem Header="🗑 Деактивировать" Click="DeleteEmployeeMenuItem_Click"/>
                         </ContextMenu>
                     </ListBox.ContextMenu>
 
@@ -235,11 +232,11 @@
                                                Padding="10,8">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
-                                                <Setter Property="Text" Value="Активен"/>
+                                                <Setter Property="Text" Value="Трудоустроен"/>
                                                 <Setter Property="Foreground" Value="Green"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsActive}" Value="False">
-                                                        <Setter Property="Text" Value="Деактивирован"/>
+                                                        <Setter Property="Text" Value="Уволен"/>
                                                         <Setter Property="Foreground" Value="Red"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -262,10 +259,6 @@
         </ScrollViewer>
 
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
-            <Button x:Name="ScheduleButton" Content="📅 График сотрудников" 
-                    Click="ScheduleButton_Click" Padding="15,8" Margin="0,0,10,0"
-                    Background="#F39C12" Foreground="White" BorderThickness="0"
-                    Cursor="Hand" Height="35"/>
             <Button Content="✖ Закрыть" Click="CloseButton_Click" 
                     MinWidth="80" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>

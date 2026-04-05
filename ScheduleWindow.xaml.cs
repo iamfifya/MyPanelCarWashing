@@ -177,10 +177,11 @@ namespace MyPanelCarWashing
 
             _scheduleData = new List<EmployeeSchedule>();
 
-            // ========== АДМИНИСТРАТОРЫ (2х2, чередуются) ==========
-            // 2 админа работают через день: Анна в четные, Анастасия в нечетные (или наоборот)
+            // ========== АДМИНИСТРАТОРЫ (2 дня работы / 2 дня отдыха) ==========
+            // Цикл: Р-Р-В-В (4 дня)
             for (int i = 0; i < admins.Count; i++)
             {
+
                 var admin = admins[i];
                 var empSchedule = new EmployeeSchedule
                 {
@@ -190,36 +191,39 @@ namespace MyPanelCarWashing
                     Days = new Dictionary<int, string>()
                 };
 
-                // Сдвиг: первый админ работает в нечетные дни, второй - в четные
-                int shift = i % 2; // 0 или 1
+                // Сдвиг фазы для разных админов, чтобы они не всегда совпадали
+                int phaseShift = i * 2; // Каждый следующий админ сдвинут на 2 дня
 
-                // Учитываем предыдущий месяц
+                // Учитываем последний день предыдущего месяца для непрерывности цикла
                 var prevSchedule = prevMonthSchedule?.FirstOrDefault(s => s.EmployeeId == admin.Id);
-                int prevShift = 0;
+                int carryOver = 0;
                 if (prevSchedule != null && prevSchedule.Days.Any())
                 {
-                    var lastDayPrevMonth = DateTime.DaysInMonth(prevMonthDate.Year, prevMonthDate.Month);
-                    int lastActualDay = lastDayPrevMonth;
-                    while (lastActualDay > 0 && !prevSchedule.Days.ContainsKey(lastActualDay))
+                    var lastDayPrev = DateTime.DaysInMonth(prevMonthDate.Year, prevMonthDate.Month);
+                    for (int d = lastDayPrev; d >= 1; d--)
                     {
-                        lastActualDay--;
-                    }
-                    if (lastActualDay > 0 && prevSchedule.Days[lastActualDay] == "р")
-                    {
-                        prevShift = 1;
+                        if (prevSchedule.Days.ContainsKey(d) && !string.IsNullOrEmpty(prevSchedule.Days[d]))
+                        {
+                            // Считаем позицию в цикле 0-3: Р=0,1; В=2,3
+                            string last = prevSchedule.Days[d].ToUpper();
+                            if (last == "Р") carryOver = 0;
+                            else if (last == "В") carryOver = 2;
+                            else if (last == "П") carryOver = 0; // Пропуск не влияет на цикл
+                            break;
+                        }
                     }
                 }
-
-                int totalShift = (shift + prevShift) % 2;
 
                 for (int day = 1; day <= daysInMonth; day++)
                 {
-                    // Работает, если день месяца соответствует сдвигу
-                    empSchedule.Days[day] = ((day + totalShift) % 2 == 0) ? "р" : "в";
+                    // Позиция в 4-дневном цикле (0,1,2,3)
+                    int cyclePos = (day + phaseShift + carryOver) % 4;
+
+                    // 0,1 = работаем; 2,3 = отдыхаем
+                    empSchedule.Days[day] = (cyclePos <= 1) ? "Р" : "В";
                 }
 
                 _scheduleData.Add(empSchedule);
-                System.Diagnostics.Debug.WriteLine($"Админ {admin.FullName}: сдвиг={shift}, работает в {(shift == 0 ? "нечетные" : "четные")} дни");
             }
 
             // ========== МОЙЩИКИ (6 человек, каждый день 3 на работе) ==========
@@ -402,10 +406,12 @@ namespace MyPanelCarWashing
 
         private Brush GetColorForShift(string shiftType)
         {
-            switch (shiftType)
+            switch (shiftType?.ToUpper())
             {
-                case "Р": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#A9DFBF"));
-                case "В": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FAD7A1"));
+                case "Р": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#A9DFBF")); // Зелёный
+                case "В": return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FAD7A1")); // Оранжевый
+                case "П": // Бледно-красный для пропуска
+                    return new SolidColorBrush(Color.FromArgb(60, 231, 76, 60)); // #E74C3C с прозрачностью 60/255
                 default: return Brushes.White;
             }
         }
@@ -420,14 +426,27 @@ namespace MyPanelCarWashing
                 int day = int.Parse(parts[1]);
 
                 var emp = _scheduleData.First(s => s.EmployeeId == empId);
-                string current = emp.Days.ContainsKey(day) ? emp.Days[day] : "";
+                string current = emp.Days.ContainsKey(day) ? emp.Days[day].ToUpper() : "";
 
-                // Переключение: Пусто -> Р -> В -> Пусто
-                string next = current == "" ? "Р" : (current == "Р" ? "В" : "");
+                // Цикл: Пусто → Р → В → П → Пусто
+                string next;
+                if (string.IsNullOrEmpty(current)) next = "Р";
+                else if (current == "Р") next = "В";
+                else if (current == "В") next = "П";
+                else next = ""; // "П" → пусто
+
                 emp.Days[day] = next;
 
-                if (border.Child is TextBlock textBlock) textBlock.Text = next;
+                if (border.Child is TextBlock textBlock)
+                    textBlock.Text = next;
                 border.Background = GetColorForShift(next);
+
+                // Отмечаем изменение
+                if (!_isDataModified)
+                {
+                    _isDataModified = true;
+                    UpdateSaveButtonState();
+                }
             }
         }
 

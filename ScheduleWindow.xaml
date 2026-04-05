@@ -46,7 +46,7 @@
         <DockPanel Grid.Row="1" Margin="0,0,0,15" LastChildFill="False">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                 <Button Content="◀" Click="PrevMonth_Click" Width="35" Height="35" FontSize="16" FontWeight="Bold" Background="#3498DB" Foreground="White" BorderThickness="0"/>
-                <Border Background="White" BorderBrush="#BDC3C7" BorderThickness="1,1,1,1" Padding="15,0" Margin="5,0" Width="200" Height="35">
+                <Border Background="White" BorderBrush="#BDC3C7" BorderThickness="1,1,1,1" Padding="15,0" Margin="5,0" Width="200" Height="40">
                     <TextBlock x:Name="MonthYearText" TextAlignment="Center" Text="Апрель 2026" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                 </Border>
                 <Button Content="▶" Click="NextMonth_Click" Width="35" Height="35" FontSize="16" FontWeight="Bold" Background="#3498DB" Foreground="White" BorderThickness="0"/>
@@ -63,6 +63,8 @@
             <TextBlock Text=" Р - Рабочий" VerticalAlignment="Center" Margin="0,0,15,0"/>
             <Border Width="15" Height="15" Background="#FAD7A1" BorderBrush="Gray" BorderThickness="1"/>
             <TextBlock Text=" В - Выходной" VerticalAlignment="Center" Margin="0,0,15,0"/>
+            <Border Width="15" Height="15" Background="#ed7669" BorderBrush="Gray" BorderThickness="1"/>
+            <TextBlock Text=" П - Пропуск" VerticalAlignment="Center" Margin="0,0,10,0"/>
         </StackPanel>
 
         <Border Grid.Row="3" Background="#2C3E50" Height="45" CornerRadius="4,4,0,0">
