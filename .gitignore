@@ -1,67 +1,37 @@
-# Compiled and build artifacts
-*.o
-*.obj
+```gitignore
+# Build artifacts
+bin/
+obj/
 *.exe
 *.dll
-*.so
-*.a
-*.out
+*.pdb
+*.userprefs
+*.cache
+*.log
 
 # Dependencies
+packages/
 node_modules/
-venv/
-.venv/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-target/
-.gradle/
+.nuget/
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editors
+# IDE files
+.vs/
 .vscode/
 .idea/
-*.swp
-*.swo
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
-# OS specific
+# OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Archives
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+*.log
+```

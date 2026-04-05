@@ -194,6 +194,7 @@
       <DependentUpon>AppointmentsOverlay.xaml</DependentUpon>
     </Compile>
     <Compile Include="Controls\CustomComboBox.cs" />
+    <Compile Include="Controls\PopupWindowBase.cs" />
     <Compile Include="CurrencyConverter.cs" />
     <Compile Include="CustomDatePicker.xaml.cs">
       <DependentUpon>CustomDatePicker.xaml</DependentUpon>

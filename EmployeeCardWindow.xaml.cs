@@ -110,7 +110,7 @@ namespace MyPanelCarWashing
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
             var addWin = new AddEditEmployeeWindow(_dataService, null);
-            if (addWin.ShowDialog() == true)
+            if (addWin.ShowDialog(this) == true)
             {
                 LoadEmployees();
             }
@@ -142,7 +142,7 @@ namespace MyPanelCarWashing
         private void OpenEditEmployee(User employee)
         {
             var editWin = new AddEditEmployeeWindow(_dataService, employee);
-            if (editWin.ShowDialog() == true)
+            if (editWin.ShowDialog(this) == true)
             {
                 LoadEmployees();
             }
@@ -188,7 +188,7 @@ namespace MyPanelCarWashing
         private void ScheduleButton_Click(object sender, RoutedEventArgs e)
         {
             var scheduleWin = new ScheduleWindow(_dataService);
-            scheduleWin.ShowDialog();
+            scheduleWin.ShowDialog(this);
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
