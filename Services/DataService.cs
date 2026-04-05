@@ -20,6 +20,7 @@ namespace MyPanelCarWashing.Services
             FixInvalidData();
             RecalculateAllClientsStats();
             _data.UpdateIds();
+            FileDataService.CleanupOldBackups(7);
         }
 
         private void LoadData()

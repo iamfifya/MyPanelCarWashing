@@ -81,7 +81,45 @@ public static class FileDataService
             System.Diagnostics.Debug.WriteLine($"Backup failed: {ex.Message}");
         }
     }
+    public static void CleanupOldBackups(int daysToKeep = 7)
+    {
+        try
+        {
+            string backupsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Backups");
 
+            if (!Directory.Exists(backupsFolder))
+                return;
+
+            var cutoffDate = DateTime.Now.AddDays(-daysToKeep);
+            var deletedCount = 0;
+
+            // Ищем все файлы с именем appdata_*.json
+            var backupFiles = Directory.GetFiles(backupsFolder, "appdata_*.json");
+
+            foreach (var file in backupFiles)
+            {
+                var fileInfo = new FileInfo(file);
+
+                // Сравниваем по дате создания файла
+                if (fileInfo.CreationTime < cutoffDate)
+                {
+                    File.Delete(file);
+                    deletedCount++;
+                    System.Diagnostics.Debug.WriteLine($"[BACKUP] Удалён старый бэкап: {fileInfo.Name} ({fileInfo.CreationTime:dd.MM.yyyy})");
+                }
+            }
+
+            if (deletedCount > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[BACKUP] Очистка завершена: удалено {deletedCount} файлов старше {daysToKeep} дн.");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[BACKUP] Ошибка при очистке: {ex.Message}");
+            // Не выбрасываем исключение, чтобы не ломать работу приложения
+        }
+    }
 
     public static AppData LoadData()
     {
