@@ -70,7 +70,7 @@ namespace MyPanelCarWashing.ViewModels
             LoadServices();
         }
 
-        private void LoadServices()
+        public void LoadServices()
         {
             var allServices = _dataService.GetAllServices();
             Services = allServices.Select(s => new ServiceViewModel

@@ -1,8 +1,8 @@
-// ViewModels/AddEditOrderViewModel.cs
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;  // ← Важно!
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -18,10 +18,20 @@ namespace MyPanelCarWashing.ViewModels
         private CarWashOrder _existingOrder;
         private bool _isEditMode;
         private bool _isAppointment;
+        private bool _isSubscribedToDataChanged = false;
+
         public AddEditOrderViewModel(DataService dataService)
         {
             _dataService = dataService;
+
+            // Подписка на изменения данных (только один раз)
+            if (!_isSubscribedToDataChanged)
+            {
+                DataService.DataChanged += OnDataChanged;
+                _isSubscribedToDataChanged = true;
+            }
         }
+
         public void Initialize(Shift currentShift, CarWashOrder order = null)
         {
             _currentShift = currentShift;
@@ -31,20 +41,26 @@ namespace MyPanelCarWashing.ViewModels
 
             InitializeOrder();
             LoadWashers();
-            LoadServices();
+            LoadServices();  // ← Загружаем услуги при инициализации
         }
+
         public void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        // === ПОЛЯ ===
         private CarWashOrder _currentOrder;
-        private List<ServiceViewModel> _services;
+        private ObservableCollection<ServiceViewModel> _services;  // ← ЕДИНСТВЕННОЕ объявление _services
         private List<User> _washers;
         private decimal _servicesTotal;
         private decimal _extraCost;
         private int _selectedBodyTypeCategory = 1;
         private string _windowTitle;
+        private decimal _discountPercent;
+        private decimal _discountAmount;
+
+        // === СВОЙСТВА ===
 
         public CarWashOrder CurrentOrder
         {
@@ -56,7 +72,8 @@ namespace MyPanelCarWashing.ViewModels
             }
         }
 
-        public List<ServiceViewModel> Services
+        // === ЕДИНСТВЕННОЕ свойство Services (ObservableCollection) ===
+        public ObservableCollection<ServiceViewModel> Services
         {
             get => _services;
             set
@@ -114,11 +131,67 @@ namespace MyPanelCarWashing.ViewModels
         public bool IsEditMode => _isEditMode;
         public bool IsAppointment => _isAppointment;
 
+        public decimal DiscountPercent
+        {
+            get => _discountPercent;
+            set
+            {
+                if (_discountPercent != value)
+                {
+                    _discountPercent = value;
+                    OnPropertyChanged(nameof(DiscountPercent));
+                    if (value > 0) DiscountAmount = 0;
+                    CalculateTotal();
+                }
+            }
+        }
+
+        public decimal DiscountAmount
+        {
+            get => _discountAmount;
+            set
+            {
+                if (_discountAmount != value)
+                {
+                    _discountAmount = value;
+                    OnPropertyChanged(nameof(DiscountAmount));
+                    if (value > 0) DiscountPercent = 0;
+                    CalculateTotal();
+                }
+            }
+        }
+
+        // === МЕТОДЫ ===
+
+        // Обработчик изменения данных (перезагружает услуги при изменении цен)
+        private void OnDataChanged()
+        {
+            System.Diagnostics.Debug.WriteLine("=== [ViewModel] DataChanged received ===");
+            System.Diagnostics.Debug.WriteLine($"  CurrentOrder.Id: {CurrentOrder?.Id ?? 0}");
+            System.Diagnostics.Debug.WriteLine($"  Services before: {Services?.Count ?? 0}");
+
+            LoadServices();
+
+            System.Diagnostics.Debug.WriteLine($"  Services after: {Services?.Count ?? 0}");
+            if (Services != null)
+            {
+                foreach (var s in Services.Take(3))
+                {
+                    System.Diagnostics.Debug.WriteLine($"    - {s.Name}: {s.Price:N0} ₽ (selected: {s.IsSelected})");
+                }
+            }
+
+            UpdateServicePrices();
+            CalculateTotal();
+
+            System.Diagnostics.Debug.WriteLine($"  FinalTotal: {FinalTotal:N0} ₽");
+            System.Diagnostics.Debug.WriteLine("=== [ViewModel] DataChanged processed ===");
+        }
+
         private void InitializeOrder()
         {
             if (_existingOrder != null && _isEditMode)
             {
-                // Редактирование существующего заказа
                 CurrentOrder = new CarWashOrder
                 {
                     Id = _existingOrder.Id,
@@ -151,7 +224,6 @@ namespace MyPanelCarWashing.ViewModels
             }
             else if (_existingOrder != null && _isAppointment)
             {
-                // Редактирование предварительной записи
                 CurrentOrder = new CarWashOrder
                 {
                     Id = 0,
@@ -179,7 +251,6 @@ namespace MyPanelCarWashing.ViewModels
             }
             else
             {
-                // НОВЫЙ ЗАКАЗ
                 CurrentOrder = new CarWashOrder
                 {
                     Id = 0,
@@ -192,7 +263,7 @@ namespace MyPanelCarWashing.ViewModels
                     ServiceIds = new List<int>(),
                     ExtraCost = 0,
                     ExtraCostReason = "",
-                    Status = "Выполняется",  // ← ИСПРАВЛЕНО
+                    Status = "Выполняется",
                     PaymentMethod = "Наличные",
                     IsAppointment = false,
                     ClientId = null,
@@ -202,115 +273,120 @@ namespace MyPanelCarWashing.ViewModels
                 ExtraCost = 0;
             }
         }
-        private void ApplyClientDiscount(Client client)
-        {
-            if (client == null) return;
 
-            // Применяем персональную скидку клиента, если она > 0
-            // И только если пользователь ещё не задал свою скидку вручную
-            if (client.DefaultDiscountPercent > 0 && DiscountPercent == 0 && DiscountAmount == 0)
-            {
-                DiscountPercent = client.DefaultDiscountPercent;
-
-                // Показываем уведомление (опционально)
-                System.Diagnostics.Debug.WriteLine($"Применена скидка клиента {client.FullName}: {client.DefaultDiscountPercent}%");
-            }
-        }
         private void LoadWashers()
         {
             var allUsers = _dataService.GetAllUsers();
+            Washers = allUsers;
+        }
 
-            // Если есть активная смена, показываем сотрудников смены + предупреждение о других
-            if (_currentShift != null && _currentShift.EmployeeIds != null && _currentShift.EmployeeIds.Any())
+        // === ЗАГРУЗКА УСЛУГ (с пересчётом цен) ===
+        public void LoadServices()
+        {
+            var allServices = _dataService.GetAllServices();
+            var selectedIds = CurrentOrder?.ServiceIds?.ToList() ?? new List<int>();
+
+            if (Services == null)
             {
-                // Показываем всех сотрудников, но с маркировкой кто в смене
-                Washers = allUsers;
-
-                // Для отладки
-                System.Diagnostics.Debug.WriteLine($"Загружено мойщиков: {Washers.Count}");
-                foreach (var w in Washers)
-                {
-                    bool inShift = _currentShift.EmployeeIds.Contains(w.Id);
-                    System.Diagnostics.Debug.WriteLine($"  {w.FullName} - {(inShift ? "в смене" : "не в смене")}");
-                }
+                Services = new ObservableCollection<ServiceViewModel>(
+                    allServices.Select(s => new ServiceViewModel
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Price = s.GetPrice(SelectedBodyTypeCategory),
+                        IsSelected = selectedIds.Contains(s.Id)
+                    })
+                );
             }
             else
             {
-                // Если нет активной смены, показываем всех
-                Washers = allUsers;
-                System.Diagnostics.Debug.WriteLine($"Нет активной смены, загружено всех мойщиков: {Washers.Count}");
-            }
-        }
+                // Обновляем СУЩЕСТВУЮЩИЕ объекты
+                foreach (var serviceVM in Services.ToList())
+                {
+                    var updatedService = allServices.FirstOrDefault(s => s.Id == serviceVM.Id);
+                    if (updatedService != null)
+                    {
+                        // Принудительно обновляем цену — это вызовет PropertyChanged
+                        serviceVM.Price = updatedService.GetPrice(SelectedBodyTypeCategory);
+                        serviceVM.Name = updatedService.Name;
+                        serviceVM.IsSelected = selectedIds.Contains(serviceVM.Id);
+                    }
+                }
 
-        private void LoadServices()
-        {
-            var allServices = _dataService.GetAllServices();
-            Services = allServices.Select(s => new ServiceViewModel
-            {
-                Id = s.Id,
-                Name = s.Name,
-                Price = s.GetPrice(SelectedBodyTypeCategory),
-                IsSelected = CurrentOrder.ServiceIds.Contains(s.Id)
-            }).ToList();
+                // Добавляем новые услуги
+                var existingIds = new HashSet<int>(Services.Select(s => s.Id));
+                foreach (var s in allServices)
+                {
+                    if (!existingIds.Contains(s.Id))
+                    {
+                        Services.Add(new ServiceViewModel
+                        {
+                            Id = s.Id,
+                            Name = s.Name,
+                            Price = s.GetPrice(SelectedBodyTypeCategory),
+                            IsSelected = selectedIds.Contains(s.Id)
+                        });
+                    }
+                }
+
+                // Удаляем удалённые услуги
+                var serviceIds = new HashSet<int>(allServices.Select(s => s.Id));
+                var toRemove = Services.Where(s => !serviceIds.Contains(s.Id)).ToList();
+                foreach (var s in toRemove) Services.Remove(s);
+            }
+
+            // Принудительное уведомление + пересчёт
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Services)));
+            CalculateTotal();
         }
 
         private void UpdateServicePrices()
         {
-            if (Services != null)
+            if (Services == null) return;
+
+            var allServices = _dataService.GetAllServices();
+            foreach (var serviceVM in Services)
             {
-                var allServices = _dataService.GetAllServices();
-                foreach (var serviceVM in Services)
+                var originalService = allServices.FirstOrDefault(s => s.Id == serviceVM.Id);
+                if (originalService != null)
                 {
-                    var originalService = allServices.FirstOrDefault(s => s.Id == serviceVM.Id);
-                    if (originalService != null)
-                    {
-                        serviceVM.Price = originalService.GetPrice(SelectedBodyTypeCategory);
-                    }
+                    serviceVM.Price = originalService.GetPrice(SelectedBodyTypeCategory);
                 }
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Services)));
             }
         }
+
         public bool Validate()
         {
-            try
+            if (string.IsNullOrWhiteSpace(CurrentOrder.CarModel))
             {
-                if (string.IsNullOrWhiteSpace(CurrentOrder.CarModel))
-                {
-                    Logger.Warn("Валидация не пройдена: не указана марка авто", "ORDER_VALIDATION");
-                    MessageBox.Show("Введите марку и модель автомобиля", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return false;
-                }
-
-                if (string.IsNullOrWhiteSpace(CurrentOrder.CarNumber))
-                {
-                    Logger.Warn("Валидация не пройдена: не указан госномер", "ORDER_VALIDATION");
-                    MessageBox.Show("Введите государственный номер", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return false;
-                }
-
-                var selectedServices = Services?.Where(s => s.IsSelected).ToList();
-                if (selectedServices == null || !selectedServices.Any())
-                {
-                    Logger.Warn("Валидация не пройдена: не выбраны услуги", "ORDER_VALIDATION");
-                    MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return false;
-                }
-
-                if (ExtraCost > 0 && string.IsNullOrWhiteSpace(CurrentOrder.ExtraCostReason))
-                {
-                    Logger.Warn("Валидация не пройдена: доп. стоимость без причины", "ORDER_VALIDATION");
-                    MessageBox.Show("Укажите причину дополнительной стоимости", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return false;
-                }
-
-                Logger.Info("Валидация успешно пройдена", "ORDER_VALIDATION", $"Авто: {CurrentOrder.CarNumber} | Услуг: {selectedServices.Count} | Доп: {ExtraCost}₽");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Ошибка при валидации заказа", ex, "ORDER_VALIDATION");
+                MessageBox.Show("Введите марку и модель автомобиля", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
+
+            if (string.IsNullOrWhiteSpace(CurrentOrder.CarNumber))
+            {
+                MessageBox.Show("Введите государственный номер", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            var selectedServices = Services?.Where(s => s.IsSelected).ToList();
+            if (selectedServices == null || !selectedServices.Any())
+            {
+                MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (ExtraCost > 0 && string.IsNullOrWhiteSpace(CurrentOrder.ExtraCostReason))
+            {
+                MessageBox.Show("Укажите причину дополнительной стоимости", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            return true;
         }
 
         public void SaveOrder(out bool success, out string message)
@@ -333,25 +409,17 @@ namespace MyPanelCarWashing.ViewModels
                 CurrentOrder.DiscountPercent = DiscountPercent;
                 CurrentOrder.DiscountAmount = DiscountAmount;
 
-                string orderType = IsAppointment ? "Запись" : "Заказ";
-                string orderStatus = IsEditMode ? "Обновление" : "Создание";
-
-                Logger.Info($"Начало сохранения: {orderType} #{CurrentOrder.Id}", "ORDER_SAVE", $"Режим: {orderStatus} | Авто: {CurrentOrder.CarNumber}");
-
                 if (!IsEditMode && !IsAppointment)
                 {
                     if (CurrentOrder.Id == 0)
                     {
                         CurrentOrder.ShiftId = _currentShift?.Id ?? 0;
                         _dataService.AddOrder(CurrentOrder, serviceIds);
-
-                        Logger.Info($"Заказ успешно создан", "ORDER_SAVE", $"ID: {CurrentOrder.Id} | Авто: {CurrentOrder.CarNumber} | Сумма: {CurrentOrder.FinalPrice:N0}₽ | Скидка: {DiscountPercent}%/{DiscountAmount}₽");
                         message = "Заказ добавлен!";
                         success = true;
                     }
                     else
                     {
-                        Logger.Warn($"Попытка создать заказ с существующим ID: {CurrentOrder.Id}", "ORDER_SAVE");
                         message = "Ошибка: ID заказа уже существует";
                     }
                 }
@@ -371,30 +439,17 @@ namespace MyPanelCarWashing.ViewModels
                         appointment.ExtraCostReason = CurrentOrder.ExtraCostReason;
 
                         _dataService.UpdateAppointment(appointment);
-                        Logger.Info($"Запись успешно обновлена", "ORDER_SAVE", $"ID: {appointment.Id} | Авто: {appointment.CarNumber} | Время: {appointment.AppointmentDate:HH:mm}");
                         message = "Запись обновлена!";
                         success = true;
                     }
                     else
                     {
-                        Logger.Error($"Запись не найдена для обновления", new Exception("Appointment ID missing"), "ORDER_SAVE");
                         message = "Запись не найдена";
                     }
                 }
                 else
                 {
-                    string oldStatus = CurrentOrder.Status;
                     _dataService.UpdateOrder(CurrentOrder);
-
-                    if (oldStatus != CurrentOrder.Status)
-                    {
-                        Logger.Info($"Статус заказа изменён", "ORDER_SAVE", $"ID: {CurrentOrder.Id} | '{oldStatus}' → '{CurrentOrder.Status}'");
-                    }
-                    else
-                    {
-                        Logger.Info($"Заказ обновлён", "ORDER_SAVE", $"ID: {CurrentOrder.Id} | Авто: {CurrentOrder.CarNumber} | Сумма: {CurrentOrder.FinalPrice:N0}₽");
-                    }
-
                     message = $"Заказ обновлен!\n\n🚗 {CurrentOrder.CarModel} ({CurrentOrder.CarNumber})\n💰 Итого: {CurrentOrder.FinalPrice:N0} ₽";
                     if (ExtraCost > 0) message += $"\n➕ Дополнительно: {ExtraCost:N0} ₽";
                     success = true;
@@ -402,85 +457,36 @@ namespace MyPanelCarWashing.ViewModels
             }
             catch (Exception ex)
             {
-                Logger.Error("Ошибка при сохранении заказа", ex, "ORDER_SAVE");
                 message = $"Ошибка при сохранении: {ex.Message}";
             }
         }
 
-        private decimal _discountPercent;
-        private decimal _discountAmount;
-
-        public decimal DiscountPercent
-        {
-            get => _discountPercent;
-            set
-            {
-                if (_discountPercent != value)
-                {
-                    _discountPercent = value;
-                    OnPropertyChanged(nameof(DiscountPercent));
-                    if (value > 0)
-                    {
-                        DiscountAmount = 0;
-                    }
-                    CalculateTotal();
-                }
-            }
-        }
-
-        public decimal DiscountAmount
-        {
-            get => _discountAmount;
-            set
-            {
-                if (_discountAmount != value)
-                {
-                    _discountAmount = value;
-                    OnPropertyChanged(nameof(DiscountAmount));
-                    if (value > 0)
-                    {
-                        DiscountPercent = 0;
-                    }
-                    CalculateTotal();
-                }
-            }
-        }
-
-        // Обновите CalculateTotal
         public void CalculateTotal()
         {
             ServicesTotal = Services?.Where(s => s.IsSelected).Sum(s => s.Price) ?? 0;
 
-            // Важно: уведомляем о всех свойствах, которые зависят от расчётов
-            OnPropertyChanged(nameof(ServicesTotal));
-            OnPropertyChanged(nameof(FinalTotal));           // ← зависит от ServicesTotal, DiscountPercent, DiscountAmount, ExtraCost
-            OnPropertyChanged(nameof(WasherEarningsDisplay)); // ← зависит от ServicesTotal
-            OnPropertyChanged(nameof(CompanyEarningsDisplay)); // ← зависит от вышеуказанных
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ServicesTotal)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FinalTotal)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WasherEarningsDisplay)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarningsDisplay)));
         }
 
         public decimal FinalTotal
         {
             get
             {
-                // Если задан процент — считаем скидку от суммы услуг
-                // Если задана сумма — используем её напрямую
                 decimal actualDiscount = DiscountPercent > 0
                     ? ServicesTotal * (DiscountPercent / 100m)
                     : DiscountAmount;
-
                 return ServicesTotal - actualDiscount + ExtraCost;
             }
         }
+
         public decimal WasherEarningsDisplay
         {
-            get
-            {
-                // Мойщик получает 35% от стоимости услуг (до применения скидки)
-                // Или от суммы после скидки — зависит от вашей бизнес-логики
-                decimal baseAmount = ServicesTotal; // или: ServicesTotal - (DiscountPercent > 0 ? ServicesTotal * (DiscountPercent / 100m) : DiscountAmount)
-                return baseAmount * 0.35m;
-            }
+            get => ServicesTotal * 0.35m;
         }
+
         public decimal CompanyEarningsDisplay
         {
             get
@@ -488,53 +494,18 @@ namespace MyPanelCarWashing.ViewModels
                 decimal actualDiscount = DiscountPercent > 0
                     ? ServicesTotal * (DiscountPercent / 100m)
                     : DiscountAmount;
-
                 return (ServicesTotal - actualDiscount + ExtraCost) * 0.65m;
             }
         }
-        private void UpdateClientStatsForOrder(AppData appData, CarWashOrder order, string oldStatus, string newStatus)
+
+        // Очистка подписки при удалении ViewModel
+        public void Cleanup()
         {
-            var client = appData.Clients.FirstOrDefault(c => c.Id == order.ClientId.Value);
-            if (client == null) return;
-
-            bool wasCompleted = oldStatus == "Выполнен";
-            bool willBeCompleted = newStatus == "Выполнен";
-
-            if (wasCompleted == willBeCompleted) return;
-
-            if (willBeCompleted && !wasCompleted)
+            if (_isSubscribedToDataChanged)
             {
-                client.VisitsCount++;
-                client.TotalSpent += order.FinalPrice;
-                client.LastVisitDate = DateTime.Now;
+                DataService.DataChanged -= OnDataChanged;
+                _isSubscribedToDataChanged = false;
             }
-            else if (!willBeCompleted && wasCompleted)
-            {
-                client.VisitsCount--;
-                client.TotalSpent -= order.FinalPrice;
-
-                var lastCompletedOrder = appData.Shifts
-                    .SelectMany(s => s.Orders ?? new List<CarWashOrder>())
-                    .Where(o => o.ClientId == client.Id && o.Id != order.Id && o.Status == "Выполнен")
-                    .OrderByDescending(o => o.Time)
-                    .FirstOrDefault();
-
-                client.LastVisitDate = lastCompletedOrder?.Time ?? client.RegistrationDate;
-            }
-        }
-
-        private int GetNextOrderId(AppData appData)
-        {
-            int maxId = 0;
-            foreach (var shift in appData.Shifts)
-            {
-                if (shift.Orders != null && shift.Orders.Any())
-                {
-                    var maxInShift = shift.Orders.Max(o => o.Id);
-                    if (maxInShift > maxId) maxId = maxInShift;
-                }
-            }
-            return maxId + 1;
         }
     }
 }

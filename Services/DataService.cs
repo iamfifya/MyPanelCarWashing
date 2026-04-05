@@ -954,6 +954,8 @@ namespace MyPanelCarWashing.Services
 
                 FileDataService.SaveData(appData);
 
+                NotifyDataChanged();
+
                 // Логируем изменение
                 if (pricesChanged)
                 {

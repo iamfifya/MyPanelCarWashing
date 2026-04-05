@@ -22,6 +22,7 @@ namespace MyPanelCarWashing
             var viewModel = App.GetService<AppointmentViewModel>();
             _viewModel = viewModel;
             DataContext = _viewModel;
+            _viewModel.LoadServices();
             var bodyTypes = new List<KeyValuePair<string, string>>
 {
     new KeyValuePair<string, string>("Категория 1 (Легковая)", "1"),
