@@ -1,4 +1,5 @@
 // ServiceViewModel.cs
+using System;
 using System.ComponentModel;
 
 namespace MyPanelCarWashing.ViewModels
@@ -9,10 +10,8 @@ namespace MyPanelCarWashing.ViewModels
 
         public int Id { get; set; }
         public string Name { get; set; }
-
-        private bool _isSelected;
         private decimal _price;
-
+        private bool _isSelected;
         public bool IsSelected
         {
             get => _isSelected;
@@ -22,9 +21,15 @@ namespace MyPanelCarWashing.ViewModels
                 {
                     _isSelected = value;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+
+                    // ← НОВОЕ: сообщаем об изменении выбора
+                    SelectionChanged?.Invoke(this, EventArgs.Empty);
                 }
             }
         }
+
+        // ← НОВОЕ: событие для подписки
+        public event EventHandler SelectionChanged;
 
         public decimal Price
         {

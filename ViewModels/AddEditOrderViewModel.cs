@@ -286,6 +286,15 @@ namespace MyPanelCarWashing.ViewModels
             var allServices = _dataService.GetAllServices();
             var selectedIds = CurrentOrder?.ServiceIds?.ToList() ?? new List<int>();
 
+            // Отписываемся от старых событий, чтобы не было утечек
+            if (Services != null)
+            {
+                foreach (var s in Services)
+                {
+                    s.SelectionChanged -= Service_SelectionChanged;
+                }
+            }
+
             if (Services == null)
             {
                 Services = new ObservableCollection<ServiceViewModel>(
@@ -328,6 +337,10 @@ namespace MyPanelCarWashing.ViewModels
                         });
                     }
                 }
+                foreach (var service in Services)
+                {
+                    service.SelectionChanged += Service_SelectionChanged;
+                }
 
                 // Удаляем удалённые услуги
                 var serviceIds = new HashSet<int>(allServices.Select(s => s.Id));
@@ -337,7 +350,12 @@ namespace MyPanelCarWashing.ViewModels
 
             // Принудительное уведомление + пересчёт
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Services)));
-            CalculateTotal();
+            CalculateTotal(); // Пересчитываем при загрузке
+        }
+
+        private void Service_SelectionChanged(object sender, EventArgs e)
+        {
+            CalculateTotal(); // ← Пересчитываем итоговую сумму!
         }
 
         private void UpdateServicePrices()
@@ -505,6 +523,15 @@ namespace MyPanelCarWashing.ViewModels
             {
                 DataService.DataChanged -= OnDataChanged;
                 _isSubscribedToDataChanged = false;
+            }
+
+            // ← Отписываемся от событий услуг
+            if (Services != null)
+            {
+                foreach (var s in Services)
+                {
+                    s.SelectionChanged -= Service_SelectionChanged;
+                }
             }
         }
     }
