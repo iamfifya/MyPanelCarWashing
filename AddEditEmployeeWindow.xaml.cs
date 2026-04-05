@@ -1,3 +1,4 @@
+using MyPanelCarWashing.Controls;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using System;
@@ -6,7 +7,7 @@ using System.Windows;
 
 namespace MyPanelCarWashing
 {
-    public partial class AddEditEmployeeWindow : Window
+    public partial class AddEditEmployeeWindow : PopupWindowBase
     {
         private DataService _dataService;
         public User CurrentEmployee { get; set; }

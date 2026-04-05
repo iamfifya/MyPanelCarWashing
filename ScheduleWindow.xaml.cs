@@ -1,3 +1,4 @@
+using MyPanelCarWashing.Controls;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using System;
@@ -10,7 +11,7 @@ using System.Windows.Media;
 
 namespace MyPanelCarWashing
 {
-    public partial class ScheduleWindow : Window
+    public partial class ScheduleWindow : PopupWindowBase
     {
         private DataService _dataService;
         private DateTime _currentDate;

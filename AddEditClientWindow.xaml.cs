@@ -1,3 +1,4 @@
+using MyPanelCarWashing.Controls;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using System;
@@ -7,7 +8,7 @@ using System.Windows.Media;
 
 namespace MyPanelCarWashing
 {
-    public partial class AddEditClientWindow : Window
+    public partial class AddEditClientWindow : PopupWindowBase
     {
         private DataService _dataService;
         public Client CurrentClient { get; set; }

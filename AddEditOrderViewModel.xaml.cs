@@ -1,5 +1,6 @@
 // AddEditOrderWindow.xaml.cs
 using Microsoft.VisualBasic;
+using MyPanelCarWashing.Controls;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using MyPanelCarWashing.ViewModels;
@@ -14,7 +15,7 @@ using System.Windows.Threading;
 
 namespace MyPanelCarWashing
 {
-    public partial class AddEditOrderWindow : Window
+    public partial class AddEditOrderWindow : PopupWindowBase
     {
         private readonly DataService _dataService;
         private readonly Shift _currentShift;

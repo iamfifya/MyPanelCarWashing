@@ -1,3 +1,4 @@
+using MyPanelCarWashing.Controls;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using System;
@@ -10,7 +11,7 @@ using System.Windows.Controls;
 
 namespace MyPanelCarWashing
 {
-    public partial class ReportsWindow : Window, INotifyPropertyChanged
+    public partial class ReportsWindow : PopupWindowBase, INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
 

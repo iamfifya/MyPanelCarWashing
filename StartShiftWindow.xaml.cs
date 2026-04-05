@@ -1,3 +1,4 @@
+using MyPanelCarWashing.Controls;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using System;
@@ -8,7 +9,7 @@ using System.Windows;
 
 namespace MyPanelCarWashing
 {
-    public partial class StartShiftWindow : Window, INotifyPropertyChanged
+    public partial class StartShiftWindow : PopupWindowBase, INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
