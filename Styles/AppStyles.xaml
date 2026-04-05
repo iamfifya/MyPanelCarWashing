@@ -330,4 +330,104 @@
         </Setter>
     </Style>
 
+    <!-- ==================== POPUP СТИЛИ ДЛЯ ОКОН ==================== -->
+    
+    <!-- Базовый стиль для popup-окон -->
+    <Style x:Key="PopupWindowStyle" TargetType="Window">
+        <Setter Property="WindowStyle" Value="None"/>
+        <Setter Property="AllowsTransparency" Value="True"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="ResizeMode" Value="NoResize"/>
+        <Setter Property="ShowInTaskbar" Value="False"/>
+        <Setter Property="Topmost" Value="True"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+    </Style>
+
+    <!-- Шаблон контрола для popup-окон с закругленными углами и тенью -->
+    <ControlTemplate x:Key="PopupWindowTemplate" TargetType="Window">
+        <Grid Background="Transparent">
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="#BDC3C7"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Effect="{StaticResource {x:Static SystemColors.DropShadowKey}}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.3" Direction="270"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Заголовок окна с кнопкой закрытия -->
+                    <Border Grid.Row="0" 
+                            Background="{StaticResource PrimaryBrush}"
+                            CornerRadius="12,12,0,0"
+                            MouseLeftButtonDown="WindowTitleBar_MouseLeftButtonDown">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <ContentPresenter Grid.Column="0" 
+                                              ContentSource="Title"
+                                              Margin="15,10"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="White"
+                                              TextElement.FontWeight="SemiBold"
+                                              TextElement.FontSize="14"/>
+                            
+                            <!-- Кнопка закрытия -->
+                            <Button Grid.Column="1" 
+                                    Width="30" 
+                                    Height="30"
+                                    Margin="0,5,10,5"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    FontWeight="Bold"
+                                    Content="✕"
+                                    Click="PopupCloseButton_Click"
+                                    Cursor="Hand">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            CornerRadius="15">
+                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#E74C3C"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Основной контент -->
+                    <Border Grid.Row="1" 
+                            Background="White"
+                            CornerRadius="0,0,12,12">
+                        <AdornerDecorator>
+                            <ContentPresenter/>
+                        </AdornerDecorator>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </ControlTemplate>
+
 </ResourceDictionary>

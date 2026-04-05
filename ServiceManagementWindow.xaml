@@ -33,8 +33,49 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="🛠️ Управление услугами" FontSize="24" FontWeight="Bold" 
-                   Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+        <!-- Заголовок окна с возможностью перетаскивания -->
+        <Border Grid.Row="0" Background="#2C3E50" CornerRadius="8,8,0,0" Margin="-10,-10,-10,10"
+                MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Text="🛠️ Управление услугами" FontSize="18" FontWeight="Bold" 
+                           Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Center"
+                           Margin="15,12"/>
+                
+                <!-- Кнопка закрытия -->
+                <Button Grid.Column="1" Width="35" Height="35" Margin="0,0,10,0"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="White" FontSize="18" Content="✕"
+                        Click="CloseButton_Click" Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="17">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#E74C3C"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+        </Border>
+
+        <TextBlock x:Name="HiddenTitle" Grid.Row="0" Text="Управление услугами" Visibility="Collapsed"/>
 
         <!-- Кнопки управления и поиск -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10" 

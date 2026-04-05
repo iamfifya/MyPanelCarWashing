@@ -678,7 +678,7 @@ namespace MyPanelCarWashing
             var orderViewModel = App.GetService<AddEditOrderViewModel>();
             var addWin = new AddEditOrderWindow(_dataService, orderViewModel, _currentShift);
 
-            if (addWin.ShowDialog() == true)
+            if (addWin.ShowDialog(this) == true) // Передаем MainWindow как владельца для popup-режима
             {
                 System.Diagnostics.Debug.WriteLine("=== ЗАКАЗ ДОБАВЛЕН, ОБНОВЛЯЕМ ДАННЫЕ ===");
                 _dataService = new DataService(); // Принудительно обновляем сервис
@@ -702,7 +702,7 @@ namespace MyPanelCarWashing
                             // Переименовал переменную в editViewModel
                             var editViewModel = App.GetService<AddEditOrderViewModel>();
                             var orderEditWin = new AddEditOrderWindow(_dataService, editViewModel, _currentShift, order);
-                            if (orderEditWin.ShowDialog() == true)
+                            if (orderEditWin.ShowDialog(this) == true) // Передаем MainWindow как владельца для popup-режима
                             {
                                 _dataService = new DataService();
                                 LoadData();
@@ -731,7 +731,7 @@ namespace MyPanelCarWashing
                     // Переименовал переменную в appointmentViewModel
                     var appointmentViewModel = App.GetService<AddEditOrderViewModel>();
                     var appointmentEditWin = new AddEditOrderWindow(_dataService, appointmentViewModel, _currentShift, tempOrder);
-                    if (appointmentEditWin.ShowDialog() == true)
+                    if (appointmentEditWin.ShowDialog(this) == true) // Передаем MainWindow как владельца для popup-режима
                     {
                         _dataService = new DataService();
                         LoadData();
@@ -746,7 +746,7 @@ namespace MyPanelCarWashing
                     // Переименовал переменную в orderViewModel
                     var orderViewModel = App.GetService<AddEditOrderViewModel>();
                     var orderEditWin = new AddEditOrderWindow(_dataService, orderViewModel, _currentShift, originalOrder);
-                    if (orderEditWin.ShowDialog() == true)
+                    if (orderEditWin.ShowDialog(this) == true) // Передаем MainWindow как владельца для popup-режима
                     {
                         _dataService = new DataService();
                         LoadData();
@@ -758,13 +758,13 @@ namespace MyPanelCarWashing
         private void EmployeesButton_Click(object sender, RoutedEventArgs e)
         {
             var empWin = App.GetService<EmployeeCardWindow>();
-            empWin.ShowDialog();
+            empWin.ShowDialog(this); // Передаем MainWindow как владельца для popup-режима
         }
 
         private void StartShiftButton_Click(object sender, RoutedEventArgs e)
         {
             var startWin = new StartShiftWindow(_dataService);
-            if (startWin.ShowDialog() == true)
+            if (startWin.ShowDialog(this) == true) // Передаем MainWindow как владельца для popup-режима
             {
                 _dataService = new DataService();
                 _currentShift = _dataService.GetCurrentOpenShift();
@@ -1050,13 +1050,13 @@ namespace MyPanelCarWashing
         private void ServicesButton_Click(object sender, RoutedEventArgs e)
         {
             var servicesWin = App.GetService<ServiceManagementWindow>();
-            servicesWin.ShowDialog();
+            servicesWin.ShowDialog(this); // Передаем MainWindow как владельца для popup-режима
         }
 
         private void ReportsButton_Click(object sender, RoutedEventArgs e)
         {
             var reportsWin = new ReportsWindow(_dataService); // DataService уже в DI
-            reportsWin.ShowDialog();
+            reportsWin.ShowDialog(this); // Передаем MainWindow как владельца для popup-режима
         }
 
 
@@ -1285,7 +1285,7 @@ namespace MyPanelCarWashing
                 }
             };
 
-            appointmentWin.ShowDialog();
+            appointmentWin.ShowDialog(this); // Передаем MainWindow как владельца для popup-режима
         }
 
         private void ViewAppointmentsButton_Click(object sender, RoutedEventArgs e)
@@ -1399,7 +1399,7 @@ namespace MyPanelCarWashing
         private void ClientsButton_Click(object sender, RoutedEventArgs e)
         {
             var clientsWin = App.GetService<ClientsWindow>();
-            clientsWin.ShowDialog();
+            clientsWin.ShowDialog(this); // Передаем MainWindow как владельца для popup-режима
         }
 
     }

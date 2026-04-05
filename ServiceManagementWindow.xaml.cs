@@ -23,6 +23,36 @@ namespace MyPanelCarWashing
             LoadServices();
         }
 
+        /// <summary>
+        /// Обработчик нажатия на заголовок окна для перетаскивания
+        /// </summary>
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 1)
+            {
+                DragMove();
+            }
+        }
+
+        /// <summary>
+        /// Показать окно как popup относительно владельца
+        /// </summary>
+        public new bool? ShowDialog(Window owner = null)
+        {
+            if (owner != null)
+            {
+                Owner = owner;
+            }
+            else if (Application.Current.MainWindow != null)
+            {
+                Owner = Application.Current.MainWindow;
+            }
+
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            
+            return base.ShowDialog();
+        }
+
         private void LoadServices()
         {
             _allServices = _dataService.GetAllServices().ToList();
@@ -74,7 +104,7 @@ namespace MyPanelCarWashing
         private void EditService(Service service)
         {
             var editWin = new AddEditServiceWindow(_dataService, service);
-            if (editWin.ShowDialog() == true)
+            if (editWin.ShowDialog(this) == true) // Передаем ServiceManagementWindow как владельца для popup-режима
             {
                 _dataService = new DataService();
                 LoadServices();
@@ -169,7 +199,7 @@ namespace MyPanelCarWashing
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
             var addWin = new AddEditServiceWindow(_dataService, null);
-            if (addWin.ShowDialog() == true)
+            if (addWin.ShowDialog(this) == true) // Передаем ServiceManagementWindow как владельца для popup-режима
             {
                 _dataService = new DataService();
                 LoadServices();

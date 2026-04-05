@@ -3,6 +3,7 @@ using MyPanelCarWashing.Services;
 using System;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 
 namespace MyPanelCarWashing
 {
@@ -46,6 +47,36 @@ namespace MyPanelCarWashing
 
             DataContext = this;
             LoadPricesToUI();
+        }
+
+        /// <summary>
+        /// Обработчик нажатия на заголовок окна для перетаскивания
+        /// </summary>
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 1)
+            {
+                DragMove();
+            }
+        }
+
+        /// <summary>
+        /// Показать окно как popup относительно владельца
+        /// </summary>
+        public new bool? ShowDialog(Window owner = null)
+        {
+            if (owner != null)
+            {
+                Owner = owner;
+            }
+            else if (Application.Current.MainWindow != null)
+            {
+                Owner = Application.Current.MainWindow;
+            }
+
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            
+            return base.ShowDialog();
         }
 
         private void LoadPricesToUI()
