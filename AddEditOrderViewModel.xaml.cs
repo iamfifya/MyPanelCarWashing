@@ -41,6 +41,9 @@ namespace MyPanelCarWashing
             WasherComboBox.ItemsSource = allUsers;
             _viewModel.Washers = allUsers;
 
+            // ========== ЗАГРУЖАЕМ КЛИЕНТОВ ==========
+            LoadClients();
+
             // ОТЛАДКА
             System.Diagnostics.Debug.WriteLine($"=== КОНСТРУКТОР AddEditOrderWindow ===");
             System.Diagnostics.Debug.WriteLine($"order != null: {order != null}");
@@ -558,6 +561,7 @@ namespace MyPanelCarWashing
         private void LoadClients()
         {
             var clients = _dataService.GetAllClients();
+            System.Diagnostics.Debug.WriteLine($"LoadClients: загружено {clients.Count} клиентов");
             ClientComboBox.ItemsSource = clients;
 
             if (_viewModel.CurrentOrder.ClientId.HasValue)
@@ -566,6 +570,7 @@ namespace MyPanelCarWashing
                 if (client != null)
                 {
                     ClientComboBox.SelectedItem = client;
+                    System.Diagnostics.Debug.WriteLine($"LoadClients: выбран клиент {client.FullName}");
                 }
             }
         }
