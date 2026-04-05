@@ -27,6 +27,16 @@ namespace MyPanelCarWashing
         private decimal _companyEarnings;
         private decimal _totalRevenue;
 
+        public string ActiveUserInfo
+        {
+            get
+            {
+                if (_currentUser == null) return "Гость";
+
+                string role = _currentUser.IsAdmin ? "👑 Админ" : "👤 Сотрудник";
+                return $"{_currentUser.FullName} • {role}";
+            }
+        }
         public string CurrentShiftInfo { get; private set; }
         public string TotalOrdersInfo { get; private set; }
 
