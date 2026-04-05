@@ -42,6 +42,7 @@ namespace MyPanelCarWashing.Models
         public string PaymentMethod { get; set; } = "Наличные";
         public decimal WasherEarnings => FinalPrice * 0.35m;
         public decimal CompanyEarnings => FinalPrice * 0.65m;
+        public int DurationMinutes { get; set; } = 60;
 
         public string ServicesCount => ServiceIds.Count > 0 ? $"{ServiceIds.Count} услуг" : "нет услуг";
         public string BoxName => $"Бокс {BoxNumber}";

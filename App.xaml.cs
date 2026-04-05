@@ -68,6 +68,7 @@ namespace MyPanelCarWashing
             services.AddTransient<AddEditClientWindow>();
             services.AddTransient<ScheduleWindow>();
             services.AddTransient<AppointmentsOverlay>();
+            services.AddTransient<WasherSelectionDialog>();
         }
 
         public static T GetService<T>() where T : class

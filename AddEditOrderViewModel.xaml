@@ -14,12 +14,13 @@
         Background="#F5F6FA"
         BorderBrush="Black"
         BorderThickness="1"
-        WindowStyle="None"
+        WindowStyle="SingleBorderWindow"
         Foreground="Black">
 
     <Window.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:IntToBoolConverter x:Key="IntToBoolConverter"/>
+        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
     </Window.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" 
@@ -29,32 +30,63 @@
         <Grid Margin="15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <!-- 0: Заголовок -->
                 <RowDefinition Height="Auto"/>
+                <!-- 1: Марка и модель -->
                 <RowDefinition Height="Auto"/>
+                <!-- 2: Марка и модель textbox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 3: Госномер -->
                 <RowDefinition Height="Auto"/>
+                <!-- 4: Госномер textbox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 5: Категория кузова -->
                 <RowDefinition Height="Auto"/>
+                <!-- 6: Категория кузова combobox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 7: Время заезда -->
                 <RowDefinition Height="Auto"/>
+                <!-- 8: Время заезда grid -->
                 <RowDefinition Height="Auto"/>
+                <!-- 9: Длительность (только запись) -->
                 <RowDefinition Height="Auto"/>
+                <!-- 10: Длительность textbox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 11: Выбор бокса -->
                 <RowDefinition Height="Auto"/>
+                <!-- 12: Radio buttons -->
                 <RowDefinition Height="Auto"/>
+                <!-- 13: Выбор мойщика -->
                 <RowDefinition Height="Auto"/>
+                <!-- 14: Мойщик combobox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 15: Выбор услуг -->
                 <RowDefinition Height="Auto"/>
+                <!-- 16: Services listbox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 17: Доп. стоимость -->
                 <RowDefinition Height="Auto"/>
+                <!-- 18: Доп. стоимость textbox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 19: Причина -->
                 <RowDefinition Height="Auto"/>
+                <!-- 20: Причина textbox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 21: Статус (только заказ) -->
                 <RowDefinition Height="Auto"/>
+                <!-- 22: Статус combobox -->
                 <RowDefinition Height="Auto"/>
+                <!-- 23: Клиент -->
                 <RowDefinition Height="Auto"/>
+                <!-- 24: Клиент grid -->
                 <RowDefinition Height="Auto"/>
+                <!-- 25: Способ оплаты -->
                 <RowDefinition Height="Auto"/>
+                <!-- 26: Оплата combobox -->
+                <RowDefinition Height="Auto"/>
+                <!-- 27: Итоговая сумма -->
+                <RowDefinition Height="Auto"/>
+                <!-- 28: Кнопки -->
             </Grid.RowDefinitions>
 
             <TextBlock Text="{Binding WindowTitle}" FontSize="24" FontWeight="Bold" 
@@ -70,7 +102,7 @@
             <TextBox Text="{Binding CurrentOrder.CarNumber, UpdateSourceTrigger=PropertyChanged}" 
                      Grid.Row="4" Margin="0,5,0,10" Height="50" Padding="5" Foreground="Black"/>
 
-            <!-- Тип кузова (категория) -->
+            <!-- Категория кузова -->
             <Label Content="Категория кузова:" Grid.Row="5" Margin="0,5,0,0" FontWeight="SemiBold"/>
             <controls:CustomComboBox x:Name="BodyTypeComboBox" Grid.Row="6" Margin="0,5,0,10" Height="50"
                          SelectedValue="{Binding SelectedBodyTypeCategory}"
@@ -90,9 +122,15 @@
                 <TextBox x:Name="OrderTimeTextBox" Grid.Column="2" TextAlignment="Center" Height="50" Width="80" Text="12:00"/>
             </Grid>
 
+            <!-- Длительность (только для записей) -->
+            <Label Content="⏱️ Длительность (минуты):" Grid.Row="9" Margin="0,5,0,0" FontWeight="SemiBold"
+                   Visibility="{Binding IsAppointment, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBox x:Name="DurationTextBox" Grid.Row="10" Margin="0,5,0,10" Height="50" Padding="5" Text="60"
+                     Visibility="{Binding IsAppointment, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
             <!-- Выбор бокса -->
-            <Label Content="🚘 Выберите бокс:" Grid.Row="9" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <StackPanel Grid.Row="10" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
+            <Label Content="🚘 Выберите бокс:" Grid.Row="11" Margin="0,5,0,0" FontWeight="SemiBold"/>
+            <StackPanel Grid.Row="12" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
                 <RadioButton Content="Бокс 1" GroupName="BoxNumber" Foreground="Black"
                              IsChecked="{Binding CurrentOrder.BoxNumber, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" 
                              Margin="10,5" Height="30" VerticalAlignment="Center"/>
@@ -104,19 +142,21 @@
                              Margin="10,5" Height="30" VerticalAlignment="Center"/>
             </StackPanel>
 
-            <!-- Выбор мойщика -->
-            <Label Content="👤 Выберите мойщика:" Grid.Row="11" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <controls:CustomComboBox x:Name="WasherComboBox" Grid.Row="12" Margin="0,5,0,10" Height="50"
-                         ItemsSource="{Binding Washers}"
-                         SelectedValue="{Binding CurrentOrder.WasherId}"
-                         DisplayMemberPath="FullName"
-                         SelectedValuePath="Id"
-                         Placeholder="Выберите из списка"
-                         IsEditable="True"/>
+            <!-- Выбор мойщика (только для заказов) -->
+            <Label Content="👤 Выберите мойщика:" Grid.Row="13" Margin="0,5,0,0" FontWeight="SemiBold"
+                   Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+            <controls:CustomComboBox x:Name="WasherComboBox" Grid.Row="14" Margin="0,5,0,10" Height="50"
+                                     ItemsSource="{Binding Washers}"
+                                     SelectedValue="{Binding CurrentOrder.WasherId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     DisplayMemberPath="FullName"
+                                     SelectedValuePath="Id"
+                                     Placeholder="Выберите из списка"
+                                     IsEditable="True"
+                                     Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
 
             <!-- Выбор услуг -->
-            <Label Content="🛠️ Выберите услуги:" Grid.Row="13" Margin="0,10,0,5" FontWeight="SemiBold"/>
-            <ListBox x:Name="ServicesListBox" Grid.Row="14" MinHeight="120" MaxHeight="180" Margin="0,5,0,10"
+            <Label Content="🛠️ Выберите услуги:" Grid.Row="15" Margin="0,10,0,5" FontWeight="SemiBold"/>
+            <ListBox x:Name="ServicesListBox" Grid.Row="16" MinHeight="120" MaxHeight="180" Margin="0,5,0,10"
                      ItemsSource="{Binding Services}" SelectionMode="Multiple">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
@@ -148,27 +188,29 @@
             </ListBox>
 
             <!-- Дополнительная стоимость -->
-            <Label Content="💰 Дополнительная стоимость:" Grid.Row="15" Margin="0,10,0,0" FontWeight="SemiBold"/>
+            <Label Content="💰 Дополнительная стоимость:" Grid.Row="17" Margin="0,10,0,0" FontWeight="SemiBold"/>
             <TextBox Text="{Binding ExtraCost, UpdateSourceTrigger=PropertyChanged}" 
-                     Grid.Row="16" Margin="0,5,0,10" Height="50" Padding="5"/>
+                     Grid.Row="18" Margin="0,5,0,10" Height="50" Padding="5"/>
 
             <!-- Причина доп. стоимости -->
-            <Label Content="📝 Причина дополнительной стоимости:" Grid.Row="17" Margin="0,5,0,0" FontWeight="SemiBold"/>
+            <Label Content="📝 Причина дополнительной стоимости:" Grid.Row="19" Margin="0,5,0,0" FontWeight="SemiBold"/>
             <TextBox Text="{Binding CurrentOrder.ExtraCostReason, UpdateSourceTrigger=PropertyChanged}" 
-                     Grid.Row="18" Margin="0,5,0,10" Height="50" Padding="5" 
+                     Grid.Row="20" Margin="0,5,0,10" Height="50" Padding="5" 
                      TextWrapping="Wrap" AcceptsReturn="True"/>
 
-            <!-- Статус заказа (только для редактирования) -->
-            <Label Content="📋 Статус заказа:" Grid.Row="19" Margin="0,5,0,0" FontWeight="SemiBold"
-                   Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
-            <controls:CustomComboBox x:Name="StatusComboBox" Grid.Row="20" Margin="0,5,0,10" Height="50"
+            <!-- Статус заказа -->
+            <Label Content="📋 Статус заказа:" Grid.Row="21" Margin="0,5,0,0" FontWeight="SemiBold"
+                   Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+            <controls:CustomComboBox x:Name="StatusComboBox" Grid.Row="22" Margin="0,5,0,10" Height="50"
                          SelectedValue="{Binding CurrentOrder.Status}"
                          SelectedValuePath="Tag"
-                         Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                         Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
 
-            <!-- Выбор клиента -->
-            <Label Content="👤 Клиент:" Grid.Row="21" Margin="0,5,0,0" FontWeight="SemiBold"/>
-            <Grid Grid.Row="22" Margin="0,5,0,10">
+            <!-- Выбор клиента (только для заказов) -->
+            <Label Content="👤 Клиент:" Grid.Row="23" Margin="0,5,0,0" FontWeight="SemiBold"
+                   Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+            <Grid Grid.Row="24" Margin="0,5,0,10"
+                  Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -184,13 +226,15 @@
                         Background="#27AE60" Foreground="White" FontSize="16"/>
             </Grid>
 
-            <!-- Способ оплаты -->
-            <Label Content="💳 Способ оплаты:" Grid.Row="23" Margin="0,10,0,0" FontWeight="SemiBold"/>
-            <controls:CustomComboBox x:Name="PaymentMethodComboBox" Grid.Row="24" Margin="0,5,0,10" Height="50"
-                         SelectedValuePath="Tag"/>
+            <!-- Способ оплаты (только для заказов) -->
+            <Label Content="💳 Способ оплаты:" Grid.Row="25" Margin="0,10,0,0" FontWeight="SemiBold"
+                   Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+            <controls:CustomComboBox x:Name="PaymentMethodComboBox" Grid.Row="26" Margin="0,5,0,10" Height="50"
+                         SelectedValuePath="Tag"
+                         Visibility="{Binding IsAppointment, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
 
             <!-- Итоговая сумма -->
-            <Border Grid.Row="25" Background="#F0F8FF" CornerRadius="5" Padding="10" Margin="0,10">
+            <Border Grid.Row="27" Background="#F0F8FF" CornerRadius="5" Padding="10" Margin="0,10">
                 <StackPanel>
                     <TextBlock FontSize="12" Foreground="#7F8C8D" 
                                HorizontalAlignment="Center" Text="{Binding ServicesTotal, StringFormat=💰 Услуги: {0:N0} ₽}"/>
@@ -202,8 +246,7 @@
             </Border>
 
             <!-- Кнопки -->
-            <StackPanel Grid.Row="26" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,20">
-                <Button Content="✅ Выполнено" Click="MarkAsCompletedButton_Click" Height="35" Margin="5" Background="#27AE60" Foreground="White"/>
+            <StackPanel Grid.Row="28" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,20">
                 <Button x:Name="ConvertToOrderButton" Content="📅 Преобразовать в заказ" Click="ConvertToOrderButton_Click" 
                         Width="185" Height="35" Margin="0,5" Background="#9B59B6" Foreground="White"
                         Visibility="{Binding IsAppointment, Converter={StaticResource BoolToVisibilityConverter}}"/>

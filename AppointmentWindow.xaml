@@ -9,11 +9,11 @@
         Title="Предварительная запись"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Width="550" Height="850"
+        Width="650" Height="850"
         Background="#F5F6FA"
         BorderBrush="Black"
         BorderThickness="1"
-        WindowStyle="None"
+        WindowStyle="SingleBorderWindow"
         Foreground="Black">
 
     <Window.Resources>

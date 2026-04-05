@@ -243,8 +243,17 @@ namespace MyPanelCarWashing.Controls
         private static void OnSelectedItemChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var comboBox = d as CustomComboBox;
-            comboBox?.UpdateSelectedValue();
-            comboBox?.UpdateDisplay();
+            System.Diagnostics.Debug.WriteLine($"CustomComboBox OnSelectedItemChanged: old={e.OldValue}, new={e.NewValue}");
+
+            if (comboBox != null)
+            {
+                comboBox.UpdateSelectedValue();
+                comboBox.UpdateDisplay();
+
+                // Принудительно обновляем ItemsPanel если открыт
+                if (comboBox.IsDropDownOpen)
+                    comboBox.UpdateItemsPanel();
+            }
         }
 
         private void UpdateSelectedValue()
@@ -261,16 +270,52 @@ namespace MyPanelCarWashing.Controls
         {
             if (_textBox == null) return;
 
+            System.Diagnostics.Debug.WriteLine($"UpdateDisplay: SelectedItem={SelectedItem}, SelectedValue={SelectedValue}");
+
             if (SelectedItem != null)
             {
                 _textBox.Text = GetDisplayText(SelectedItem);
                 _textBox.Foreground = new SolidColorBrush(Colors.Black);
+            }
+            else if (SelectedValue != null && ItemsSource != null)
+            {
+                // Пытаемся найти элемент по SelectedValue
+                var source = ItemsSource as IEnumerable;
+                if (source != null)
+                {
+                    foreach (var item in source)
+                    {
+                        var value = GetItemValue(item);
+                        if (value?.ToString() == SelectedValue?.ToString())
+                        {
+                            SelectedItem = item;
+                            _textBox.Text = GetDisplayText(item);
+                            _textBox.Foreground = new SolidColorBrush(Colors.Black);
+                            System.Diagnostics.Debug.WriteLine($"UpdateDisplay: найден элемент по SelectedValue");
+                            return;
+                        }
+                    }
+                }
+                _textBox.Text = Placeholder;
+                _textBox.Foreground = new SolidColorBrush(Colors.Gray);
             }
             else if (!string.IsNullOrEmpty(Placeholder))
             {
                 _textBox.Text = Placeholder;
                 _textBox.Foreground = new SolidColorBrush(Colors.Gray);
             }
+        }
+
+        private object GetItemValue(object item)
+        {
+            if (item == null) return null;
+            if (!string.IsNullOrEmpty(SelectedValuePath))
+            {
+                var prop = item.GetType().GetProperty(SelectedValuePath);
+                if (prop != null)
+                    return prop.GetValue(item);
+            }
+            return item;
         }
 
         private string GetDisplayText(object item)

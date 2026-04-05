@@ -194,14 +194,27 @@ namespace MyPanelCarWashing.ViewModels
 
         private void LoadWashers()
         {
+            var allUsers = _dataService.GetAllUsers();
+
+            // Если есть активная смена, показываем сотрудников смены + предупреждение о других
             if (_currentShift != null && _currentShift.EmployeeIds != null && _currentShift.EmployeeIds.Any())
             {
-                var allUsers = _dataService.GetAllUsers();
-                Washers = allUsers.Where(u => _currentShift.EmployeeIds.Contains(u.Id)).ToList();
+                // Показываем всех сотрудников, но с маркировкой кто в смене
+                Washers = allUsers;
+
+                // Для отладки
+                System.Diagnostics.Debug.WriteLine($"Загружено мойщиков: {Washers.Count}");
+                foreach (var w in Washers)
+                {
+                    bool inShift = _currentShift.EmployeeIds.Contains(w.Id);
+                    System.Diagnostics.Debug.WriteLine($"  {w.FullName} - {(inShift ? "в смене" : "не в смене")}");
+                }
             }
             else
             {
-                Washers = new List<User>();
+                // Если нет активной смены, показываем всех
+                Washers = allUsers;
+                System.Diagnostics.Debug.WriteLine($"Нет активной смены, загружено всех мойщиков: {Washers.Count}");
             }
         }
 
@@ -292,14 +305,18 @@ namespace MyPanelCarWashing.ViewModels
 
                 if (!IsEditMode && !IsAppointment)
                 {
-                    // НОВЫЙ ЗАКАЗ - используем DataService
-                    CurrentOrder.ShiftId = _currentShift?.Id ?? 0;
-                    _dataService.AddOrder(CurrentOrder, serviceIds);
-
-                    message = $"Заказ добавлен!\n\n🚗 {CurrentOrder.CarModel} ({CurrentOrder.CarNumber})\n💰 Итого: {FinalTotal:N0} ₽";
-                    if (ExtraCost > 0)
-                        message += $"\n➕ Дополнительно: {ExtraCost:N0} ₽\n📝 Причина: {CurrentOrder.ExtraCostReason}";
-                    success = true;
+                    // НОВЫЙ ЗАКАЗ - проверяем, что заказ еще не существует
+                    if (CurrentOrder.Id == 0)
+                    {
+                        CurrentOrder.ShiftId = _currentShift?.Id ?? 0;
+                        _dataService.AddOrder(CurrentOrder, serviceIds);
+                        message = $"Заказ добавлен!";
+                        success = true;
+                    }
+                    else
+                    {
+                        message = "Ошибка: ID заказа уже существует";
+                    }
                 }
                 else if (IsAppointment)
                 {

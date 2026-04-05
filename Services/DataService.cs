@@ -251,6 +251,18 @@ namespace MyPanelCarWashing.Services
             }
         }
 
+        public CarWashOrder GetOrderByAppointmentId(int appointmentId)
+        {
+            var appData = FileDataService.LoadData();
+            foreach (var shift in appData.Shifts)
+            {
+                var order = shift.Orders?.FirstOrDefault(o => o.AppointmentId == appointmentId);
+                if (order != null)
+                    return order;
+            }
+            return null;
+        }
+
         // Заказы
         public void AddOrder(CarWashOrder order, List<int> serviceIds)
         {
@@ -264,6 +276,13 @@ namespace MyPanelCarWashing.Services
             if (shift != null)
             {
                 if (shift.Orders == null) shift.Orders = new List<CarWashOrder>();
+
+                // ПРОВЕРКА: нет ли уже такого заказа?
+                if (shift.Orders.Any(o => o.Id == order.Id && order.Id > 0))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Заказ ID {order.Id} уже существует, пропускаем добавление");
+                    return;
+                }
 
                 order.Id = GetNextOrderId(_data);
                 order.ServiceIds = serviceIds;
