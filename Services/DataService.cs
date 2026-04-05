@@ -14,13 +14,25 @@ namespace MyPanelCarWashing.Services
 
         public DataService()
         {
-            LoadData();
-            CleanupDuplicateServices();
-            CleanupInvalidData();
-            FixInvalidData();
-            RecalculateAllClientsStats();
-            _data.UpdateIds();
-            FileDataService.CleanupOldBackups(7);
+            try
+            {
+                Logger.Info("Инициализация DataService", "CORE");
+                LoadData();
+
+                Logger.Info("Запуск проверки и исправления данных", "CORE");
+                CleanupDuplicateServices();
+                CleanupInvalidData();
+                FixInvalidData();
+                RecalculateAllClientsStats();
+                _data.UpdateIds();
+
+                FileDataService.CleanupOldBackups(7);
+                Logger.Info("DataService успешно инициализирован", "CORE", $"Пользователей: {_data.Users.Count}, Смен: {_data.Shifts.Count}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Критическая ошибка при инициализации DataService", ex, "CORE");
+            }
         }
 
         private void LoadData()
@@ -88,6 +100,9 @@ namespace MyPanelCarWashing.Services
             var existing = _data.Users.FirstOrDefault(u => u.Id == user.Id);
             if (existing != null)
             {
+                string oldLogin = existing.Login;
+                string oldRole = existing.IsAdmin ? "Админ" : "Сотрудник";
+
                 existing.FullName = user.FullName;
                 existing.Login = user.Login;
                 existing.IsAdmin = user.IsAdmin;
@@ -97,6 +112,8 @@ namespace MyPanelCarWashing.Services
                     existing.Password = user.Password;
                 }
                 SaveData();
+
+                Logger.Info($"Сотрудник обновлён | ID: {user.Id} | Логин: {oldLogin}→{user.Login} | Роль: {oldRole}→{(user.IsAdmin ? "Админ" : "Сотрудник")}", "USER");
             }
         }
 
@@ -207,6 +224,8 @@ namespace MyPanelCarWashing.Services
             user.Id = _data.GetNextUserId();
             _data.Users.Add(user);
             SaveData();
+
+            Logger.Info($"Сотрудник добавлен | ФИО: {user.FullName} | Логин: {user.Login} | Роль: {(user.IsAdmin ? "Админ" : "Сотрудник")}", "USER");
         }
 
         // Услуги
@@ -704,12 +723,11 @@ namespace MyPanelCarWashing.Services
         // Добавить запись
         public void AddAppointment(Appointment appointment)
         {
-            // ВАЖНО: перезагружаем данные перед добавлением
             LoadData();
 
-            // Проверяем доступность перед добавлением
             if (!IsBoxAvailable(appointment.BoxNumber, appointment.AppointmentDate, appointment.DurationMinutes))
             {
+                Logger.Warn($"Попытка создать запись на занятое время | Бокс: {appointment.BoxNumber} | Время: {appointment.AppointmentDate:HH:mm}", "APPOINTMENT");
                 throw new Exception("Выбранное время уже занято!");
             }
 
@@ -719,11 +737,8 @@ namespace MyPanelCarWashing.Services
             _data.Appointments.Add(appointment);
             SaveData();
 
-            System.Diagnostics.Debug.WriteLine($"=== ЗАПИСЬ ДОБАВЛЕНА ===");
-            System.Diagnostics.Debug.WriteLine($"ID: {appointment.Id}");
-            System.Diagnostics.Debug.WriteLine($"Время: {appointment.AppointmentDate:HH:mm} - {appointment.EndTime:HH:mm}");
+            Logger.Info($"Запись создана | Авто: {appointment.CarNumber} | Время: {appointment.AppointmentDate:dd.MM.yyyy HH:mm} | Бокс: {appointment.BoxNumber} | Услуг: {appointment.ServiceIds.Count}", "APPOINTMENT");
 
-            // Оповещаем об изменении
             NotifyDataChanged();
         }
 
@@ -733,8 +748,10 @@ namespace MyPanelCarWashing.Services
             var appointment = _data.Appointments.FirstOrDefault(a => a.Id == appointmentId);
             if (appointment != null)
             {
+                string info = $"Авто: {appointment.CarNumber} | Время: {appointment.AppointmentDate:HH:mm}";
                 _data.Appointments.Remove(appointment);
                 SaveData();
+                Logger.Info($"Запись удалена | {info}", "APPOINTMENT");
             }
         }
 
@@ -876,13 +893,229 @@ namespace MyPanelCarWashing.Services
         }
         public void AddService(Service service)
         {
-            service.Id = _data.GetNextServiceId();
-            _data.Services.Add(service);
-            SaveData();
+            try
+            {
+                // === 1. Перезагружаем данные для актуального списка ===
+                LoadData();
 
-            // Исправлено: выводим информацию о ценах
-            var prices = string.Join(", ", service.PriceByBodyType.Select(p => $"Кат.{p.Key}: {p.Value}"));
-            System.Diagnostics.Debug.WriteLine($"Добавлена услуга: ID={service.Id}, Name={service.Name}, Цены: {prices}");
+                // === 2. НАДЁЖНЫЙ расчёт следующего ID ===
+                int newId = 1; // Значение по умолчанию, если услуг нет
+                if (_data.Services != null && _data.Services.Any())
+                {
+                    newId = _data.Services.Max(s => s.Id) + 1;
+                }
+
+                // === 3. ПРИНУДИТЕЛЬНО присваиваем новый ID (игнорируем входящий!) ===
+                service.Id = newId;
+
+                // === 4. Защита от гонки: если вдруг такой ID уже есть — ищем следующий свободный ===
+                while (_data.Services.Any(s => s.Id == service.Id))
+                {
+                    service.Id++;
+                }
+
+                // === 5. Добавляем и сохраняем ===
+                if (_data.Services == null)
+                    _data.Services = new List<Service>();
+
+                _data.Services.Add(service);
+                SaveData();
+
+                // === 6. Логирование ===
+                string prices = string.Join(", ", service.PriceByBodyType?.Select(p => $"Кат.{p.Key}: {p.Value}₽") ?? new[] { "нет цен" });
+                Logger.Info($"Услуга добавлена | Название: {service.Name} | ID: {service.Id} | Цены: {prices}", "SERVICE");
+
+                // === 7. Уведомление об изменении ===
+                NotifyDataChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Ошибка при добавлении услуги", ex, "SERVICE");
+                throw;
+            }
+        }
+        public void UpdateService(Service service)
+        {
+            var appData = FileDataService.LoadData();
+            var existing = appData.Services.FirstOrDefault(s => s.Id == service.Id);
+            if (existing != null)
+            {
+                // Сохраняем старые цены для сравнения
+                string oldPrices = string.Join(", ", existing.PriceByBodyType.Select(p => $"Кат.{p.Key}: {p.Value}₽"));
+                string newPrices = string.Join(", ", service.PriceByBodyType.Select(p => $"Кат.{p.Key}: {p.Value}₽"));
+
+                // Проверяем, изменились ли цены
+                bool pricesChanged = oldPrices != newPrices;
+                string priceLog = pricesChanged ? $" | Цены: {oldPrices} → {newPrices}" : "";
+
+                existing.Name = service.Name;
+                existing.IsActive = service.IsActive;
+                existing.PriceByBodyType = service.PriceByBodyType;
+
+                FileDataService.SaveData(appData);
+
+                // Логируем изменение
+                if (pricesChanged)
+                {
+                    Logger.Info($"Услуга обновлена (ЦЕНЫ ИЗМЕНЕНЫ) | Название: {service.Name} | ID: {service.Id}{priceLog}", "SERVICE_PRICE");
+                }
+                else
+                {
+                    Logger.Info($"Услуга обновлена | Название: {service.Name} | ID: {service.Id}", "SERVICE");
+                }
+            }
+        }
+        public void UpdateAppSettings(AppSettings newSettings, AppSettings oldSettings = null)
+        {
+            try
+            {
+                string changes = "";
+
+                if (oldSettings != null)
+                {
+                    if (oldSettings.AutoBackup != newSettings.AutoBackup)
+                        changes += $"Автобэкап: {oldSettings.AutoBackup}→{newSettings.AutoBackup}; ";
+                    if (oldSettings.BackupDaysToKeep != newSettings.BackupDaysToKeep)
+                        changes += $"Дни хранения бэкапов: {oldSettings.BackupDaysToKeep}→{newSettings.BackupDaysToKeep}; ";
+                    if (oldSettings.LogDaysToKeep != newSettings.LogDaysToKeep)
+                        changes += $"Дни хранения логов: {oldSettings.LogDaysToKeep}→{newSettings.LogDaysToKeep}; ";
+                    if (oldSettings.DefaultPaymentMethod != newSettings.DefaultPaymentMethod)
+                        changes += $"Способ оплаты по умолчанию: {oldSettings.DefaultPaymentMethod}→{newSettings.DefaultPaymentMethod}; ";
+                    if (oldSettings.DefaultWasherPercent != newSettings.DefaultWasherPercent)
+                        changes += $"Процент мойщика: {oldSettings.DefaultWasherPercent}→{newSettings.DefaultWasherPercent}%; ";
+                    if (oldSettings.RequireConfirmationForDelete != newSettings.RequireConfirmationForDelete)
+                        changes += $"Подтверждение удаления: {oldSettings.RequireConfirmationForDelete}→{newSettings.RequireConfirmationForDelete}; ";
+                }
+
+                newSettings.Save();
+
+                if (!string.IsNullOrEmpty(changes))
+                {
+                    Logger.Info($"Настройки приложения изменены | {changes.TrimEnd(';', ' ')}", "SETTINGS");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Ошибка при сохранении настроек", ex, "SETTINGS");
+            }
+        }
+        public string ExportDataToJson(string exportType = "full")
+        {
+            try
+            {
+                string exportsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Exports");
+                if (!Directory.Exists(exportsFolder))
+                    Directory.CreateDirectory(exportsFolder);
+
+                string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
+                string fileName = $"export_{exportType}_{timestamp}.json";
+                string filePath = Path.Combine(exportsFolder, fileName);
+
+                var appData = FileDataService.LoadData();
+                object exportData = null;
+
+                // Традиционный switch (C# 7.3 совместимый)
+                if (exportType == "clients")
+                {
+                    exportData = new { Clients = appData.Clients, ExportDate = DateTime.Now };
+                }
+                else if (exportType == "orders")
+                {
+                    var orders = appData.Shifts.SelectMany(s => s.Orders ?? new List<CarWashOrder>()).ToList();
+                    exportData = new { Orders = orders, ExportDate = DateTime.Now };
+                }
+                else // "full" или любой другой
+                {
+                    exportData = new
+                    {
+                        Clients = appData.Clients,
+                        Orders = appData.Shifts.SelectMany(s => s.Orders ?? new List<CarWashOrder>()).ToList(),
+                        Services = appData.Services,
+                        ExportDate = DateTime.Now
+                    };
+                }
+
+                string json = Newtonsoft.Json.JsonConvert.SerializeObject(exportData, Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(filePath, json);
+
+                // Подсчитываем статистику для лога (тоже через if-else)
+                string stats = "";
+                if (exportType == "clients")
+                {
+                    stats = $"Клиентов: {appData.Clients.Count}";
+                }
+                else if (exportType == "orders")
+                {
+                    stats = $"Заказов: {appData.Shifts.SelectMany(s => s.Orders ?? new List<CarWashOrder>()).Count()}";
+                }
+                else
+                {
+                    stats = $"Клиентов: {appData.Clients.Count}, Заказов: {appData.Shifts.SelectMany(s => s.Orders ?? new List<CarWashOrder>()).Count()}, Услуг: {appData.Services.Count}";
+                }
+
+                Logger.Info($"ЭКСПОРТ ДАННЫХ | Тип: {exportType} | Файл: {fileName} | {stats}", "EXPORT");
+
+                return filePath;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Ошибка при экспорте данных", ex, "EXPORT");
+                throw;
+            }
+        }
+        /// <summary>
+        /// Рассчитывает суммарное рабочее время каждого сотрудника за указанный период
+        /// </summary>
+        public Dictionary<string, string> GetEmployeeWorkTimeReport(DateTime startDate, DateTime endDate)
+        {
+            var shifts = _data.Shifts
+                .Where(s => s.Date.Date >= startDate.Date && s.Date.Date <= endDate.Date && s.IsClosed && s.EndTime.HasValue)
+                .ToList();
+
+            var report = new Dictionary<string, TimeSpan>();
+
+            foreach (var shift in shifts)
+            {
+                if (shift.EmployeeIds == null || shift.EmployeeIds.Count == 0) continue;
+
+                TimeSpan duration = shift.EndTime.Value - shift.StartTime.Value;
+                if (duration.TotalHours < 0) continue; // Защита от некорректных данных
+
+                foreach (int empId in shift.EmployeeIds)
+                {
+                    var user = _data.Users.FirstOrDefault(u => u.Id == empId);
+                    string name = user?.FullName ?? $"Сотрудник ID:{empId}";
+
+                    if (report.ContainsKey(name))
+                        report[name] += duration;
+                    else
+                        report[name] = duration;
+                }
+            }
+
+            // Преобразуем TimeSpan в читаемый формат "X ч. Y мин."
+            var result = new Dictionary<string, string>();
+            foreach (var kvp in report)
+            {
+                int hours = (int)kvp.Value.TotalHours;
+                int minutes = kvp.Value.Minutes;
+                result[kvp.Key] = $"{hours} ч. {minutes} мин.";
+            }
+
+            return result;
+        }
+        public void DeleteService(int serviceId)
+        {
+            var appData = FileDataService.LoadData();
+            var service = appData.Services.FirstOrDefault(s => s.Id == serviceId);
+            if (service != null)
+            {
+                string info = $"Название: {service.Name} | Цены: {string.Join(", ", service.PriceByBodyType.Select(p => $"Кат.{p.Key}: {p.Value}₽"))}";
+                appData.Services.Remove(service);
+                FileDataService.SaveData(appData);
+
+                Logger.Warn($"Услуга удалена | {info}", "SERVICE");
+            }
         }
         public List<Client> GetAllClients()
         {
@@ -916,6 +1149,8 @@ namespace MyPanelCarWashing.Services
             client.RegistrationDate = DateTime.Now;
             appData.Clients.Add(client);
             FileDataService.SaveData(appData);
+
+            Logger.Info($"Клиент добавлен | ФИО: {client.FullName} | Тел: {client.Phone}", "CLIENT");
         }
 
         public void UpdateClient(Client client)
@@ -924,12 +1159,18 @@ namespace MyPanelCarWashing.Services
             var existing = appData.Clients.FirstOrDefault(c => c.Id == client.Id);
             if (existing != null)
             {
+                string oldInfo = $"{existing.FullName} | {existing.Phone}";
+
                 existing.FullName = client.FullName;
                 existing.Phone = client.Phone;
                 existing.CarModel = client.CarModel;
                 existing.CarNumber = client.CarNumber;
                 existing.Notes = client.Notes;
+                existing.DefaultDiscountPercent = client.DefaultDiscountPercent;
+
                 FileDataService.SaveData(appData);
+
+                Logger.Info($"Клиент обновлён | ID: {client.Id} | Было: {oldInfo} | Стало: {client.FullName}", "CLIENT");
             }
         }
 
@@ -939,8 +1180,10 @@ namespace MyPanelCarWashing.Services
             var client = appData.Clients.FirstOrDefault(c => c.Id == clientId);
             if (client != null)
             {
+                string info = $"{client.FullName} ({client.Phone}) | Авто: {client.CarNumber}";
                 appData.Clients.Remove(client);
                 FileDataService.SaveData(appData);
+                Logger.Info($"Клиент удалён | {info}", "CLIENT");
             }
         }
 

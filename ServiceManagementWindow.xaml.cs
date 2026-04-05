@@ -14,7 +14,6 @@ namespace MyPanelCarWashing
     {
         private DataService _dataService;
         private List<Service> _allServices;
-        private Service _selectedService;
 
         public ServiceManagementWindow(DataService dataService)
         {
@@ -27,7 +26,6 @@ namespace MyPanelCarWashing
         {
             _allServices = _dataService.GetAllServices().ToList();
             ApplyFilter();
-
             System.Diagnostics.Debug.WriteLine($"Загружено услуг: {_allServices.Count}");
         }
 
@@ -47,7 +45,9 @@ namespace MyPanelCarWashing
                                 (s.Description != null && s.Description.ToLower().Contains(searchText)));
             }
 
-            ServicesItemsControl.ItemsSource = filtered;
+            // ListBox сам обновится при смене ItemsSource
+            ServicesListBox.ItemsSource = filtered;
+            ServicesListBox.SelectedItem = null; // Сброс выделения при фильтрации
         }
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -55,34 +55,47 @@ namespace MyPanelCarWashing
             ApplyFilter();
         }
 
-        private void ServiceCard_Click(object sender, MouseButtonEventArgs e)
+        // Снимает выделение при клике на пустое место
+        private void ServicesListBox_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            var border = sender as Border;
-            if (border?.DataContext is Service selectedService)
-            {
-                // Снимаем выделение с предыдущей услуги
-                if (_selectedService != null)
-                {
-                    _selectedService.IsSelected = false;
-                }
+            // Ищем, не кликнули ли мы по ListBoxItem (карточке)
+            var source = e.OriginalSource as DependencyObject;
+            var listBoxItem = FindParent<ListBoxItem>(source);
 
-                _selectedService = selectedService;
-                _selectedService.IsSelected = true;
+            // Если клик не по элементу списка — снимаем выделение
+            if (listBoxItem == null)
+            {
+                ServicesListBox.SelectedItem = null;
+                e.Handled = true;
             }
+        }
+
+        // Вспомогательный метод для поиска родителя
+        private T FindParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            DependencyObject parent = VisualTreeHelper.GetParent(child);
+            while (parent != null && !(parent is T))
+            {
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+            return parent as T;
+        }
+
+        // Получаем выбранную услугу из ListBox
+        private Service GetSelectedService()
+        {
+            return ServicesListBox.SelectedItem as Service;
         }
 
         private void EditService(Service service)
         {
+            if (service == null) return;
+
             var editWin = new AddEditServiceWindow(_dataService, service);
             if (editWin.ShowDialog() == true)
             {
                 _dataService = new DataService();
                 LoadServices();
-                if (_selectedService != null)
-                {
-                    _selectedService.IsSelected = false;
-                    _selectedService = null;
-                }
                 MessageBox.Show("Услуга обновлена", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -90,6 +103,8 @@ namespace MyPanelCarWashing
 
         private void DeleteService(Service service)
         {
+            if (service == null) return;
+
             var result = MessageBox.Show($"Удалить услугу \"{service.Name}\"?\n\nЭто действие нельзя отменить.\n\n" +
                 $"ВНИМАНИЕ: Если услуга используется в заказах, удаление может вызвать ошибки!",
                 "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -107,11 +122,6 @@ namespace MyPanelCarWashing
 
                         _dataService = new DataService();
                         LoadServices();
-                        if (_selectedService != null)
-                        {
-                            _selectedService.IsSelected = false;
-                            _selectedService = null;
-                        }
                         MessageBox.Show("Услуга удалена", "Успешно",
                             MessageBoxButton.OK, MessageBoxImage.Information);
                     }
@@ -128,37 +138,21 @@ namespace MyPanelCarWashing
         {
             _dataService = new DataService();
             LoadServices();
-            if (_selectedService != null)
-            {
-                _selectedService.IsSelected = false;
-                _selectedService = null;
-            }
             MessageBox.Show("Список услуг обновлен", "Обновление",
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void EditMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var menuItem = sender as MenuItem;
-            if (menuItem?.Tag is Service service)
+            if (sender is MenuItem menuItem && menuItem.DataContext is Service service)
             {
                 EditService(service);
             }
         }
 
-        private void DeleteMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            var menuItem = sender as MenuItem;
-            if (menuItem?.Tag is Service service)
-            {
-                DeleteService(service);
-            }
-        }
-
         private void CopyNameMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var menuItem = sender as MenuItem;
-            if (menuItem?.Tag is Service service)
+            if (sender is MenuItem menuItem && menuItem.DataContext is Service service)
             {
                 Clipboard.SetText(service.Name);
                 MessageBox.Show($"Название услуги \"{service.Name}\" скопировано в буфер обмена",
@@ -180,9 +174,10 @@ namespace MyPanelCarWashing
 
         private void EditButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedService != null)
+            var service = GetSelectedService();
+            if (service != null)
             {
-                EditService(_selectedService);
+                EditService(service);
             }
             else
             {
@@ -193,9 +188,10 @@ namespace MyPanelCarWashing
 
         private void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedService != null)
+            var service = GetSelectedService();
+            if (service != null)
             {
-                DeleteService(_selectedService);
+                DeleteService(service);
             }
             else
             {
@@ -247,47 +243,20 @@ namespace MyPanelCarWashing
             MessageBox.Show(message, "Проверка целостности", MessageBoxButton.OK,
                 duplicateIds.Any() || duplicateNames.Any() ? MessageBoxImage.Warning : MessageBoxImage.Information);
         }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
 
-        private void ServiceCard_MouseDown(object sender, MouseButtonEventArgs e)
+        // Двойной клик по карточке = редактирование
+        private void ServicesListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            var border = sender as Border;
-            if (border?.DataContext is Service selectedService)
+            var service = GetSelectedService();
+            if (service != null)
             {
-                // Проверяем, был ли двойной клик
-                if (e.ClickCount == 2)
-                {
-                    // Двойной клик - открываем редактирование
-                    // Снимаем выделение с предыдущей услуги
-                    if (_selectedService != null)
-                    {
-                        _selectedService.IsSelected = false;
-                    }
-
-                    _selectedService = selectedService;
-                    _selectedService.IsSelected = true;
-
-                    // Открываем редактирование
-                    EditService(_selectedService);
-
-                    // Помечаем событие как обработанное
-                    e.Handled = true;
-                }
-                else if (e.ClickCount == 1)
-                {
-                    // Одиночный клик - выделяем карточку
-                    // Снимаем выделение с предыдущей услуги
-                    if (_selectedService != null)
-                    {
-                        _selectedService.IsSelected = false;
-                    }
-
-                    _selectedService = selectedService;
-                    _selectedService.IsSelected = true;
-                }
+                EditService(service);
+                e.Handled = true;
             }
         }
     }

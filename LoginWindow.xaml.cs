@@ -25,8 +25,8 @@ namespace MyPanelCarWashing
 
                 if (string.IsNullOrEmpty(login) || string.IsNullOrEmpty(password))
                 {
-                    MessageBox.Show("Введите логин и пароль", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    Logger.Warn("Попытка входа с пустыми полями", "AUTH");
+                    MessageBox.Show("Введите логин и пароль", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -34,20 +34,24 @@ namespace MyPanelCarWashing
 
                 if (user != null)
                 {
+                    // Устанавливаем контекст для всех последующих логов в этой сессии
+                    Logger.SetUserContext(user.FullName, user.Id);
+                    Logger.Info("Вход выполнен", "AUTH", $"Логин: {login} | Роль: {(user.IsAdmin ? "Админ" : "Сотрудник")}");
+
                     var mainWindow = new MainWindow(_dataService, user);
                     mainWindow.Show();
                     this.Close();
                 }
                 else
                 {
-                    MessageBox.Show("Неверный логин или пароль!", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    Logger.Warn("Неудачная попытка входа", "AUTH", $"Логин: '{login}' | IP: localhost | Время: {DateTime.Now:HH:mm:ss}");
+                    MessageBox.Show("Неверный логин или пароль!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка входа: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Logger.Error("Критическая ошибка при авторизации", ex, "AUTH");
+                MessageBox.Show($"Ошибка входа: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

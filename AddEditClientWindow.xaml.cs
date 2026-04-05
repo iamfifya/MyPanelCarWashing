@@ -61,38 +61,49 @@ namespace MyPanelCarWashing
             {
                 if (string.IsNullOrWhiteSpace(CurrentClient.FullName))
                 {
-                    MessageBox.Show("Введите ФИО клиента", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Введите ФИО клиента", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-
                 if (string.IsNullOrWhiteSpace(CurrentClient.Phone))
                 {
-                    MessageBox.Show("Введите телефон клиента", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Введите телефон клиента", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-
-                // === ВАЛИДАЦИЯ СКИДКИ ===
                 if (CurrentClient.DefaultDiscountPercent < 0 || CurrentClient.DefaultDiscountPercent > 100)
                 {
-                    MessageBox.Show("Скидка должна быть в диапазоне 0-100%", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Скидка должна быть в диапазоне 0-100%", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-                // === КОНЕЦ ВАЛИДАЦИИ ===
 
                 if (CurrentClient.Id == 0)
                 {
                     _dataService.AddClient(CurrentClient);
-                    MessageBox.Show("Клиент добавлен", "Успешно",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    Logger.Info($"Клиент ДОБАВЛЕН | ФИО: {CurrentClient.FullName} | Тел: {CurrentClient.Phone} | Авто: {CurrentClient.CarNumber}", "CLIENT_AUDIT");
+                    MessageBox.Show("Клиент добавлен", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
+                    // Получаем старые данные для сравнения
+                    var oldClient = _dataService.GetClientById(CurrentClient.Id);
+                    string changes = "";
+
+                    if (oldClient != null)
+                    {
+                        if (oldClient.FullName != CurrentClient.FullName) changes += $"ФИО: '{oldClient.FullName}'→'{CurrentClient.FullName}'; ";
+                        if (oldClient.Phone != CurrentClient.Phone) changes += $"Тел: '{oldClient.Phone}'→'{CurrentClient.Phone}'; ";
+                        if (oldClient.CarNumber != CurrentClient.CarNumber) changes += $"Авто: '{oldClient.CarNumber}'→'{CurrentClient.CarNumber}'; ";
+                        if (oldClient.DefaultDiscountPercent != CurrentClient.DefaultDiscountPercent) changes += $"Скидка: {oldClient.DefaultDiscountPercent}%→{CurrentClient.DefaultDiscountPercent}%; ";
+                    }
+
                     _dataService.UpdateClient(CurrentClient);
-                    MessageBox.Show("Данные клиента обновлены", "Успешно",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Логируем только если что-то реально изменилось
+                    if (!string.IsNullOrEmpty(changes))
+                    {
+                        Logger.Info($"Клиент ИЗМЕНЁН | ID: {CurrentClient.Id} | {changes.TrimEnd(';', ' ')}", "CLIENT_AUDIT");
+                    }
+
+                    MessageBox.Show("Данные клиента обновлены", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
                 DialogResult = true;
@@ -100,8 +111,8 @@ namespace MyPanelCarWashing
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Logger.Error("Ошибка при сохранении клиента", ex, "CLIENT");
+                MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

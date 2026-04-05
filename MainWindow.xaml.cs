@@ -242,42 +242,33 @@ namespace MyPanelCarWashing
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("=========================================");
-                System.Diagnostics.Debug.WriteLine("=== LoadData ===");
+                Logger.Info("Загрузка данных в MainWindow", "UI_MAIN");
 
-                // Получаем текущую открытую смену
                 _currentShift = _dataService.GetCurrentOpenShift();
-
-                System.Diagnostics.Debug.WriteLine($"Current shift found: {_currentShift != null}");
+                Logger.Info("Текущая смена получена", "UI_MAIN", $"Найдена: {_currentShift != null} | ID: {_currentShift?.Id}");
 
                 if (_currentShift != null && !_currentShift.IsClosed)
                 {
                     _allOrders = _currentShift.Orders ?? new List<CarWashOrder>();
-                    System.Diagnostics.Debug.WriteLine($"Orders count: {_allOrders.Count}");
-
-                    foreach (var order in _allOrders)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  Order ID: {order.Id}, Car: {order.CarNumber}, Time: {order.Time}, IsAppointment: {order.IsAppointment}");
-                    }
+                    Logger.Info("Заказы загружены", "UI_MAIN", $"Количество: {_allOrders.Count}");
                 }
                 else
                 {
                     _allOrders = new List<CarWashOrder>();
-                    System.Diagnostics.Debug.WriteLine("Нет активной смены или смена закрыта");
+                    Logger.Warn("Нет активной смены или смена закрыта", "UI_MAIN");
                 }
 
-                // Получаем записи на сегодня (только если есть активная смена)
                 var todayAppointments = new List<Appointment>();
                 if (_currentShift != null && !_currentShift.IsClosed)
                 {
                     todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+                    Logger.Info("Записи на сегодня загружены", "UI_MAIN", $"Количество: {todayAppointments.Count}");
                 }
 
                 var allServices = _dataService.GetAllServices();
+                Logger.Info("Услуги загружены", "UI_MAIN", $"Количество: {allServices.Count}");
 
-                System.Diagnostics.Debug.WriteLine($"Appointments today: {todayAppointments.Count}");
-
-                // Создаем отображаемые элементы для заказов
+                // ===== ПОЛНЫЙ МАППИНГ ЗАКАЗОВ (без сокращений) =====
                 var orderItems = _allOrders.Select(o => new OrderDisplayItem
                 {
                     Id = o.Id,
@@ -304,7 +295,7 @@ namespace MyPanelCarWashing
                     AppointmentId = null
                 }).ToList();
 
-                // Создаем отображаемые элементы для записей (только невыполненные)
+                // ===== ПОЛНЫЙ МАППИНГ ЗАПИСЕЙ =====
                 var appointmentItems = todayAppointments
                     .Where(a => !a.IsCompleted)
                     .Select(a => new OrderDisplayItem
@@ -319,21 +310,14 @@ namespace MyPanelCarWashing
                             var svc = allServices.FirstOrDefault(s => s.Id == id);
                             return svc != null ? svc.Name : "Unknown";
                         })),
-
-                        // === ЦЕНА И СКИДКИ ДЛЯ ЗАПИСЕЙ ===
-                        // У записей ещё нет финальной цены со скидкой, считаем базовую
                         FinalPrice = (a.ServiceIds ?? new List<int>()).Sum(id =>
                         {
                             var svc = allServices.FirstOrDefault(s => s.Id == id);
                             return svc != null ? svc.GetPrice(a.BodyTypeCategory) : 0;
                         }) + a.ExtraCost,
-
-                        // Скидки для записей пока не применяются — ставим 0
                         OriginalTotalPrice = 0,
                         DiscountPercent = 0,
                         DiscountAmount = 0,
-                        // === КОНЕЦ ПОЛЕЙ СКИДОК ===
-
                         ExtraCost = a.ExtraCost,
                         ExtraCostReason = a.ExtraCostReason,
                         BoxNumber = a.BoxNumber,
@@ -343,12 +327,8 @@ namespace MyPanelCarWashing
                         AppointmentId = a.Id
                     }).ToList();
 
-                // Объединяем и сортируем по времени
                 var allItems = orderItems.Concat(appointmentItems).OrderBy(i => i.Time).ToList();
-
-                System.Diagnostics.Debug.WriteLine($"Total display items: {allItems.Count}");
-                System.Diagnostics.Debug.WriteLine($"  Orders: {orderItems.Count}");
-                System.Diagnostics.Debug.WriteLine($"  Appointments: {appointmentItems.Count}");
+                Logger.Info("Карточки сформированы", "UI_MAIN", $"Всего: {allItems.Count} | Заказов: {orderItems.Count} | Записей: {appointmentItems.Count}");
 
                 // Распределяем по боксам
                 Box1Items = allItems.Where(i => i.BoxNumber == 1).ToList();
@@ -360,13 +340,39 @@ namespace MyPanelCarWashing
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box1Items)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box2Items)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Box3Items)));
+
+                Logger.Info("Интерфейс MainWindow успешно обновлён", "UI_MAIN");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"LoadData error: {ex}");
-                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Logger.Error("Критическая ошибка при загрузке данных в MainWindow", ex, "UI_MAIN");
+                MessageBox.Show($"Ошибка загрузки данных: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void OnDataChanged()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    Logger.Info("Получено уведомление об изменении данных", "UI_SYNC");
+                    _dataService = new DataService();
+                    _currentShift = _dataService.GetCurrentOpenShift();
+
+                    if (AppointmentsOverlay != null)
+                    {
+                        AppointmentsOverlay.DataService = _dataService;
+                        AppointmentsOverlay.CurrentShift = _currentShift;
+                    }
+
+                    LoadData();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Ошибка при синхронизации данных (OnDataChanged)", ex, "UI_SYNC");
+                }
+            });
         }
 
         public List<WasherStat> WashersStats
@@ -426,25 +432,6 @@ namespace MyPanelCarWashing
             DataService.DataChanged += OnDataChanged;
 
             LoadData();
-        }
-
-        private void OnDataChanged()
-        {
-            Dispatcher.Invoke(() =>
-            {
-                System.Diagnostics.Debug.WriteLine("=== OnDataChanged: Обновляем данные ===");
-
-                _dataService = new DataService();
-                _currentShift = _dataService.GetCurrentOpenShift(); // Обновляем смену
-
-                if (AppointmentsOverlay != null)
-                {
-                    AppointmentsOverlay.DataService = _dataService;
-                    AppointmentsOverlay.CurrentShift = _currentShift; // Передаём обновлённую смену
-                }
-
-                LoadData();
-            });
         }
 
         // Метод для установки пользователя (используется если MainWindow создается через DI)
@@ -776,6 +763,7 @@ namespace MyPanelCarWashing
                 }
 
                 LoadData();
+                Logger.Info($"Смена начата | Дата: {DateTime.Now:dd.MM.yyyy} | ID смены: {_currentShift?.Id}", "SHIFT");
                 MessageBox.Show($"Смена успешно начата!", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -783,8 +771,13 @@ namespace MyPanelCarWashing
 
         private void CloseShiftButton_Click(object sender, RoutedEventArgs e)
         {
+            // === ВАЖНО: сохраняем данные смены ДО любых изменений ===
+            int? shiftId = _currentShift?.Id;
+            DateTime? shiftDate = _currentShift?.Date;
+
             if (_currentShift == null)
             {
+                Logger.Warn("Попытка закрыть смену, но _currentShift = null", "SHIFT");
                 MessageBox.Show("Нет активной смены для закрытия", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
@@ -792,84 +785,55 @@ namespace MyPanelCarWashing
 
             if (_currentShift.IsClosed)
             {
+                Logger.Warn($"Попытка закрыть уже закрытую смену #{_currentShift.Id}", "SHIFT");
                 MessageBox.Show("Эта смена уже закрыта", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // ПРОВЕРКА: можно ли закрыть смену
+            Logger.Info($"Начало закрытия смены #{_currentShift.Id}", "SHIFT",
+                $"Дата: {_currentShift.Date:dd.MM.yyyy} | Начало: {_currentShift.StartTime:HH:mm}");
+
             string canCloseError = _dataService.CanCloseShift(_currentShift.Id);
             if (canCloseError != null)
             {
+                Logger.Warn($"Невозможно закрыть смену #{_currentShift.Id}: {canCloseError}", "SHIFT");
                 MessageBox.Show(canCloseError, "Невозможно закрыть смену",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // Получаем всех пользователей ДО использования
             var allUsers = _dataService.GetAllUsers();
-
-            // Только выполненные заказы идут в отчёт
             var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
             var totalRevenue = completedOrders.Sum(o => o.FinalPrice);
             var totalWasherEarnings = completedOrders.Sum(o => o.WasherEarnings);
             var totalCompanyEarnings = completedOrders.Sum(o => o.CompanyEarnings);
 
-            // Собираем статистику по оплатам ТОЛЬКО для выполненных заказов
-            int cashCount = 0;
-            decimal cashAmount = 0;
-            int cardCount = 0;
-            decimal cardAmount = 0;
-            int transferCount = 0;
-            decimal transferAmount = 0;
-            int qrCount = 0;
-            decimal qrAmount = 0;
+            int cashCount = 0; decimal cashAmount = 0;
+            int cardCount = 0; decimal cardAmount = 0;
+            int transferCount = 0; decimal transferAmount = 0;
+            int qrCount = 0; decimal qrAmount = 0;
 
             foreach (var order in completedOrders)
             {
                 switch (order.PaymentMethod)
                 {
-                    case "Наличные":
-                        cashCount++;
-                        cashAmount += order.FinalPrice;
-                        break;
-                    case "Карта":
-                        cardCount++;
-                        cardAmount += order.FinalPrice;
-                        break;
-                    case "Перевод":
-                        transferCount++;
-                        transferAmount += order.FinalPrice;
-                        break;
-                    case "QR-код":
-                        qrCount++;
-                        qrAmount += order.FinalPrice;
-                        break;
+                    case "Наличные": cashCount++; cashAmount += order.FinalPrice; break;
+                    case "Карта": cardCount++; cardAmount += order.FinalPrice; break;
+                    case "Перевод": transferCount++; transferAmount += order.FinalPrice; break;
+                    case "QR-код": qrCount++; qrAmount += order.FinalPrice; break;
                 }
             }
 
-            // Проверяем статистику клиентов
             foreach (var order in completedOrders)
-            {
-                if (order.ClientId.HasValue)
-                {
-                    ValidateClientStats(order.ClientId.Value);
-                }
-            }
+                if (order.ClientId.HasValue) ValidateClientStats(order.ClientId.Value);
 
-            // Подсчитываем заказы со статусом "Выполняется" для предупреждения
             var inProgressOrders = _allOrders.Where(o => o.Status == "Выполняется").ToList();
             var pendingAppointments = _dataService.GetAppointmentsByDate(DateTime.Now).Where(a => !a.IsCompleted).ToList();
 
             string warningMessage = "";
-            if (inProgressOrders.Any())
-            {
-                warningMessage += $"\n⚠️ Заказов в работе: {inProgressOrders.Count} (не войдут в отчёт)";
-            }
-            if (pendingAppointments.Any())
-            {
-                warningMessage += $"\n⚠️ Предварительных записей: {pendingAppointments.Count} (не войдут в отчёт)";
-            }
+            if (inProgressOrders.Any()) warningMessage += $"\n⚠️ Заказов в работе: {inProgressOrders.Count} (не войдут в отчёт)";
+            if (pendingAppointments.Any()) warningMessage += $"\n⚠️ Предварительных записей: {pendingAppointments.Count} (не войдут в отчёт)";
 
             var result = MessageBox.Show($"Закрыть смену?\n\n" +
                 $"📅 Дата: {_currentShift.Date:dd.MM.yyyy}\n" +
@@ -880,8 +844,7 @@ namespace MyPanelCarWashing
                 $"💳 Наличные: {cashCount} шт. / {cashAmount:N0} ₽\n" +
                 $"💳 Карта: {cardCount} шт. / {cardAmount:N0} ₽\n" +
                 $"📱 Перевод: {transferCount} шт. / {transferAmount:N0} ₽\n" +
-                $"{warningMessage}\n\n" +
-                $"Это действие нельзя отменить!",
+                $"{warningMessage}\n\nЭто действие нельзя отменить!",
                 "Подтверждение закрытия смены",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
 
@@ -889,6 +852,7 @@ namespace MyPanelCarWashing
 
             try
             {
+                // === ЗАКРЫВАЕМ СМЕНУ ===
                 _currentShift.EndTime = DateTime.Now;
                 _currentShift.IsClosed = true;
 
@@ -913,20 +877,14 @@ namespace MyPanelCarWashing
                     Notes = "Смена закрыта штатно"
                 };
 
-                // Группируем выполненные заказы по мойщикам (ВСЕ мойщики, даже если их нет в смене)
-                var washerGroups = completedOrders
-                    .Where(o => o.WasherId > 0)
-                    .GroupBy(o => o.WasherId)
-                    .Select(g => new
-                    {
-                        WasherId = g.Key,
-                        CarsWashed = g.Count(),
-                        TotalAmount = g.Sum(o => o.FinalPrice),
-                        Earnings = g.Sum(o => o.WasherEarnings)
-                    })
-                    .ToList();
+                var washerGroups = completedOrders.Where(o => o.WasherId > 0).GroupBy(o => o.WasherId).Select(g => new
+                {
+                    WasherId = g.Key,
+                    CarsWashed = g.Count(),
+                    TotalAmount = g.Sum(o => o.FinalPrice),
+                    Earnings = g.Sum(o => o.WasherEarnings)
+                }).ToList();
 
-                // Добавляем сотрудников, у которых нет выполненных заказов (для полноты отчёта)
                 foreach (var empId in _currentShift.EmployeeIds)
                 {
                     var employee = allUsers.FirstOrDefault(u => u.Id == empId);
@@ -944,7 +902,6 @@ namespace MyPanelCarWashing
                     }
                 }
 
-                // Также добавляем мойщиков, которые есть в заказах, но не в смене (на всякий случай)
                 foreach (var group in washerGroups.Where(g => !_currentShift.EmployeeIds.Contains(g.WasherId)))
                 {
                     var employee = allUsers.FirstOrDefault(u => u.Id == group.WasherId);
@@ -965,23 +922,20 @@ namespace MyPanelCarWashing
 
                 var allShifts = _dataService.GetAllShifts();
                 var existingShift = allShifts.FirstOrDefault(s => s.Id == _currentShift.Id);
-                if (existingShift != null)
-                {
-                    existingShift.EndTime = _currentShift.EndTime;
-                    existingShift.IsClosed = true;
-                }
+                if (existingShift != null) { existingShift.EndTime = _currentShift.EndTime; existingShift.IsClosed = true; }
 
                 var appData = FileDataService.LoadData();
                 appData.Shifts = allShifts;
                 FileDataService.SaveData(appData);
 
-                // Обновляем данные в MainWindow
+                // === ОБНОВЛЯЕМ ДАННЫЕ ===
                 _dataService = new DataService();
-                if (AppointmentsOverlay != null)
-                {
-                    AppointmentsOverlay.DataService = _dataService;
-                }
+                if (AppointmentsOverlay != null) AppointmentsOverlay.DataService = _dataService;
                 LoadData();
+
+                // === ЛОГИРОВАНИЕ (используем сохранённые переменные, т.к. _currentShift может быть null) ===
+                Logger.Info($"Смена успешно закрыта", "SHIFT",
+                    $"ID: {shiftId} | Дата: {shiftDate?.ToString("dd.MM.yyyy")} | Выполнено: {report.TotalCars} | Выручка: {report.TotalRevenue:N0} ₽");
 
                 MessageBox.Show($"Смена успешно закрыта!\n\n" +
                     $"📅 Дата: {report.Date:dd.MM.yyyy}\n" +
@@ -997,6 +951,8 @@ namespace MyPanelCarWashing
             }
             catch (Exception ex)
             {
+                Logger.Error("Критическая ошибка при закрытии смены", ex, "SHIFT",
+                    $"ID смены: {shiftId} | Дата: {shiftDate?.ToString("dd.MM.yyyy")}");
                 MessageBox.Show($"Ошибка при закрытии смены: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -1024,7 +980,33 @@ namespace MyPanelCarWashing
                 _dataService.UpdateClient(client);
             }
         }
+        private void ExportButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Простой диалог выбора типа экспорта
+                var result = MessageBox.Show("Выберите тип экспорта:\n\n" +
+                    "✅ Да — Полная выгрузка (клиенты + заказы + услуги)\n" +
+                    "❌ Нет — Только клиенты",
+                    "Экспорт данных", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
+                if (result == MessageBoxResult.Cancel) return;
+
+                string exportType = result == MessageBoxResult.Yes ? "full" : "clients";
+                string filePath = _dataService.ExportDataToJson(exportType);
+
+                Logger.Info($"Экспорт инициирован пользователем | Тип: {exportType} | Файл: {Path.GetFileName(filePath)}", "EXPORT");
+
+                MessageBox.Show($"Данные экспортированы!\n\n📁 Файл: {Path.GetFileName(filePath)}\n📂 Папка: Exports",
+                    "Экспорт завершён", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Ошибка при экспорте по запросу пользователя", ex, "EXPORT");
+                MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void SaveShiftReport(ShiftReport report)
         {
             try
@@ -1040,10 +1022,14 @@ namespace MyPanelCarWashing
                 File.WriteAllText(filePath, json);
 
                 System.Diagnostics.Debug.WriteLine($"Отчет сохранен: {filePath}");
+
+                // ← ДОБАВЬ ЭТУ СТРОКУ:
+                Logger.Info($"Отчёт смены сохранён | Файл: {fileName} | Выручка: {report.TotalRevenue:N0} ₽", "REPORT");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Ошибка сохранения отчета: {ex.Message}");
+                Logger.Error("Ошибка сохранения отчёта смены", ex, "REPORT");
             }
         }
 
@@ -1062,6 +1048,7 @@ namespace MyPanelCarWashing
 
         private void ExitButton_Click(object sender, RoutedEventArgs e)
         {
+            Logger.Info("Приложение закрыто пользователем", "APP");
             Application.Current.Shutdown();
         }
 
@@ -1113,6 +1100,7 @@ namespace MyPanelCarWashing
 
                         if (result == MessageBoxResult.Yes)
                         {
+                            Logger.Info($"Удаление записи (заказ сохранён): #{appointment.Id} | Авто: {SelectedItem.CarNumber}", "ORDER");
                             _dataService.DeleteAppointment(appointment.Id);
                             LoadData();
                             MessageBox.Show("Запись удалена (заказ сохранен)", "Успешно");
@@ -1127,6 +1115,7 @@ namespace MyPanelCarWashing
 
                         if (result == MessageBoxResult.Yes)
                         {
+                            Logger.Info($"Удаление записи: #{appointment.Id} | Авто: {appointment.CarNumber}", "ORDER");
                             _dataService.DeleteAppointment(appointment.Id);
                             LoadData();
                             MessageBox.Show("Запись удалена", "Успешно");
@@ -1164,50 +1153,38 @@ namespace MyPanelCarWashing
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Удаляем заказ ID: {originalOrder.Id} из смены ID: {originalOrder.ShiftId}");
+                        Logger.Info($"Удаление начато: Заказ #{originalOrder.Id} | Авто: {originalOrder.CarNumber}", "ORDER");
 
                         try
                         {
-                            // Загружаем данные из файла
                             var appData = FileDataService.LoadData();
-
-                            // Находим нужную смену по ShiftId заказа
                             var shift = appData.Shifts.FirstOrDefault(s => s.Id == originalOrder.ShiftId);
                             if (shift != null)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Найдена смена ID: {shift.Id}, Заказов до удаления: {shift.Orders?.Count ?? 0}");
-
-                                // Удаляем заказ из смены
                                 var orderToRemove = shift.Orders?.FirstOrDefault(o => o.Id == originalOrder.Id);
                                 if (orderToRemove != null)
                                 {
                                     shift.Orders.Remove(orderToRemove);
-                                    System.Diagnostics.Debug.WriteLine($"Заказ удален из смены, теперь заказов: {shift.Orders?.Count ?? 0}");
+                                    FileDataService.SaveData(appData);
+                                    Logger.Info($"Удаление успешно: Заказ #{originalOrder.Id}", "ORDER");
                                 }
                                 else
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"Заказ с ID {originalOrder.Id} не найден в смене");
+                                    Logger.Warn($"Заказ #{originalOrder.Id} не найден в смене #{shift.Id}", "ORDER");
                                 }
-
-                                // Сохраняем изменения
-                                FileDataService.SaveData(appData);
-
-                                // Обновляем текущие данные
-                                _dataService = new DataService();
-                                LoadData();
-
-                                MessageBox.Show("Заказ удален", "Успешно");
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"Смена с ID {originalOrder.ShiftId} не найдена");
-                                MessageBox.Show("Не удалось найти смену для удаления заказа", "Ошибка",
-                                    MessageBoxButton.OK, MessageBoxImage.Error);
+                                Logger.Warn($"Смена #{originalOrder.ShiftId} не найдена для удаления заказа #{originalOrder.Id}", "ORDER");
                             }
+
+                            _dataService = new DataService();
+                            LoadData();
+                            MessageBox.Show("Заказ удален", "Успешно");
                         }
                         catch (Exception ex)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Ошибка при удалении: {ex.Message}");
+                            Logger.Error("Ошибка при удалении заказа", ex, "ORDER");
                             MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
                                 MessageBoxButton.OK, MessageBoxImage.Error);
                         }
@@ -1215,8 +1192,7 @@ namespace MyPanelCarWashing
                 }
                 else
                 {
-                    // Если не нашли по ID, пробуем найти по номеру+времени (fallback)
-                    System.Diagnostics.Debug.WriteLine("Заказ не найден по ID, пробуем fallback поиск");
+                    // Fallback: поиск по номеру+времени
                     var fallbackOrder = _allOrders.FirstOrDefault(o => o.CarNumber == SelectedItem.CarNumber && o.Time == SelectedItem.Time);
 
                     if (fallbackOrder != null)
@@ -1238,14 +1214,16 @@ namespace MyPanelCarWashing
                                     {
                                         shift.Orders.Remove(orderToRemove);
                                         FileDataService.SaveData(appData);
-                                        _dataService = new DataService();
-                                        LoadData();
-                                        MessageBox.Show("Заказ удален", "Успешно");
+                                        Logger.Info($"Удаление успешно (fallback): Заказ #{fallbackOrder.Id}", "ORDER");
                                     }
                                 }
+                                _dataService = new DataService();
+                                LoadData();
+                                MessageBox.Show("Заказ удален", "Успешно");
                             }
                             catch (Exception ex)
                             {
+                                Logger.Error("Ошибка при удалении заказа (fallback)", ex, "ORDER");
                                 MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
                                     MessageBoxButton.OK, MessageBoxImage.Error);
                             }

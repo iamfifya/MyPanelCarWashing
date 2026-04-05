@@ -272,36 +272,45 @@ namespace MyPanelCarWashing.ViewModels
         }
         public bool Validate()
         {
-            if (string.IsNullOrWhiteSpace(CurrentOrder.CarModel))
+            try
             {
-                MessageBox.Show("Введите марку и модель автомобиля", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                if (string.IsNullOrWhiteSpace(CurrentOrder.CarModel))
+                {
+                    Logger.Warn("Валидация не пройдена: не указана марка авто", "ORDER_VALIDATION");
+                    MessageBox.Show("Введите марку и модель автомобиля", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                if (string.IsNullOrWhiteSpace(CurrentOrder.CarNumber))
+                {
+                    Logger.Warn("Валидация не пройдена: не указан госномер", "ORDER_VALIDATION");
+                    MessageBox.Show("Введите государственный номер", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                var selectedServices = Services?.Where(s => s.IsSelected).ToList();
+                if (selectedServices == null || !selectedServices.Any())
+                {
+                    Logger.Warn("Валидация не пройдена: не выбраны услуги", "ORDER_VALIDATION");
+                    MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                if (ExtraCost > 0 && string.IsNullOrWhiteSpace(CurrentOrder.ExtraCostReason))
+                {
+                    Logger.Warn("Валидация не пройдена: доп. стоимость без причины", "ORDER_VALIDATION");
+                    MessageBox.Show("Укажите причину дополнительной стоимости", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                Logger.Info("Валидация успешно пройдена", "ORDER_VALIDATION", $"Авто: {CurrentOrder.CarNumber} | Услуг: {selectedServices.Count} | Доп: {ExtraCost}₽");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Ошибка при валидации заказа", ex, "ORDER_VALIDATION");
                 return false;
             }
-
-            if (string.IsNullOrWhiteSpace(CurrentOrder.CarNumber))
-            {
-                MessageBox.Show("Введите государственный номер", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            var selectedServices = Services?.Where(s => s.IsSelected).ToList();
-            if (selectedServices == null || !selectedServices.Any())
-            {
-                MessageBox.Show("Выберите хотя бы одну услугу", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            if (ExtraCost > 0 && string.IsNullOrWhiteSpace(CurrentOrder.ExtraCostReason))
-            {
-                MessageBox.Show("Укажите причину дополнительной стоимости", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            return true;
         }
 
         public void SaveOrder(out bool success, out string message)
@@ -320,30 +329,34 @@ namespace MyPanelCarWashing.ViewModels
                 CurrentOrder.TotalPrice = ServicesTotal;
                 CurrentOrder.BodyTypeCategory = SelectedBodyTypeCategory;
                 CurrentOrder.ExtraCost = ExtraCost;
-
-                // Сохраняем скидку
                 CurrentOrder.OriginalTotalPrice = ServicesTotal;
                 CurrentOrder.DiscountPercent = DiscountPercent;
                 CurrentOrder.DiscountAmount = DiscountAmount;
 
+                string orderType = IsAppointment ? "Запись" : "Заказ";
+                string orderStatus = IsEditMode ? "Обновление" : "Создание";
+
+                Logger.Info($"Начало сохранения: {orderType} #{CurrentOrder.Id}", "ORDER_SAVE", $"Режим: {orderStatus} | Авто: {CurrentOrder.CarNumber}");
+
                 if (!IsEditMode && !IsAppointment)
                 {
-                    // НОВЫЙ ЗАКАЗ - проверяем, что заказ еще не существует
                     if (CurrentOrder.Id == 0)
                     {
                         CurrentOrder.ShiftId = _currentShift?.Id ?? 0;
                         _dataService.AddOrder(CurrentOrder, serviceIds);
-                        message = $"Заказ добавлен!";
+
+                        Logger.Info($"Заказ успешно создан", "ORDER_SAVE", $"ID: {CurrentOrder.Id} | Авто: {CurrentOrder.CarNumber} | Сумма: {CurrentOrder.FinalPrice:N0}₽ | Скидка: {DiscountPercent}%/{DiscountAmount}₽");
+                        message = "Заказ добавлен!";
                         success = true;
                     }
                     else
                     {
+                        Logger.Warn($"Попытка создать заказ с существующим ID: {CurrentOrder.Id}", "ORDER_SAVE");
                         message = "Ошибка: ID заказа уже существует";
                     }
                 }
                 else if (IsAppointment)
                 {
-                    // РЕДАКТИРОВАНИЕ ЗАПИСИ
                     var appointment = _dataService.GetAppointmentById(CurrentOrder.AppointmentId.Value);
                     if (appointment != null)
                     {
@@ -358,32 +371,39 @@ namespace MyPanelCarWashing.ViewModels
                         appointment.ExtraCostReason = CurrentOrder.ExtraCostReason;
 
                         _dataService.UpdateAppointment(appointment);
-
-                        message = $"Запись обновлена!\n\n🚗 {CurrentOrder.CarModel} ({CurrentOrder.CarNumber})";
-                        if (ExtraCost > 0)
-                            message += $"\n➕ Дополнительно: {ExtraCost:N0} ₽";
+                        Logger.Info($"Запись успешно обновлена", "ORDER_SAVE", $"ID: {appointment.Id} | Авто: {appointment.CarNumber} | Время: {appointment.AppointmentDate:HH:mm}");
+                        message = "Запись обновлена!";
                         success = true;
                     }
                     else
                     {
+                        Logger.Error($"Запись не найдена для обновления", new Exception("Appointment ID missing"), "ORDER_SAVE");
                         message = "Запись не найдена";
                     }
                 }
                 else
                 {
-                    // РЕДАКТИРОВАНИЕ СУЩЕСТВУЮЩЕГО ЗАКАЗА
+                    string oldStatus = CurrentOrder.Status;
                     _dataService.UpdateOrder(CurrentOrder);
 
-                    message = $"Заказ обновлен!\n\n🚗 {CurrentOrder.CarModel} ({CurrentOrder.CarNumber})\n💰 Итого: {FinalTotal:N0} ₽";
-                    if (ExtraCost > 0)
-                        message += $"\n➕ Дополнительно: {ExtraCost:N0} ₽";
+                    if (oldStatus != CurrentOrder.Status)
+                    {
+                        Logger.Info($"Статус заказа изменён", "ORDER_SAVE", $"ID: {CurrentOrder.Id} | '{oldStatus}' → '{CurrentOrder.Status}'");
+                    }
+                    else
+                    {
+                        Logger.Info($"Заказ обновлён", "ORDER_SAVE", $"ID: {CurrentOrder.Id} | Авто: {CurrentOrder.CarNumber} | Сумма: {CurrentOrder.FinalPrice:N0}₽");
+                    }
+
+                    message = $"Заказ обновлен!\n\n🚗 {CurrentOrder.CarModel} ({CurrentOrder.CarNumber})\n💰 Итого: {CurrentOrder.FinalPrice:N0} ₽";
+                    if (ExtraCost > 0) message += $"\n➕ Дополнительно: {ExtraCost:N0} ₽";
                     success = true;
                 }
             }
             catch (Exception ex)
             {
+                Logger.Error("Ошибка при сохранении заказа", ex, "ORDER_SAVE");
                 message = $"Ошибка при сохранении: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"SaveOrder error: {ex}");
             }
         }
 

@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using MyPanelCarWashing.Models;
+using MyPanelCarWashing.Services;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -57,28 +58,26 @@ public static class FileDataService
     {
         try
         {
+            string dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appdata.json");
+            string backupsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Backups");
+
+            if (!Directory.Exists(backupsFolder))
+                Directory.CreateDirectory(backupsFolder);
+
             if (File.Exists(dataPath))
             {
-                var backupPath = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory,
-                    $"backups/appdata_{DateTime.Now:yyyyMMdd_HHmmss}.json");
-
-                var backupDir = Path.GetDirectoryName(backupPath);
-                if (!Directory.Exists(backupDir))
-                    Directory.CreateDirectory(backupDir);
+                string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
+                string backupPath = Path.Combine(backupsFolder, $"appdata_{timestamp}.json");
 
                 File.Copy(dataPath, backupPath, true);
 
-                // Удаляем старые бэкапы (старше 7 дней)
-                var oldBackups = Directory.GetFiles(backupDir, "appdata_*.json")
-                    .Where(f => File.GetCreationTime(f) < DateTime.Now.AddDays(-7));
-                foreach (var old in oldBackups)
-                    File.Delete(old);
+                // Логируем создание бэкапа
+                Logger.Info($"Бэкап создан | Файл: appdata_{timestamp}.json", "BACKUP");
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Backup failed: {ex.Message}");
+            Logger.Error("Ошибка при создании бэкапа", ex, "BACKUP");
         }
     }
     public static void CleanupOldBackups(int daysToKeep = 7)

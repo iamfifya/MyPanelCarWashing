@@ -78,69 +78,44 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                var appData = FileDataService.LoadData();
-
-                // Проверка на дубликат названия
-                var existingByName = appData.Services.FirstOrDefault(s =>
-                    s.Name.Equals(CurrentService.Name, StringComparison.OrdinalIgnoreCase));
-
-                if (existingByName != null && (CurrentService.Id == 0 || existingByName.Id != CurrentService.Id))
-                {
-                    MessageBox.Show($"Услуга с названием \"{CurrentService.Name}\" уже существует!\n\n" +
-                        "Пожалуйста, используйте другое название.", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
                 // Сохраняем цены для каждой категории
                 CurrentService.PriceByBodyType.Clear();
 
-                if (decimal.TryParse(PriceCategory1TextBox.Text, out var p1) && p1 > 0)
+                if (decimal.TryParse(PriceCategory1TextBox.Text, out var p1) && p1 >= 0)
                     CurrentService.PriceByBodyType[1] = p1;
-                if (decimal.TryParse(PriceCategory2TextBox.Text, out var p2) && p2 > 0)
+                if (decimal.TryParse(PriceCategory2TextBox.Text, out var p2) && p2 >= 0)
                     CurrentService.PriceByBodyType[2] = p2;
-                if (decimal.TryParse(PriceCategory3TextBox.Text, out var p3) && p3 > 0)
+                if (decimal.TryParse(PriceCategory3TextBox.Text, out var p3) && p3 >= 0)
                     CurrentService.PriceByBodyType[3] = p3;
-                if (decimal.TryParse(PriceCategory4TextBox.Text, out var p4) && p4 > 0)
+                if (decimal.TryParse(PriceCategory4TextBox.Text, out var p4) && p4 >= 0)
                     CurrentService.PriceByBodyType[4] = p4;
 
-                // Если нет цен для всех категорий, используем категорию 1 как базовую
-                if (!CurrentService.PriceByBodyType.ContainsKey(1) && CurrentService.PriceByBodyType.Any())
+                // Если нет цен — ставим 0 для всех категорий (чтобы не было ошибок)
+                for (int cat = 1; cat <= 4; cat++)
                 {
-                    var firstPrice = CurrentService.PriceByBodyType.First().Value;
-                    CurrentService.PriceByBodyType[1] = firstPrice;
+                    if (!CurrentService.PriceByBodyType.ContainsKey(cat))
+                        CurrentService.PriceByBodyType[cat] = 0;
                 }
 
                 if (CurrentService.Id == 0)
                 {
-                    // Новая услуга - используем AppData.GetNextServiceId() вместо ручного расчета
-                    // Это гарантирует уникальность ID
-                    CurrentService.Id = appData.GetNextServiceId();
-                    appData.Services.Add(CurrentService);
+                    // === НОВАЯ УСЛУГА: используем DataService.AddService() для правильного ID ===
+                    _dataService.AddService(CurrentService);
                     System.Diagnostics.Debug.WriteLine($"Добавлена новая услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                 }
                 else
                 {
-                    // Обновляем существующую
-                    var existing = appData.Services.FirstOrDefault(s => s.Id == CurrentService.Id);
-                    if (existing != null)
-                    {
-                        existing.Name = CurrentService.Name;
-                        existing.DurationMinutes = CurrentService.DurationMinutes;
-                        existing.Description = CurrentService.Description;
-                        existing.IsActive = CurrentService.IsActive;
-                        existing.PriceByBodyType = CurrentService.PriceByBodyType;
-                        System.Diagnostics.Debug.WriteLine($"Обновлена услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
-                    }
+                    // === ОБНОВЛЕНИЕ: используем DataService.UpdateService() ===
+                    _dataService.UpdateService(CurrentService);
+                    System.Diagnostics.Debug.WriteLine($"Обновлена услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                 }
-
-                FileDataService.SaveData(appData);
 
                 DialogResult = true;
                 Close();
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Ошибка при сохранении услуги: {ex}");
                 MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }

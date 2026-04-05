@@ -421,6 +421,11 @@
                             <Border Background="#34495E" CornerRadius="5" Padding="15" Margin="0,15,0,0">
                                 <TextBlock Text="{Binding TotalOrdersInfo}" FontSize="14" FontWeight="Bold" Foreground="White" TextWrapping="WrapWithOverflow"/>
                             </Border>
+                            <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                            <Button Content="📤 Экспорт данных" Click="ExportButton_Click" Padding="15,8" Margin="10"
+                                    Background="#9B59B6" Foreground="White" BorderThickness="0" Cursor="Hand" Height="35"/>
+                            <TextBlock Text="Важно при возникновении ошибок"/>
+                            </StackPanel>
                         </StackPanel>
                     </DockPanel>
                 </Border>

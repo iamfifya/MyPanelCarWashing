@@ -29,15 +29,5 @@ namespace MyPanelCarWashing.Models
             // Если нет вообще, возвращаем 0
             return 0;
         }
-        private bool _isSelected;
-        public bool IsSelected
-        {
-            get => _isSelected;
-            set
-            {
-                _isSelected = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-            }
-        }
     }
 }

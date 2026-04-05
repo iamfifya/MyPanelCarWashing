@@ -16,13 +16,42 @@
         WindowState="Maximized">
 
     <Window.Resources>
-        <!-- Регистрируем все необходимые конвертеры -->
         <local:SafePriceConverter x:Key="SafePriceConverter"/>
         <local:ActiveToBackgroundConverter x:Key="ActiveToBackgroundConverter"/>
         <local:ActiveToStatusConverter x:Key="ActiveToStatusConverter"/>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
         <local:StatusToBackgroundConverter x:Key="StatusToBackgroundConverter"/>
+
+        <!-- Стиль для карточки услуги в ListBox -->
+        <Style x:Key="ServiceCardStyle" TargetType="ListBoxItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="CardBorder"
+                                BorderThickness="1" BorderBrush="#BDC3C7" CornerRadius="8" 
+                                Background="White" Width="280" MinHeight="180" Margin="8"
+                                HorizontalAlignment="Center"
+                                Cursor="Hand">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.2"/>
+                            </Border.Effect>
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="CardBorder" Property="BorderBrush" Value="#2196F3"/>
+                                <Setter TargetName="CardBorder" Property="BorderThickness" Value="3"/>
+                                <Setter TargetName="CardBorder" Property="Background" Value="#E3F2FD"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CardBorder" Property="BorderBrush" Value="#3498DB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="10">
@@ -43,7 +72,7 @@
                     Margin="5" Background="#27AE60" Foreground="White"/>
             <Button Content="✏ Редактировать" Click="EditButton_Click" Width="140" Height="35" 
                     Margin="5" Background="#3498DB" Foreground="White"/>
-            <Button Content="🗑 Удалить" Click="DeleteButton_Click" Width="100" Height="35" 
+            <Button Content="🗑️ Удалить" Click="DeleteButton_Click" Width="100" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>
             <Button Content="🔄 Обновить" Click="RefreshButton_Click" Width="100" Height="35" 
                     Margin="5" Background="#95A5A6" Foreground="White"/>
@@ -51,117 +80,103 @@
             <TextBox x:Name="SearchTextBox" Width="350" Height="50" Margin="5" Padding="5"
                      TextChanged="SearchTextBox_TextChanged"/>
         </StackPanel>
-        <!-- Список услуг в виде карточек с контекстным меню -->
-        <ScrollViewer Grid.Row="2" 
-                      HorizontalScrollBarVisibility="Disabled" 
-                      VerticalScrollBarVisibility="Auto"
-                      Margin="0,0,0,10">
 
-            <ItemsControl x:Name="ServicesItemsControl"
-                          Background="Transparent"
-                          Margin="5">
+        <!-- Список услуг на ListBox с карточками -->
+        <ListBox x:Name="ServicesListBox"
+                 Grid.Row="2"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 SelectionMode="Single"
+                 Margin="5"
+                 HorizontalContentAlignment="Center"
+                 MouseLeftButtonDown="ServicesListBox_MouseLeftButtonDown"
+                 MouseDoubleClick="ServicesListBox_MouseDoubleClick">
 
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" 
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Top"
-                                   IsItemsHost="True"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" 
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Top"
+                       IsItemsHost="True"
+                       Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ScrollContentPresenter}}"/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
 
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border x:Name="CardBorder"
-                BorderThickness="1" BorderBrush="#BDC3C7" CornerRadius="8" 
-                Background="White" Width="280" MinHeight="180" Margin="8"
-                HorizontalAlignment="Center"
-                Cursor="Hand"
-                MouseDown="ServiceCard_MouseDown">
-                            <Border.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="✏ Редактировать" Click="EditMenuItem_Click" Tag="{Binding}"/>
-                                    <MenuItem Header="🗑 Удалить" Click="DeleteMenuItem_Click" Tag="{Binding}"/>
-                                    <Separator/>
-                                    <MenuItem Header="📋 Копировать название" Click="CopyNameMenuItem_Click" Tag="{Binding}"/>
-                                </ContextMenu>
-                            </Border.ContextMenu>
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.2"/>
-                            </Border.Effect>
-                            <Grid Margin="10">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+            <ListBox.ItemContainerStyle>
+                <StaticResource ResourceKey="ServiceCardStyle"/>
+            </ListBox.ItemContainerStyle>
 
-                                <TextBlock Grid.Row="0" FontSize="16" FontWeight="Bold" 
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="10" ContextMenuService.IsEnabled="True" Width="280">
+                        <Grid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="✏ Редактировать" Click="EditMenuItem_Click"/>
+                                <MenuItem Header="🗑️ Удалить" Click="DeleteMenuItem_Click"/>
+                                <Separator/>
+                                <MenuItem Header="📋 Копировать название" Click="CopyNameMenuItem_Click"/>
+                            </ContextMenu>
+                        </Grid.ContextMenu>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" FontSize="16" FontWeight="Bold" 
                            Text="{Binding Name}" HorizontalAlignment="Center"
                            Foreground="#2C3E50" TextWrapping="Wrap" TextAlignment="Center"/>
 
-                                <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                                    <TextBlock FontSize="11" Foreground="#27AE60" HorizontalAlignment="Center">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="Седан: {0:N0}₽">
-                                                <Binding Path="PriceByBodyType" ConverterParameter="1" Converter="{StaticResource SafePriceConverter}"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                    <TextBlock FontSize="10" Foreground="#7F8C8D" HorizontalAlignment="Center">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="Хэтчбек: {0:N0}₽">
-                                                <Binding Path="PriceByBodyType" ConverterParameter="2" Converter="{StaticResource SafePriceConverter}"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                    <TextBlock FontSize="10" Foreground="#7F8C8D" HorizontalAlignment="Center">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="Универсал: {0:N0}₽">
-                                                <Binding Path="PriceByBodyType" ConverterParameter="3" Converter="{StaticResource SafePriceConverter}"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                    <TextBlock FontSize="10" Foreground="#7F8C8D" HorizontalAlignment="Center">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="Внедорожник: {0:N0}₽">
-                                                <Binding Path="PriceByBodyType" ConverterParameter="4" Converter="{StaticResource SafePriceConverter}"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </StackPanel>
+                        <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                            <TextBlock FontSize="11" Foreground="#27AE60" HorizontalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Седан: {0:N0}₽">
+                                        <Binding Path="PriceByBodyType" ConverterParameter="1" Converter="{StaticResource SafePriceConverter}"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            <TextBlock FontSize="10" Foreground="#7F8C8D" HorizontalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Хэтчбек: {0:N0}₽">
+                                        <Binding Path="PriceByBodyType" ConverterParameter="2" Converter="{StaticResource SafePriceConverter}"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            <TextBlock FontSize="10" Foreground="#7F8C8D" HorizontalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Универсал: {0:N0}₽">
+                                        <Binding Path="PriceByBodyType" ConverterParameter="3" Converter="{StaticResource SafePriceConverter}"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            <TextBlock FontSize="10" Foreground="#7F8C8D" HorizontalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Внедорожник: {0:N0}₽">
+                                        <Binding Path="PriceByBodyType" ConverterParameter="4" Converter="{StaticResource SafePriceConverter}"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
 
-                                <TextBlock Grid.Row="2" FontSize="11" 
+                        <TextBlock Grid.Row="2" FontSize="11" 
                            Text="{Binding DurationMinutes, StringFormat=⏱️ Длительность: {0} мин}" 
                            HorizontalAlignment="Center" Margin="0,5,0,0"
                            Foreground="#7F8C8D"/>
 
-                                <TextBlock Grid.Row="3" FontSize="11" 
+                        <TextBlock Grid.Row="3" FontSize="11" 
                            Text="{Binding Description}" 
                            HorizontalAlignment="Center" Margin="0,5,0,0"
                            Foreground="#95A5A6" TextWrapping="Wrap" TextAlignment="Center"
                            MaxHeight="50"/>
-
-                               <!-- <Border Grid.Row="4" CornerRadius="10" Padding="5,2" Margin="0,8,0,0"
-                        Background="{Binding IsActive, Converter={StaticResource ActiveToBackgroundConverter}}"
-                        HorizontalAlignment="Center">
-                                    <TextBlock FontSize="10" Foreground="White" Text="{Binding IsActive, Converter={StaticResource ActiveToStatusConverter}}"/> 
-                                </Border> -->
-                            </Grid>
-                        </Border>
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="CardBorder" Property="BorderBrush" Value="#2196F3"/>
-                                <Setter TargetName="CardBorder" Property="BorderThickness" Value="3"/>
-                                <Setter TargetName="CardBorder" Property="Background" Value="#E3F2FD"/>
-                            </DataTrigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
         <!-- Кнопка закрытия -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
