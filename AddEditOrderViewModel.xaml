@@ -21,6 +21,7 @@
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:IntToBoolConverter x:Key="IntToBoolConverter"/>
         <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <local:DecimalToEmptyZeroConverter x:Key="DecimalToEmptyZeroConverter"/>
     </Window.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" 
@@ -213,8 +214,13 @@
 
             <!-- Дополнительная стоимость -->
             <Label Content="💰 Дополнительная стоимость:" Grid.Row="19" Margin="0,10,0,0" FontWeight="SemiBold"/>
-            <TextBox Text="{Binding ExtraCost, UpdateSourceTrigger=PropertyChanged}" 
-                     Grid.Row="20" Margin="0,5,0,10" Height="50" Padding="5"/>
+            <TextBox Text="{Binding ExtraCost, 
+                       UpdateSourceTrigger=PropertyChanged, 
+                       TargetNullValue=0, 
+                       FallbackValue=0,
+                       ValidatesOnExceptions=False,
+                       Converter={StaticResource DecimalToEmptyZeroConverter}}"
+                       Grid.Row="20" Margin="0,5,0,10" Height="50" Padding="5"/>
 
             <!-- Причина доп. стоимости -->
             <Label Content="📝 Причина дополнительной стоимости:" Grid.Row="21" Margin="0,5,0,0" FontWeight="SemiBold"/>
@@ -244,7 +250,8 @@
                         UpdateSourceTrigger=PropertyChanged, 
                         TargetNullValue=0, 
                         FallbackValue=0,
-                        ValidatesOnExceptions=False}"
+                        ValidatesOnExceptions=False,
+                        Converter={StaticResource DecimalToEmptyZeroConverter}}"
                         Grid.Column="0" 
                         Height="50" 
                         Padding="5" />
@@ -255,7 +262,7 @@
              Grid.Column="2" 
              Height="50" 
              Padding="5" 
-             Text="{Binding DiscountAmount, UpdateSourceTrigger=PropertyChanged}"/>
+             Text="{Binding DiscountAmount, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DecimalToEmptyZeroConverter}}"/>
             </Grid>
 
             <!-- Способ оплаты (только для заказов) -->

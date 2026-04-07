@@ -29,6 +29,7 @@
             <local:SafePriceConverter x:Key="SafePriceConverter"/>
             <local:CurrencyConverter x:Key="CurrencyConverter"/>
             <local:InverseBoolConverter x:Key="InverseBoolConverter"/>
+            <local:DecimalToEmptyZeroConverter x:Key="DecimalToEmptyZeroConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
