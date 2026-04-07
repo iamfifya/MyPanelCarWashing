@@ -144,7 +144,17 @@ namespace MyPanelCarWashing.ViewModels
         {
             _currentCalc = null;
 
-            System.Diagnostics.Debug.WriteLine($"[DEBUG] Recalculate called:");
+            // ← ДОБАВЬ ЭТО ДЛЯ ОТЛАДКИ:
+            var selectedCount = Services?.Count(s => s.IsSelected) ?? 0;
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Recalculate: {selectedCount} услуг выбрано");
+            if (Services != null)
+            {
+                foreach (var s in Services.Where(s => s.IsSelected))
+                {
+                    System.Diagnostics.Debug.WriteLine($"  - {s.Name}: {s.Price} ₽");
+                }
+            }
+
             System.Diagnostics.Debug.WriteLine($"  ServicesTotal: {ServicesTotal}");
             System.Diagnostics.Debug.WriteLine($"  FinalTotal: {FinalTotal}");
             System.Diagnostics.Debug.WriteLine($"  WasherEarnings: {WasherEarningsDisplay}");
@@ -153,6 +163,14 @@ namespace MyPanelCarWashing.ViewModels
             OnPropertyChanged(nameof(WasherEarningsDisplay));
             OnPropertyChanged(nameof(CompanyEarningsDisplay));
             OnPropertyChanged(nameof(ServicesTotal));
+        }
+
+
+        // === Просто синхронизирует выбранные услуги с заказом ===
+        public void SyncServiceIds()
+        {
+            if (CurrentOrder != null && Services != null)
+                CurrentOrder.ServiceIds = Services.Where(s => s.IsSelected).Select(s => s.Id).ToList();
         }
 
         private void OnDataChanged()

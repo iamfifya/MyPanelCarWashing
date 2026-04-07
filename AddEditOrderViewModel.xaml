@@ -243,7 +243,8 @@
                         Text="{Binding DiscountPercent, 
                         UpdateSourceTrigger=PropertyChanged, 
                         TargetNullValue=0, 
-                        FallbackValue=0}"
+                        FallbackValue=0,
+                        ValidatesOnExceptions=False}"
                         Grid.Column="0" 
                         Height="50" 
                         Padding="5" />

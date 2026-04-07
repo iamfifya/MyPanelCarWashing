@@ -170,24 +170,37 @@ namespace MyPanelCarWashing
             // Подписываемся на выбор услуг
             ServicesListBox.SelectionChanged += (s, e) =>
             {
-                foreach (ServiceViewModel service in ServicesListBox.Items)
+                // Получаем ID выбранных элементов
+                var selectedIds = new HashSet<int>(
+                    ServicesListBox.SelectedItems.Cast<ServiceViewModel>().Select(sv => sv.Id)
+                );
+
+                // Обновляем IsSelected для всех услуг по ID
+                foreach (var service in _viewModel.Services)
                 {
-                    service.IsSelected = ServicesListBox.SelectedItems.Contains(service);
+                    service.IsSelected = selectedIds.Contains(service.Id);
                 }
-                _viewModel.Recalculate(); // ← ДОБАВИТЬ ЭТУ СТРОКУ!
+
+                _viewModel.SyncServiceIds();
+                _viewModel.Recalculate();
             };
 
             // Изначально выбираем услуги
-            if (_viewModel.Services != null)
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                foreach (var service in _viewModel.Services)
+                if (_viewModel.Services != null)
                 {
-                    if (service.IsSelected)
+                    foreach (var service in _viewModel.Services.Where(s => s.IsSelected))
                     {
-                        ServicesListBox.SelectedItems.Add(service);
+                        var listBoxItem = ServicesListBox.ItemContainerGenerator
+                            .ContainerFromItem(service) as ListBoxItem;
+                        if (listBoxItem != null)
+                        {
+                            listBoxItem.IsSelected = true;
+                        }
                     }
                 }
-            }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
