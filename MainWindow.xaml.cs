@@ -883,29 +883,50 @@ namespace MyPanelCarWashing
                 };
 
                 // === РАСЧЁТ ЗП МОЙЩИКОВ ЗА СМЕНУ ===
+
                 var washerPayReport = completedOrders
                     .Where(o => o.WasherId > 0)
                     .GroupBy(o => o.WasherId)
                     .Select(g =>
                     {
-                        decimal basePay = g.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
-                        decimal finalPay = Math.Max(basePay, OrderMath.MIN_WASHER_PAY_PER_SHIFT);
-                        decimal topUp = finalPay - basePay;
+                        // Проверяем, админ ли этот мойщик
+                        var washer = allUsers.FirstOrDefault(u => u.Id == g.Key);
+                        bool isWasherAdmin = washer?.IsAdmin == true;
 
-                        return new { WasherId = g.Key, BasePay = basePay, FinalPay = finalPay, TopUp = topUp, OrdersCount = g.Count() };
+                        decimal basePay = g.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
+
+                        // Админам не делаем надбавку!
+                        decimal finalPay = isWasherAdmin ? basePay : Math.Max(basePay, OrderMath.MIN_WASHER_PAY_PER_SHIFT);
+                        decimal topUp = isWasherAdmin ? 0 : (finalPay - basePay);
+
+                        return new
+                        {
+                            WasherId = g.Key,
+                            BasePay = basePay,
+                            FinalPay = finalPay,
+                            TopUp = topUp,
+                            OrdersCount = g.Count(),
+                            IsAdmin = isWasherAdmin  // ← Для отладки/логирования
+                        };
                     }).ToList();
 
                 // === ЛОГИРОВАНИЕ ===
                 foreach (var wp in washerPayReport)
                 {
                     var washer = _dataService.GetAllUsers().FirstOrDefault(u => u.Id == wp.WasherId);
+                    string roleTag = wp.IsAdmin ? " [АДМИН]" : "";
+
                     if (wp.TopUp > 0)
                     {
-                        Logger.Info($"ДОПЛАТА до мин. ЗП | Мойщик: {washer?.FullName} | Заработано: {wp.BasePay:N0}₽ | Доплата: {wp.TopUp:N0}₽ | Итого: {wp.FinalPay:N0}₽", "SHIFT_PAY");
+                        Logger.Info($"ДОПЛАТА до мин. ЗП{roleTag} | Мойщик: {washer?.FullName} | Заработано: {wp.BasePay:N0}₽ | Доплата: {wp.TopUp:N0}₽ | Итого: {wp.FinalPay:N0}₽", "SHIFT_PAY");
+                    }
+                    else if (wp.IsAdmin)
+                    {
+                        Logger.Info($"ЗП админа (без мин. гарантии){roleTag} | {washer?.FullName} | Заказы: {wp.OrdersCount} | Заработано: {wp.FinalPay:N0}₽", "SHIFT_PAY");
                     }
                     else
                     {
-                        Logger.Info($"ЗП мойщика | {washer?.FullName} | Заказы: {wp.OrdersCount} | Заработано: {wp.FinalPay:N0}₽", "SHIFT_PAY");
+                        Logger.Info($"ЗП мойщика{roleTag} | {washer?.FullName} | Заказы: {wp.OrdersCount} | Заработано: {wp.FinalPay:N0}₽", "SHIFT_PAY");
                     }
                 }
 
@@ -921,8 +942,8 @@ namespace MyPanelCarWashing
                             EmployeeId = empId,
                             EmployeeName = employee.FullName,
                             CarsWashed = pay?.OrdersCount ?? 0,
-                            TotalAmount = pay?.BasePay ?? 0,      // До доплаты
-                            Earnings = pay?.FinalPay ?? 1000m      // После доплаты до минимума
+                            TotalAmount = pay?.BasePay ?? 0,
+                            Earnings = pay != null ? pay.FinalPay : 0m
                         });
                     }
                 }

@@ -47,17 +47,17 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Margin="5">
-                <Label Content="Категория 1 (Седан/Купе)" FontSize="10"/>
+                <Label Content="Категория 1 (Легковая)" FontSize="10"/>
                 <TextBox x:Name="PriceCategory1TextBox" Height="50" Padding="5" Text="0"/>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Margin="5">
-                <Label Content="Категория 2 (Хэтчбек)" FontSize="10"/>
+                <Label Content="Категория 2 (Универсал)" FontSize="10"/>
                 <TextBox x:Name="PriceCategory2TextBox" Height="50" Padding="5" Text="0"/>
             </StackPanel>
 
             <StackPanel Grid.Column="2" Margin="5">
-                <Label Content="Категория 3 (Универсал)" FontSize="10"/>
+                <Label Content="Категория 3 (Кроссовер)" FontSize="10"/>
                 <TextBox x:Name="PriceCategory3TextBox" Height="50" Padding="5" Text="0"/>
             </StackPanel>
 

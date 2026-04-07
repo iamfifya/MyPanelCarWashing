@@ -46,9 +46,20 @@ namespace MyPanelCarWashing.Services
         /// <summary>
         /// Рассчитывает ЗП мойщика за смену с гарантией минимума.
         /// </summary>
-        public static decimal CalculateWasherShiftPay(IEnumerable<CarWashOrder> completedOrders, List<Service> allServices)
+        /// <param name="completedOrders">Выполненные заказы</param>
+        /// <param name="allServices">Список услуг для расчёта цен</param>
+        /// <param name="isWasherAdmin">true, если мойщик — админ (тогда мин. ЗП не применяется)</param>
+        public static decimal CalculateWasherShiftPay(
+            IEnumerable<CarWashOrder> completedOrders,
+            List<Service> allServices,
+            bool isWasherAdmin = false)
         {
             decimal basePay = completedOrders.Sum(o => Calculate(o, allServices).WasherEarnings);
+
+            // Админам не делаем надбавку до минимума!
+            if (isWasherAdmin)
+                return basePay;
+
             return System.Math.Max(basePay, MIN_WASHER_PAY_PER_SHIFT);
         }
     }

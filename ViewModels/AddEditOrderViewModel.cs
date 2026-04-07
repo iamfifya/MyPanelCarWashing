@@ -76,7 +76,15 @@ namespace MyPanelCarWashing.ViewModels
         public int SelectedBodyTypeCategory
         {
             get => _selectedBodyTypeCategory;
-            set { _selectedBodyTypeCategory = value; OnPropertyChanged(nameof(SelectedBodyTypeCategory)); Recalculate(); }
+            set
+            {
+                if (_selectedBodyTypeCategory != value)  // ← Проверка на изменение
+                {
+                    _selectedBodyTypeCategory = value;
+                    OnPropertyChanged(nameof(SelectedBodyTypeCategory));
+                    UpdateServicePrices();  // ← ← ← ВОТ ЭТА СТРОКА!
+                }
+            }
         }
 
         // === ОБЁРТКИ НАД OrderMath (чтобы XAML не ломался) ===
@@ -299,7 +307,23 @@ namespace MyPanelCarWashing.ViewModels
             Recalculate();
         }
 
-        private void UpdateServicePrices() => LoadServices(); // Упростили
+        public void UpdateServicePrices()
+        {
+            if (Services != null)
+            {
+                var allServices = _dataService.GetAllServices();
+                foreach (var vm in Services)
+                {
+                    var service = allServices.FirstOrDefault(s => s.Id == vm.Id);
+                    if (service != null)
+                    {
+                        // ← Меняем цену — PropertyChanged сработает автоматически!
+                        vm.Price = service.GetPrice(SelectedBodyTypeCategory);
+                    }
+                }
+                Recalculate();
+            }
+        }
 
         public bool Validate()
         {
