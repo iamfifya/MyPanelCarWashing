@@ -240,10 +240,13 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBox x:Name="DiscountPercentTextBox" 
-             Grid.Column="0" 
-             Height="50" 
-             Padding="5" 
-             Text="{Binding DiscountPercent, UpdateSourceTrigger=PropertyChanged}"/>
+                        Text="{Binding DiscountPercent, 
+                        UpdateSourceTrigger=PropertyChanged, 
+                        TargetNullValue=0, 
+                        FallbackValue=0}"
+                        Grid.Column="0" 
+                        Height="50" 
+                        Padding="5" />
 
                 <TextBlock Grid.Column="1" Text=" % " VerticalAlignment="Center" Margin="5,0" FontSize="14"/>
 

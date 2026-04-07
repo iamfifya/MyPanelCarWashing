@@ -36,12 +36,6 @@ namespace MyPanelCarWashing
             _viewModel.LoadServices();
             DataContext = _viewModel;
 
-            this.Activated += (s, e) =>
-            {
-                System.Diagnostics.Debug.WriteLine("[Window] Activated — reloading services");
-                _viewModel?.LoadServices();
-            };
-
             // Получаем список всех пользователей
             var allUsers = _dataService.GetAllUsers();
 

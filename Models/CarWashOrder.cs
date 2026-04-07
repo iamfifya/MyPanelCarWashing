@@ -1,8 +1,10 @@
 // CarWashOrder.cs
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace MyPanelCarWashing.Models
 {
@@ -46,28 +48,32 @@ namespace MyPanelCarWashing.Models
         {
             get
             {
-                // Определяем реальную сумму скидки
+                // === ВАРИАНТ А: Скидка применяется ко ВСЕМУ (услуги + доп. расходы) ===
+                decimal baseAmount = TotalPrice + ExtraCost;
+
                 decimal actualDiscount = 0;
 
                 if (DiscountPercent > 0)
                 {
-                    // Если задан процент — считаем от оригинальной суммы услуг
-                    decimal basePrice = OriginalTotalPrice > 0 ? OriginalTotalPrice : TotalPrice;
-                    actualDiscount = basePrice * (DiscountPercent / 100m);
+                    // Скидка от ПОЛНОЙ суммы
+                    actualDiscount = baseAmount * (DiscountPercent / 100m);
                 }
                 else
                 {
-                    // Если задана фикс. сумма — используем её
+                    // Фиксированная скидка
                     actualDiscount = DiscountAmount;
                 }
 
-                // Финальная цена: услуги - скидка + доп. расходы
-                return TotalPrice - actualDiscount + ExtraCost;
+                return baseAmount - actualDiscount;
             }
         }
         public string PaymentMethod { get; set; } = "Наличные";
-        public decimal WasherEarnings => OriginalTotalPrice * 0.35m; // ЗП от полной цены ДО скидки
-        public decimal CompanyEarnings => FinalPrice * 0.65m; // Доход компании после скидки
+        // === ЗАГЛУШКИ — реальный расчёт в AddEditOrderViewModel ===
+        [JsonIgnore]
+        public decimal WasherEarnings => 0; // ← Не рассчитываем здесь!
+
+        [JsonIgnore]
+        public decimal CompanyEarnings => FinalPrice; // ← Не рассчитываем здесь!
         public int DurationMinutes { get; set; } = 60;
 
         public string ServicesCount => ServiceIds.Count > 0 ? $"{ServiceIds.Count} услуг" : "нет услуг";

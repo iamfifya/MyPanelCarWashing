@@ -105,25 +105,21 @@ namespace MyPanelCarWashing.ViewModels
             }
         }
 
-        public decimal ServicesTotal
-        {
-            get => _servicesTotal;
-            set
-            {
-                _servicesTotal = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ServicesTotal)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FinalTotal)));
-            }
-        }
-
         public decimal ExtraCost
         {
             get => _extraCost;
             set
             {
-                _extraCost = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ExtraCost)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FinalTotal)));
+                if (_extraCost != value)
+                {
+                    _extraCost = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ExtraCost)));
+
+                    // === ВАЖНО: уведомляем ВСЕ свойства, которые зависят от ExtraCost ===
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FinalTotal)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WasherEarningsDisplay)));  // ← ЗП мойщика!
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarningsDisplay))); // ← Доход компании!
+                }
             }
         }
 
@@ -141,7 +137,11 @@ namespace MyPanelCarWashing.ViewModels
                     _discountPercent = value;
                     OnPropertyChanged(nameof(DiscountPercent));
                     if (value > 0) DiscountAmount = 0;
-                    CalculateTotal();
+
+                    // Уведомляем ВСЕ зависимые свойства
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FinalTotal)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WasherEarningsDisplay)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarningsDisplay)));
                 }
             }
         }
@@ -156,7 +156,11 @@ namespace MyPanelCarWashing.ViewModels
                     _discountAmount = value;
                     OnPropertyChanged(nameof(DiscountAmount));
                     if (value > 0) DiscountPercent = 0;
-                    CalculateTotal();
+
+                    // Уведомляем ВСЕ зависимые свойства
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FinalTotal)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WasherEarningsDisplay)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarningsDisplay)));
                 }
             }
         }
@@ -489,31 +493,50 @@ namespace MyPanelCarWashing.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarningsDisplay)));
         }
 
+        // === ПРОСТОЙ И ПРЯМОЙ РАСЧЁТ ===
+
+        // Сумма услуг (без скидки) — ЧЕРЕЗ ПОЛЕ
+        public decimal ServicesTotal
+        {
+            get => _servicesTotal;
+            private set
+            {
+                _servicesTotal = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ServicesTotal)));
+            }
+        }
+
+        // === ИТОГОВАЯ СУММА: скидка применяется ко ВСЕМУ (услуги + допы) ===
         public decimal FinalTotal
         {
             get
             {
+                decimal baseAmount = ServicesTotal + ExtraCost;  // ← Полная база
                 decimal actualDiscount = DiscountPercent > 0
-                    ? ServicesTotal * (DiscountPercent / 100m)
+                    ? baseAmount * (DiscountPercent / 100m)       // ← Скидка от всей суммы!
                     : DiscountAmount;
-                return ServicesTotal - actualDiscount + ExtraCost;
+                return baseAmount - actualDiscount;
             }
         }
 
-        public decimal WasherEarningsDisplay
-        {
-            get => ServicesTotal * 0.35m;
-        }
+        // === ЗП МОЙЩИКА: 35% от ПОЛНОЙ стоимости работ (скидка не влияет) ===
+        public decimal WasherEarningsDisplay => (ServicesTotal + ExtraCost) * 0.35m;
 
-        public decimal CompanyEarningsDisplay
+        // === ДОХОД КОМПАНИИ: может быть ОТРИЦАТЕЛЬНЫМ при больших скидках ===
+        public decimal CompanyEarningsDisplay => FinalTotal - WasherEarningsDisplay;
+        public void CalculateTotals()
         {
-            get
-            {
-                decimal actualDiscount = DiscountPercent > 0
-                    ? ServicesTotal * (DiscountPercent / 100m)
-                    : DiscountAmount;
-                return (ServicesTotal - actualDiscount + ExtraCost) * 0.65m;
-            }
+            // Считаем сумму услуг
+            _servicesTotal = Services?.Where(s => s.IsSelected).Sum(s => s.Price) ?? 0;
+
+            // === Уведомляем ВСЕ свойства, которые могут измениться ===
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ServicesTotal)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FinalTotal)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WasherEarningsDisplay)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompanyEarningsDisplay)));
+
+            // Отладка
+            System.Diagnostics.Debug.WriteLine($"[MATH] Services: {_servicesTotal}, Extra: {ExtraCost}, Washer: {WasherEarningsDisplay}");
         }
 
         // Очистка подписки при удалении ViewModel

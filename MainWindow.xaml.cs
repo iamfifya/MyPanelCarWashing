@@ -593,20 +593,35 @@ namespace MyPanelCarWashing
             }
 
             var allUsers = _dataService.GetAllUsers();
-            // Только выполненные заказы влияют на статистику мойщиков
+            var allServices = _dataService.GetAllServices(); // ← Нужны для расчёта цен
+
+            // Только выполненные заказы влияют на статистику
             var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
             var totalShiftRevenue = completedOrders.Sum(o => o.FinalPrice);
 
             var stats = completedOrders
+                .Where(o => o.WasherId > 0) // ← Только заказы с назначенным мойщиком
                 .GroupBy(o => o.WasherId)
                 .Select(g =>
                 {
                     var washerRevenue = g.Sum(o => o.FinalPrice);
+
+                    // === РАСЧЁТ ЗП МОЙЩИКА: 35% от (услуги + доп.), скидка не влияет ===
+                    decimal washerEarnings = g.Sum(o => {
+                        // Считаем сумму услуг по актуальным ценам
+                        var servicesTotal = (o.ServiceIds ?? new List<int>()).Sum(sid => {
+                            var svc = allServices.FirstOrDefault(s => s.Id == sid);
+                            return svc?.GetPrice(o.BodyTypeCategory) ?? 0;
+                        });
+                        // 35% от (услуги + доп. расходы)
+                        return (servicesTotal + o.ExtraCost) * 0.35m;
+                    });
+
                     return new WasherStat
                     {
                         WasherName = allUsers.FirstOrDefault(u => u.Id == g.Key)?.FullName ?? "Неизвестный",
                         CarsCount = g.Count(),
-                        Earnings = g.Sum(o => o.WasherEarnings),
+                        Earnings = washerEarnings,  // ← Теперь правильно!
                         TotalRevenue = washerRevenue,
                         Percentage = totalShiftRevenue > 0 ? (washerRevenue / totalShiftRevenue) * 100m : 0m
                     };
@@ -877,43 +892,82 @@ namespace MyPanelCarWashing
                     Notes = "Смена закрыта штатно"
                 };
 
-                var washerGroups = completedOrders.Where(o => o.WasherId > 0).GroupBy(o => o.WasherId).Select(g => new
-                {
-                    WasherId = g.Key,
-                    CarsWashed = g.Count(),
-                    TotalAmount = g.Sum(o => o.FinalPrice),
-                    Earnings = g.Sum(o => o.WasherEarnings)
-                }).ToList();
+                // === РАСЧЁТ ЗП МОЙЩИКОВ ЗА СМЕНУ ===
+                var washerPayReport = completedOrders
+                    .Where(o => o.WasherId > 0)
+                    .GroupBy(o => o.WasherId)
+                    .Select(g =>
+                    {
+                        // 1. Считаем базу: 35% от (услуги + доп.) для каждого заказа
+                        decimal basePay = g.Sum(o =>
+                        {
+                            var servicesSum = (o.ServiceIds ?? new List<int>()).Sum(sid =>
+                            {
+                                var svc = _dataService.GetAllServices().FirstOrDefault(s => s.Id == sid);
+                                return svc?.GetPrice(o.BodyTypeCategory) ?? 0;
+                            });
+                            return (servicesSum + o.ExtraCost) * 0.35m;
+                        });
 
+                        // 2. Гарантируем минимум 1000₽ за смену
+                        decimal finalPay = Math.Max(basePay, 1000m);
+                        decimal topUp = finalPay - basePay;
+
+                        return new
+                        {
+                            WasherId = g.Key,
+                            BasePay = basePay,
+                            FinalPay = finalPay,
+                            TopUp = topUp,
+                            OrdersCount = g.Count()
+                        };
+                    }).ToList();
+
+                // === ЛОГИРОВАНИЕ ===
+                foreach (var wp in washerPayReport)
+                {
+                    var washer = _dataService.GetAllUsers().FirstOrDefault(u => u.Id == wp.WasherId);
+                    if (wp.TopUp > 0)
+                    {
+                        Logger.Info($"ДОПЛАТА до мин. ЗП | Мойщик: {washer?.FullName} | Заработано: {wp.BasePay:N0}₽ | Доплата: {wp.TopUp:N0}₽ | Итого: {wp.FinalPay:N0}₽", "SHIFT_PAY");
+                    }
+                    else
+                    {
+                        Logger.Info($"ЗП мойщика | {washer?.FullName} | Заказы: {wp.OrdersCount} | Заработано: {wp.FinalPay:N0}₽", "SHIFT_PAY");
+                    }
+                }
+
+                // === ФОРМИРОВАНИЕ ОТЧЁТА ПО СОТРУДНИКАМ ===
                 foreach (var empId in _currentShift.EmployeeIds)
                 {
                     var employee = allUsers.FirstOrDefault(u => u.Id == empId);
                     if (employee != null)
                     {
-                        var group = washerGroups.FirstOrDefault(g => g.WasherId == empId);
+                        var pay = washerPayReport.FirstOrDefault(p => p.WasherId == empId);
                         report.EmployeesWork.Add(new EmployeeWorkReport
                         {
                             EmployeeId = empId,
                             EmployeeName = employee.FullName,
-                            CarsWashed = group?.CarsWashed ?? 0,
-                            TotalAmount = group?.TotalAmount ?? 0,
-                            Earnings = group?.Earnings ?? 0
+                            CarsWashed = pay?.OrdersCount ?? 0,
+                            TotalAmount = pay?.BasePay ?? 0,      // До доплаты
+                            Earnings = pay?.FinalPay ?? 1000m      // После доплаты до минимума
                         });
                     }
                 }
 
-                foreach (var group in washerGroups.Where(g => !_currentShift.EmployeeIds.Contains(g.WasherId)))
+                // Добавляем мойщиков, которые работали, но не в текущей смене
+                foreach (var pay in washerPayReport.Where(p => !_currentShift.EmployeeIds.Contains(p.WasherId)))
                 {
-                    var employee = allUsers.FirstOrDefault(u => u.Id == group.WasherId);
+                    var employee = allUsers.FirstOrDefault(u => u.Id == pay.WasherId);
                     if (employee != null)
                     {
                         report.EmployeesWork.Add(new EmployeeWorkReport
                         {
-                            EmployeeId = group.WasherId,
+                            EmployeeId = pay.WasherId,
                             EmployeeName = employee.FullName,
-                            CarsWashed = group.CarsWashed,
-                            TotalAmount = group.TotalAmount,
-                            Earnings = group.Earnings
+                            CarsWashed = pay.OrdersCount,
+                            TotalAmount = pay.BasePay,
+                            Earnings = pay.FinalPay
                         });
                     }
                 }

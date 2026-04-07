@@ -1332,5 +1332,28 @@ namespace MyPanelCarWashing.Services
 
             FileDataService.SaveData(appData);
         }
+        /// <summary>
+        /// Рассчитывает заработок мойщика за смену с гарантией минимума 1000₽
+        /// </summary>
+        /// <param name="washerId">ID мойщика</param>
+        /// <param name="orders">Заказы смены</param>
+        /// <returns>Итоговая ЗП (не менее 1000₽)</returns>
+        public decimal CalculateWasherEarningsWithMinimum(int washerId, List<CarWashOrder> orders)
+        {
+            // Считаем базовый заработок: 35% от суммы услуг (без скидок)
+            decimal baseEarnings = orders
+                .Where(o => o.WasherId == washerId && o.Status == "Выполнен")
+                .Sum(o => {
+                    // Пересчитываем сумму услуг БЕЗ скидки
+                    var servicesTotal = (o.ServiceIds ?? new List<int>()).Sum(sid => {
+                        var svc = _data.Services.FirstOrDefault(s => s.Id == sid);
+                        return svc?.GetPrice(o.BodyTypeCategory) ?? 0;
+                    });
+                    return servicesTotal * 0.35m;
+                });
+
+            // Гарантия минимума 1000₽
+            return Math.Max(baseEarnings, 1000m);
+        }
     }
 }
