@@ -84,7 +84,15 @@ namespace MyPanelCarWashing.ViewModels
         public decimal ExtraCost
         {
             get => CurrentOrder.ExtraCost;
-            set { CurrentOrder.ExtraCost = value; Recalculate(); }
+            set
+            {
+                if (CurrentOrder.ExtraCost != value)  // ← Проверка на изменение
+                {
+                    CurrentOrder.ExtraCost = value;
+                    OnPropertyChanged(nameof(ExtraCost));  // ← ← ← ВОТ ЭТА СТРОКА!
+                    Recalculate();
+                }
+            }
         }
         public decimal FinalTotal => CurrentCalculation.FinalPrice;
         public decimal WasherEarningsDisplay => CurrentCalculation.WasherEarnings;
