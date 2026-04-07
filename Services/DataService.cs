@@ -455,6 +455,7 @@ namespace MyPanelCarWashing.Services
                     var existingOrder = shift.Orders.FirstOrDefault(o => o.Id == order.Id);
                     if (existingOrder != null)
                     {
+                        // Обновляем ВСЕ поля, включая скидку
                         existingOrder.CarModel = order.CarModel;
                         existingOrder.CarNumber = order.CarNumber;
                         existingOrder.CarBodyType = order.CarBodyType;
@@ -469,10 +470,21 @@ namespace MyPanelCarWashing.Services
                         existingOrder.Status = order.Status;
                         existingOrder.PaymentMethod = order.PaymentMethod;
                         existingOrder.Notes = order.Notes;
+
+                        // === ДОБАВЛЕНО: сохраняем скидку ===
+                        existingOrder.DiscountPercent = order.DiscountPercent;
+                        existingOrder.DiscountAmount = order.DiscountAmount;
+                        existingOrder.OriginalTotalPrice = order.OriginalTotalPrice;
+                        // === КОНЕЦ ДОБАВЛЕНИЯ ===
                     }
                 }
 
                 FileDataService.SaveData(appData);
+
+                // Оповещаем об изменении
+                NotifyDataChanged();
+
+                System.Diagnostics.Debug.WriteLine($"[SAVE] Order #{order.Id} | Discount%: {order.DiscountPercent} | Discount$: {order.DiscountAmount}");
             }
             catch (Exception ex)
             {

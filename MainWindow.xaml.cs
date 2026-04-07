@@ -540,8 +540,9 @@ namespace MyPanelCarWashing
                 // Только выполненные заказы идут в выручку
                 var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
                 TotalRevenue = completedOrders.Sum(o => o.FinalPrice);
-                var totalWasherEarnings = completedOrders.Sum(o => o.WasherEarnings);
-                CompanyEarnings = completedOrders.Sum(o => o.CompanyEarnings);
+                var allServices = _dataService.GetAllServices();
+                var totalWasherEarnings = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
+                CompanyEarnings = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).CompanyEarnings);
 
                 var inProgressCount = _allOrders.Count(o => o.Status == "Выполняется");
                 var cancelledCount = _allOrders.Count(o => o.Status == "Отменен");
@@ -593,35 +594,23 @@ namespace MyPanelCarWashing
             }
 
             var allUsers = _dataService.GetAllUsers();
-            var allServices = _dataService.GetAllServices(); // ← Нужны для расчёта цен
-
-            // Только выполненные заказы влияют на статистику
+            var allServices = _dataService.GetAllServices();
             var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
-            var totalShiftRevenue = completedOrders.Sum(o => o.FinalPrice);
+            var totalShiftRevenue = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).FinalPrice);
 
             var stats = completedOrders
-                .Where(o => o.WasherId > 0) // ← Только заказы с назначенным мойщиком
+                .Where(o => o.WasherId > 0)
                 .GroupBy(o => o.WasherId)
                 .Select(g =>
                 {
-                    var washerRevenue = g.Sum(o => o.FinalPrice);
-
-                    // === РАСЧЁТ ЗП МОЙЩИКА: 35% от (услуги + доп.), скидка не влияет ===
-                    decimal washerEarnings = g.Sum(o => {
-                        // Считаем сумму услуг по актуальным ценам
-                        var servicesTotal = (o.ServiceIds ?? new List<int>()).Sum(sid => {
-                            var svc = allServices.FirstOrDefault(s => s.Id == sid);
-                            return svc?.GetPrice(o.BodyTypeCategory) ?? 0;
-                        });
-                        // 35% от (услуги + доп. расходы)
-                        return (servicesTotal + o.ExtraCost) * 0.35m;
-                    });
+                    var washerRevenue = g.Sum(o => OrderMath.Calculate(o, allServices).FinalPrice);
+                    var washerEarnings = g.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
 
                     return new WasherStat
                     {
                         WasherName = allUsers.FirstOrDefault(u => u.Id == g.Key)?.FullName ?? "Неизвестный",
                         CarsCount = g.Count(),
-                        Earnings = washerEarnings,  // ← Теперь правильно!
+                        Earnings = washerEarnings,
                         TotalRevenue = washerRevenue,
                         Percentage = totalShiftRevenue > 0 ? (washerRevenue / totalShiftRevenue) * 100m : 0m
                     };
@@ -821,8 +810,9 @@ namespace MyPanelCarWashing
             var allUsers = _dataService.GetAllUsers();
             var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
             var totalRevenue = completedOrders.Sum(o => o.FinalPrice);
-            var totalWasherEarnings = completedOrders.Sum(o => o.WasherEarnings);
-            var totalCompanyEarnings = completedOrders.Sum(o => o.CompanyEarnings);
+            var allServices = _dataService.GetAllServices();
+            var totalWasherEarnings = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
+            var totalCompanyEarnings = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).CompanyEarnings);
 
             int cashCount = 0; decimal cashAmount = 0;
             int cardCount = 0; decimal cardAmount = 0;
@@ -898,29 +888,11 @@ namespace MyPanelCarWashing
                     .GroupBy(o => o.WasherId)
                     .Select(g =>
                     {
-                        // 1. Считаем базу: 35% от (услуги + доп.) для каждого заказа
-                        decimal basePay = g.Sum(o =>
-                        {
-                            var servicesSum = (o.ServiceIds ?? new List<int>()).Sum(sid =>
-                            {
-                                var svc = _dataService.GetAllServices().FirstOrDefault(s => s.Id == sid);
-                                return svc?.GetPrice(o.BodyTypeCategory) ?? 0;
-                            });
-                            return (servicesSum + o.ExtraCost) * 0.35m;
-                        });
-
-                        // 2. Гарантируем минимум 1000₽ за смену
-                        decimal finalPay = Math.Max(basePay, 1000m);
+                        decimal basePay = g.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
+                        decimal finalPay = Math.Max(basePay, OrderMath.MIN_WASHER_PAY_PER_SHIFT);
                         decimal topUp = finalPay - basePay;
 
-                        return new
-                        {
-                            WasherId = g.Key,
-                            BasePay = basePay,
-                            FinalPay = finalPay,
-                            TopUp = topUp,
-                            OrdersCount = g.Count()
-                        };
+                        return new { WasherId = g.Key, BasePay = basePay, FinalPay = finalPay, TopUp = topUp, OrdersCount = g.Count() };
                     }).ToList();
 
                 // === ЛОГИРОВАНИЕ ===

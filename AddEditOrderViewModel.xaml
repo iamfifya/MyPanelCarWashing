@@ -277,9 +277,9 @@
                     <TextBlock FontSize="16" FontWeight="Bold" Foreground="#27AE60"
                    HorizontalAlignment="Center" Text="{Binding FinalTotal, StringFormat=💰 Итого: {0:N0} ₽}"/>
                     <TextBlock FontSize="10" Foreground="#7F8C8D" 
-                   HorizontalAlignment="Center" Text="{Binding WasherEarningsDisplay, StringFormat=👤 Мойщику (35%): {0:N0} ₽}"/>
+                   HorizontalAlignment="Center" Text="{Binding WasherEarningsDisplay, StringFormat='👤 Мойщику: {0:N0} ₽'}"/>
                     <TextBlock FontSize="10" Foreground="#7F8C8D" 
-                   HorizontalAlignment="Center" Text="{Binding CompanyEarningsDisplay, StringFormat=🏢 Компании (65%): {0:N0} ₽}"/>
+                   HorizontalAlignment="Center" Text="{Binding CompanyEarningsDisplay, StringFormat='🏢 Компании: {0:N0} ₽'}"/>
                 </StackPanel>
             </Border>
 

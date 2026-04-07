@@ -68,12 +68,6 @@ namespace MyPanelCarWashing.Models
             }
         }
         public string PaymentMethod { get; set; } = "Наличные";
-        // === ЗАГЛУШКИ — реальный расчёт в AddEditOrderViewModel ===
-        [JsonIgnore]
-        public decimal WasherEarnings => 0; // ← Не рассчитываем здесь!
-
-        [JsonIgnore]
-        public decimal CompanyEarnings => FinalPrice; // ← Не рассчитываем здесь!
         public int DurationMinutes { get; set; } = 60;
 
         public string ServicesCount => ServiceIds.Count > 0 ? $"{ServiceIds.Count} услуг" : "нет услуг";

@@ -35,6 +35,7 @@ namespace MyPanelCarWashing
             _viewModel = viewModel;
             _viewModel.LoadServices();
             DataContext = _viewModel;
+            _viewModel.Recalculate();
 
             // Получаем список всех пользователей
             var allUsers = _dataService.GetAllUsers();
@@ -173,7 +174,7 @@ namespace MyPanelCarWashing
                 {
                     service.IsSelected = ServicesListBox.SelectedItems.Contains(service);
                 }
-                _viewModel.CalculateTotal();
+                _viewModel.Recalculate(); // ← ДОБАВИТЬ ЭТУ СТРОКУ!
             };
 
             // Изначально выбираем услуги
@@ -507,6 +508,9 @@ namespace MyPanelCarWashing
 
                 string clientName = GetClientName(order.ClientId);
 
+                var allServices = _dataService.GetAllServices();
+                var calc = OrderMath.Calculate(order, allServices);
+
                 MessageBox.Show($"✅ Заказ успешно создан из записи!\n\n" +
                     $"🚗 {order.CarModel} ({order.CarNumber})\n" +
                     $"🚘 Категория кузова: {order.CarBodyType}\n" +
@@ -517,8 +521,8 @@ namespace MyPanelCarWashing
                     $"➕ Дополнительно: {order.ExtraCost:N0} ₽\n" +
                     $"💵 Итоговая сумма: {order.FinalPrice:N0} ₽\n" +
                     $"💳 Способ оплаты: {order.PaymentMethod}\n" +
-                    $"👤 Мойщику (35%): {order.WasherEarnings:N0} ₽\n" +
-                    $"🏢 Компании (65%): {order.CompanyEarnings:N0} ₽\n\n" +
+                    $"👤 Мойщику (35%): {calc.WasherEarnings:N0} ₽\n" +  // ← Через calc
+                    $"🏢 Компании (65%): {calc.CompanyEarnings:N0} ₽\n\n" +  // ← Через calc
                     $"📝 Примечания: {(string.IsNullOrEmpty(order.Notes) ? "нет" : order.Notes)}",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 

@@ -243,6 +243,7 @@
       <DependentUpon>ReportsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Services\Logger.cs" />
+    <Compile Include="Services\OrderMath.cs" />
     <Compile Include="StatusToBackgroundConverter.cs" />
     <Compile Include="StatusToColorConverter.cs" />
     <Compile Include="Services\TransactionService.cs" />
