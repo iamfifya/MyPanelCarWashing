@@ -14,7 +14,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private List<ShiftReport> _reports;
         private ShiftReport _selectedReport;
 
@@ -38,10 +38,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public ReportsWindow(DataService dataService)
+        public ReportsWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
             LoadReports();
         }
@@ -116,12 +116,12 @@ namespace MyPanelCarWashing
 
         private void MonthlyReportButton_Click(object sender, RoutedEventArgs e)
         {
-            var monthlyReportWin = new MonthlyReportWindow(_dataService);
+            var monthlyReportWin = new MonthlyReportWindow(_SqliteDataService);
             monthlyReportWin.ShowDialog();
         }
         private void CustomReportButton_Click(object sender, RoutedEventArgs e)
         {
-            var customReportWin = new CustomReportWindow(_dataService);
+            var customReportWin = new CustomReportWindow(_SqliteDataService);
             customReportWin.ShowDialog();
         }
 

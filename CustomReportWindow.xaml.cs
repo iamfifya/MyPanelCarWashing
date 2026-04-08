@@ -13,7 +13,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private DateTime _startDate;
         private DateTime _endDate;
         private CustomPeriodReport _currentReport;
@@ -38,10 +38,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public CustomReportWindow(DataService dataService)
+        public CustomReportWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
 
             StartDate = DateTime.Now.AddDays(-6);

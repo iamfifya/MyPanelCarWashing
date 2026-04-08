@@ -13,7 +13,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private DateTime _selectedDate;
         private MonthlyReport _currentMonthlyReport;
 
@@ -27,10 +27,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public MonthlyReportWindow(DataService dataService)
+        public MonthlyReportWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
             SelectedDate = DateTime.Now;
             MonthPicker.SelectedDate = DateTime.Now;

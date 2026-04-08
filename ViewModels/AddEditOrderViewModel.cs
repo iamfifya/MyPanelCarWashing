@@ -13,7 +13,7 @@ namespace MyPanelCarWashing.ViewModels
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly DataService _dataService;
+        private readonly SqliteDataService _sqliteDataService;  // ← ИСПРАВЛЕНО: _sqliteDataService
         private Shift _currentShift;
         private CarWashOrder _existingOrder;
         private bool _isEditMode;
@@ -21,12 +21,12 @@ namespace MyPanelCarWashing.ViewModels
         private bool _isSubscribedToDataChanged = false;
         private OrderCalculation _currentCalc;
 
-        public AddEditOrderViewModel(DataService dataService)
+        public AddEditOrderViewModel(SqliteDataService dataService)
         {
-            _dataService = dataService;
+            _sqliteDataService = dataService;  // ← ИСПРАВЛЕНО
             if (!_isSubscribedToDataChanged)
             {
-                DataService.DataChanged += OnDataChanged;
+                SqliteDataService.DataChanged += OnDataChanged;
                 _isSubscribedToDataChanged = true;
             }
         }
@@ -78,11 +78,11 @@ namespace MyPanelCarWashing.ViewModels
             get => _selectedBodyTypeCategory;
             set
             {
-                if (_selectedBodyTypeCategory != value)  // ← Проверка на изменение
+                if (_selectedBodyTypeCategory != value)
                 {
                     _selectedBodyTypeCategory = value;
                     OnPropertyChanged(nameof(SelectedBodyTypeCategory));
-                    UpdateServicePrices();  // ← ← ← ВОТ ЭТА СТРОКА!
+                    UpdateServicePrices();
                 }
             }
         }
@@ -94,10 +94,10 @@ namespace MyPanelCarWashing.ViewModels
             get => CurrentOrder.ExtraCost;
             set
             {
-                if (CurrentOrder.ExtraCost != value)  // ← Проверка на изменение
+                if (CurrentOrder.ExtraCost != value)
                 {
                     CurrentOrder.ExtraCost = value;
-                    OnPropertyChanged(nameof(ExtraCost));  // ← ← ← ВОТ ЭТА СТРОКА!
+                    OnPropertyChanged(nameof(ExtraCost));
                     Recalculate();
                 }
             }
@@ -149,7 +149,7 @@ namespace MyPanelCarWashing.ViewModels
             {
                 if (_currentCalc == null)
                 {
-                    var services = _dataService.GetAllServices();
+                    var services = _sqliteDataService.GetAllServices();
                     _currentCalc = OrderMath.Calculate(CurrentOrder, services);
                 }
                 return _currentCalc;
@@ -160,7 +160,6 @@ namespace MyPanelCarWashing.ViewModels
         {
             _currentCalc = null;
 
-            // ← ДОБАВЬ ЭТО ДЛЯ ОТЛАДКИ:
             var selectedCount = Services?.Count(s => s.IsSelected) ?? 0;
             System.Diagnostics.Debug.WriteLine($"[DEBUG] Recalculate: {selectedCount} услуг выбрано");
             if (Services != null)
@@ -180,7 +179,6 @@ namespace MyPanelCarWashing.ViewModels
             OnPropertyChanged(nameof(CompanyEarningsDisplay));
             OnPropertyChanged(nameof(ServicesTotal));
         }
-
 
         // === Просто синхронизирует выбранные услуги с заказом ===
         public void SyncServiceIds()
@@ -278,32 +276,58 @@ namespace MyPanelCarWashing.ViewModels
             }
         }
 
-        private void LoadWashers() => Washers = _dataService.GetAllUsers();
+        private void LoadWashers() => Washers = _sqliteDataService.GetAllUsers();
 
         public void LoadServices()
         {
-            var allServices = _dataService.GetAllServices();
+            var allServices = _sqliteDataService.GetAllServices();
             var selectedIds = CurrentOrder?.ServiceIds?.ToList() ?? new List<int>();
 
             if (Services == null)
             {
                 Services = new ObservableCollection<ServiceViewModel>(
-                    allServices.Select(s => new ServiceViewModel { Id = s.Id, Name = s.Name, Price = s.GetPrice(SelectedBodyTypeCategory), IsSelected = selectedIds.Contains(s.Id) }));
+                    allServices.Select(s => new ServiceViewModel
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Price = s.GetPrice(SelectedBodyTypeCategory),
+                        IsSelected = selectedIds.Contains(s.Id)
+                    }));
             }
             else
             {
                 foreach (var vm in Services.ToList())
                 {
                     var updated = allServices.FirstOrDefault(s => s.Id == vm.Id);
-                    if (updated != null) { vm.Price = updated.GetPrice(SelectedBodyTypeCategory); vm.Name = updated.Name; vm.IsSelected = selectedIds.Contains(vm.Id); }
+                    if (updated != null)
+                    {
+                        vm.Price = updated.GetPrice(SelectedBodyTypeCategory);
+                        vm.Name = updated.Name;
+                        vm.IsSelected = selectedIds.Contains(vm.Id);
+                    }
                 }
                 foreach (var s in allServices)
                 {
-                    if (!Services.Any(x => x.Id == s.Id)) Services.Add(new ServiceViewModel { Id = s.Id, Name = s.Name, Price = s.GetPrice(SelectedBodyTypeCategory), IsSelected = selectedIds.Contains(s.Id) });
+                    if (!Services.Any(x => x.Id == s.Id))
+                        Services.Add(new ServiceViewModel
+                        {
+                            Id = s.Id,
+                            Name = s.Name,
+                            Price = s.GetPrice(SelectedBodyTypeCategory),
+                            IsSelected = selectedIds.Contains(s.Id)
+                        });
                 }
                 var existingIds = new HashSet<int>(allServices.Select(s => s.Id));
-                foreach (var s in Services.Where(s => !existingIds.Contains(s.Id)).ToList()) Services.Remove(s);
+                foreach (var s in Services.Where(s => !existingIds.Contains(s.Id)).ToList())
+                    Services.Remove(s);
             }
+
+            System.Diagnostics.Debug.WriteLine($"LoadServices: загружено {Services?.Count} услуг");
+            foreach (var s in Services)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Услуга: Id={s.Id}, Name={s.Name}, Price={s.Price}, IsSelected={s.IsSelected}");
+            }
+
             Recalculate();
         }
 
@@ -311,13 +335,12 @@ namespace MyPanelCarWashing.ViewModels
         {
             if (Services != null)
             {
-                var allServices = _dataService.GetAllServices();
+                var allServices = _sqliteDataService.GetAllServices();
                 foreach (var vm in Services)
                 {
                     var service = allServices.FirstOrDefault(s => s.Id == vm.Id);
                     if (service != null)
                     {
-                        // ← Меняем цену — PropertyChanged сработает автоматически!
                         vm.Price = service.GetPrice(SelectedBodyTypeCategory);
                     }
                 }
@@ -354,27 +377,27 @@ namespace MyPanelCarWashing.ViewModels
                 if (CurrentOrder.Id == 0)
                 {
                     CurrentOrder.ShiftId = _currentShift?.Id ?? 0;
-                    _dataService.AddOrder(CurrentOrder, serviceIds);
+                    _sqliteDataService.AddOrder(CurrentOrder, serviceIds);
                     message = "Заказ добавлен!"; success = true;
                 }
                 else message = "Ошибка: ID заказа уже существует";
             }
             else if (IsAppointment)
             {
-                var apt = _dataService.GetAppointmentById(CurrentOrder.AppointmentId.Value);
+                var apt = _sqliteDataService.GetAppointmentById(CurrentOrder.AppointmentId.Value);
                 if (apt != null)
                 {
                     apt.CarModel = CurrentOrder.CarModel; apt.CarNumber = CurrentOrder.CarNumber; apt.CarBodyType = CurrentOrder.CarBodyType;
                     apt.BodyTypeCategory = SelectedBodyTypeCategory; apt.AppointmentDate = CurrentOrder.Time; apt.BoxNumber = CurrentOrder.BoxNumber;
                     apt.ServiceIds = serviceIds; apt.ExtraCost = ExtraCost; apt.ExtraCostReason = CurrentOrder.ExtraCostReason;
-                    _dataService.UpdateAppointment(apt);
+                    _sqliteDataService.UpdateAppointment(apt);
                     message = "Запись обновлена!"; success = true;
                 }
                 else message = "Запись не найдена";
             }
             else
             {
-                _dataService.UpdateOrder(CurrentOrder);
+                _sqliteDataService.UpdateOrder(CurrentOrder);
                 message = $"Заказ обновлен!\n\n🚗 {CurrentOrder.CarModel} ({CurrentOrder.CarNumber})\n💰 Итого: {FinalTotal:N0} ₽";
                 if (ExtraCost > 0) message += $"\n➕ Дополнительно: {ExtraCost:N0} ₽";
                 success = true;
@@ -383,7 +406,7 @@ namespace MyPanelCarWashing.ViewModels
 
         public void Cleanup()
         {
-            if (_isSubscribedToDataChanged) { DataService.DataChanged -= OnDataChanged; _isSubscribedToDataChanged = false; }
+            if (_isSubscribedToDataChanged) { SqliteDataService.DataChanged -= OnDataChanged; _isSubscribedToDataChanged = false; }
         }
     }
 }

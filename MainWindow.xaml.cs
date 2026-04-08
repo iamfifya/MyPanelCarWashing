@@ -18,7 +18,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private List<CarWashOrder> _allOrders;
         private Shift _currentShift;
         private User _currentUser;
@@ -201,7 +201,7 @@ namespace MyPanelCarWashing
         public void RefreshData()
         {
             // Полностью перезагружаем данные
-            _dataService = new DataService();
+            _SqliteDataService = new SqliteDataService();
             LoadData();
         }
 
@@ -244,7 +244,7 @@ namespace MyPanelCarWashing
             {
                 Logger.Info("Загрузка данных в MainWindow", "UI_MAIN");
 
-                _currentShift = _dataService.GetCurrentOpenShift();
+                _currentShift = _SqliteDataService.GetCurrentOpenShift();
                 Logger.Info("Текущая смена получена", "UI_MAIN", $"Найдена: {_currentShift != null} | ID: {_currentShift?.Id}");
 
                 if (_currentShift != null && !_currentShift.IsClosed)
@@ -261,11 +261,11 @@ namespace MyPanelCarWashing
                 var todayAppointments = new List<Appointment>();
                 if (_currentShift != null && !_currentShift.IsClosed)
                 {
-                    todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+                    todayAppointments = _SqliteDataService.GetAppointmentsByDate(DateTime.Now);
                     Logger.Info("Записи на сегодня загружены", "UI_MAIN", $"Количество: {todayAppointments.Count}");
                 }
 
-                var allServices = _dataService.GetAllServices();
+                var allServices = _SqliteDataService.GetAllServices();
                 Logger.Info("Услуги загружены", "UI_MAIN", $"Количество: {allServices.Count}");
 
                 // ===== ПОЛНЫЙ МАППИНГ ЗАКАЗОВ (без сокращений) =====
@@ -357,12 +357,12 @@ namespace MyPanelCarWashing
                 try
                 {
                     Logger.Info("Получено уведомление об изменении данных", "UI_SYNC");
-                    _dataService = new DataService();
-                    _currentShift = _dataService.GetCurrentOpenShift();
+                    _SqliteDataService = new SqliteDataService();
+                    _currentShift = _SqliteDataService.GetCurrentOpenShift();
 
                     if (AppointmentsOverlay != null)
                     {
-                        AppointmentsOverlay.DataService = _dataService;
+                        AppointmentsOverlay.SqliteDataService = _SqliteDataService;
                         AppointmentsOverlay.CurrentShift = _currentShift;
                     }
 
@@ -405,23 +405,23 @@ namespace MyPanelCarWashing
             }
         }
 
-        public MainWindow(DataService dataService, User user)
+        public MainWindow(SqliteDataService SqliteDataService, User user)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             _currentUser = user;
             DataContext = this;
 
-            // Устанавливаем DataService для оверлея
+            // Устанавливаем SqliteDataService для оверлея
             if (AppointmentsOverlay != null)
             {
                 if (AppointmentsOverlay != null)
                 {
-                    AppointmentsOverlay.DataService = dataService;
+                    AppointmentsOverlay.SqliteDataService = SqliteDataService;
                     AppointmentsOverlay.CurrentShift = _currentShift;
                 }
-                AppointmentsOverlay.DataService = dataService;
-                System.Diagnostics.Debug.WriteLine("DataService set to AppointmentsOverlay");
+                AppointmentsOverlay.SqliteDataService = SqliteDataService;
+                System.Diagnostics.Debug.WriteLine("SqliteDataService set to AppointmentsOverlay");
             }
             else
             {
@@ -429,7 +429,7 @@ namespace MyPanelCarWashing
             }
 
             // Подписываемся на глобальное событие изменения данных
-            DataService.DataChanged += OnDataChanged;
+            SqliteDataService.DataChanged += OnDataChanged;
 
             LoadData();
         }
@@ -443,7 +443,7 @@ namespace MyPanelCarWashing
 
         private void ApplyFilterAndDisplay()
         {
-            var allServices = _dataService.GetAllServices();
+            var allServices = _SqliteDataService.GetAllServices();
             var allDisplayItems = new List<OrderDisplayItem>();
 
             // Добавляем заказы
@@ -481,7 +481,7 @@ namespace MyPanelCarWashing
             }
 
             // Добавляем записи на сегодня
-            var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+            var todayAppointments = _SqliteDataService.GetAppointmentsByDate(DateTime.Now);
             var activeAppointments = todayAppointments.Where(a => !a.IsCompleted).ToList();
 
             if (activeAppointments.Any())
@@ -527,7 +527,7 @@ namespace MyPanelCarWashing
 
         private string GetWasherName(int washerId)
         {
-            var washer = _dataService.GetAllUsers().FirstOrDefault(u => u.Id == washerId);
+            var washer = _SqliteDataService.GetAllUsers().FirstOrDefault(u => u.Id == washerId);
             return washer?.FullName ?? "Не назначен";
         }
 
@@ -540,7 +540,7 @@ namespace MyPanelCarWashing
                 // Только выполненные заказы идут в выручку
                 var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
                 TotalRevenue = completedOrders.Sum(o => o.FinalPrice);
-                var allServices = _dataService.GetAllServices();
+                var allServices = _SqliteDataService.GetAllServices();
                 var totalWasherEarnings = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
                 CompanyEarnings = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).CompanyEarnings);
 
@@ -593,8 +593,8 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            var allUsers = _dataService.GetAllUsers();
-            var allServices = _dataService.GetAllServices();
+            var allUsers = _SqliteDataService.GetAllUsers();
+            var allServices = _SqliteDataService.GetAllServices();
             var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
             var totalShiftRevenue = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).FinalPrice);
 
@@ -667,12 +667,12 @@ namespace MyPanelCarWashing
             }
 
             var orderViewModel = App.GetService<AddEditOrderViewModel>();
-            var addWin = new AddEditOrderWindow(_dataService, orderViewModel, _currentShift);
+            var addWin = new AddEditOrderWindow(_SqliteDataService, orderViewModel, _currentShift);
 
             if (addWin.ShowDialog() == true)
             {
                 System.Diagnostics.Debug.WriteLine("=== ЗАКАЗ ДОБАВЛЕН, ОБНОВЛЯЕМ ДАННЫЕ ===");
-                _dataService = new DataService(); // Принудительно обновляем сервис
+                _SqliteDataService = new SqliteDataService(); // Принудительно обновляем сервис
                 LoadData();
             }
         }
@@ -682,7 +682,7 @@ namespace MyPanelCarWashing
         {
             if (orderDisplay.IsAppointment && orderDisplay.AppointmentId.HasValue)
             {
-                var appointment = _dataService.GetAppointmentById(orderDisplay.AppointmentId.Value);
+                var appointment = _SqliteDataService.GetAppointmentById(orderDisplay.AppointmentId.Value);
                 if (appointment != null)
                 {
                     if (appointment.IsCompleted && appointment.OrderId.HasValue)
@@ -692,10 +692,10 @@ namespace MyPanelCarWashing
                         {
                             // Переименовал переменную в editViewModel
                             var editViewModel = App.GetService<AddEditOrderViewModel>();
-                            var orderEditWin = new AddEditOrderWindow(_dataService, editViewModel, _currentShift, order);
+                            var orderEditWin = new AddEditOrderWindow(_SqliteDataService, editViewModel, _currentShift, order);
                             if (orderEditWin.ShowDialog() == true)
                             {
-                                _dataService = new DataService();
+                                _SqliteDataService = new SqliteDataService();
                                 LoadData();
                             }
                             return;
@@ -721,10 +721,10 @@ namespace MyPanelCarWashing
 
                     // Переименовал переменную в appointmentViewModel
                     var appointmentViewModel = App.GetService<AddEditOrderViewModel>();
-                    var appointmentEditWin = new AddEditOrderWindow(_dataService, appointmentViewModel, _currentShift, tempOrder);
+                    var appointmentEditWin = new AddEditOrderWindow(_SqliteDataService, appointmentViewModel, _currentShift, tempOrder);
                     if (appointmentEditWin.ShowDialog() == true)
                     {
-                        _dataService = new DataService();
+                        _SqliteDataService = new SqliteDataService();
                         LoadData();
                     }
                 }
@@ -736,10 +736,10 @@ namespace MyPanelCarWashing
                 {
                     // Переименовал переменную в orderViewModel
                     var orderViewModel = App.GetService<AddEditOrderViewModel>();
-                    var orderEditWin = new AddEditOrderWindow(_dataService, orderViewModel, _currentShift, originalOrder);
+                    var orderEditWin = new AddEditOrderWindow(_SqliteDataService, orderViewModel, _currentShift, originalOrder);
                     if (orderEditWin.ShowDialog() == true)
                     {
-                        _dataService = new DataService();
+                        _SqliteDataService = new SqliteDataService();
                         LoadData();
                     }
                 }
@@ -752,26 +752,7 @@ namespace MyPanelCarWashing
             empWin.ShowDialog();
         }
 
-        private void StartShiftButton_Click(object sender, RoutedEventArgs e)
-        {
-            var startWin = new StartShiftWindow(_dataService);
-            if (startWin.ShowDialog() == true)
-            {
-                _dataService = new DataService();
-                _currentShift = _dataService.GetCurrentOpenShift();
 
-                if (AppointmentsOverlay != null)
-                {
-                    AppointmentsOverlay.DataService = _dataService;
-                    AppointmentsOverlay.CurrentShift = _currentShift;
-                }
-
-                LoadData();
-                Logger.Info($"Смена начата | Дата: {DateTime.Now:dd.MM.yyyy} | ID смены: {_currentShift?.Id}", "SHIFT");
-                MessageBox.Show($"Смена успешно начата!", "Успешно",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
 
         private void CloseShiftButton_Click(object sender, RoutedEventArgs e)
         {
@@ -798,7 +779,7 @@ namespace MyPanelCarWashing
             Logger.Info($"Начало закрытия смены #{_currentShift.Id}", "SHIFT",
                 $"Дата: {_currentShift.Date:dd.MM.yyyy} | Начало: {_currentShift.StartTime:HH:mm}");
 
-            string canCloseError = _dataService.CanCloseShift(_currentShift.Id);
+            string canCloseError = _SqliteDataService.CanCloseShift(_currentShift.Id);
             if (canCloseError != null)
             {
                 Logger.Warn($"Невозможно закрыть смену #{_currentShift.Id}: {canCloseError}", "SHIFT");
@@ -807,10 +788,10 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            var allUsers = _dataService.GetAllUsers();
+            var allUsers = _SqliteDataService.GetAllUsers();
             var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
             var totalRevenue = completedOrders.Sum(o => o.FinalPrice);
-            var allServices = _dataService.GetAllServices();
+            var allServices = _SqliteDataService.GetAllServices();
             var totalWasherEarnings = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
             var totalCompanyEarnings = completedOrders.Sum(o => OrderMath.Calculate(o, allServices).CompanyEarnings);
 
@@ -834,7 +815,7 @@ namespace MyPanelCarWashing
                 if (order.ClientId.HasValue) ValidateClientStats(order.ClientId.Value);
 
             var inProgressOrders = _allOrders.Where(o => o.Status == "Выполняется").ToList();
-            var pendingAppointments = _dataService.GetAppointmentsByDate(DateTime.Now).Where(a => !a.IsCompleted).ToList();
+            var pendingAppointments = _SqliteDataService.GetAppointmentsByDate(DateTime.Now).Where(a => !a.IsCompleted).ToList();
 
             string warningMessage = "";
             if (inProgressOrders.Any()) warningMessage += $"\n⚠️ Заказов в работе: {inProgressOrders.Count} (не войдут в отчёт)";
@@ -913,7 +894,7 @@ namespace MyPanelCarWashing
                 // === ЛОГИРОВАНИЕ ===
                 foreach (var wp in washerPayReport)
                 {
-                    var washer = _dataService.GetAllUsers().FirstOrDefault(u => u.Id == wp.WasherId);
+                    var washer = _SqliteDataService.GetAllUsers().FirstOrDefault(u => u.Id == wp.WasherId);
                     string roleTag = wp.IsAdmin ? " [АДМИН]" : "";
 
                     if (wp.TopUp > 0)
@@ -967,17 +948,16 @@ namespace MyPanelCarWashing
 
                 SaveShiftReport(report);
 
-                var allShifts = _dataService.GetAllShifts();
-                var existingShift = allShifts.FirstOrDefault(s => s.Id == _currentShift.Id);
-                if (existingShift != null) { existingShift.EndTime = _currentShift.EndTime; existingShift.IsClosed = true; }
+                // ВАЖНО: закрываем смену в БД
+                _SqliteDataService.CloseShift(_currentShift.Id, "Смена закрыта штатно");
 
-                var appData = FileDataService.LoadData();
-                appData.Shifts = allShifts;
-                FileDataService.SaveData(appData);
+                // Обновляем данные
+                _SqliteDataService = new SqliteDataService();
+                _currentShift = _SqliteDataService.GetCurrentOpenShift();
 
-                // === ОБНОВЛЯЕМ ДАННЫЕ ===
-                _dataService = new DataService();
-                if (AppointmentsOverlay != null) AppointmentsOverlay.DataService = _dataService;
+                if (AppointmentsOverlay != null)
+                    AppointmentsOverlay.SqliteDataService = _SqliteDataService;
+
                 LoadData();
 
                 // === ЛОГИРОВАНИЕ (используем сохранённые переменные, т.к. _currentShift может быть null) ===
@@ -1006,7 +986,7 @@ namespace MyPanelCarWashing
         }
         private void ValidateClientStats(int clientId)
         {
-            var client = _dataService.GetClientById(clientId);
+            var client = _SqliteDataService.GetClientById(clientId);
             if (client == null) return;
 
             var clientOrders = _allOrders.Where(o => o.ClientId == clientId && o.Status == "Выполнен").ToList();
@@ -1024,7 +1004,7 @@ namespace MyPanelCarWashing
                 client.TotalSpent = expectedTotal;
                 client.LastVisitDate = clientOrders.Max(o => o.Time);
 
-                _dataService.UpdateClient(client);
+                _SqliteDataService.UpdateClient(client);
             }
         }
         private void ExportButton_Click(object sender, RoutedEventArgs e)
@@ -1040,7 +1020,7 @@ namespace MyPanelCarWashing
                 if (result == MessageBoxResult.Cancel) return;
 
                 string exportType = result == MessageBoxResult.Yes ? "full" : "clients";
-                string filePath = _dataService.ExportDataToJson(exportType);
+                string filePath = _SqliteDataService.ExportDataToJson(exportType);
 
                 Logger.Info($"Экспорт инициирован пользователем | Тип: {exportType} | Файл: {Path.GetFileName(filePath)}", "EXPORT");
 
@@ -1088,7 +1068,7 @@ namespace MyPanelCarWashing
 
         private void ReportsButton_Click(object sender, RoutedEventArgs e)
         {
-            var reportsWin = new ReportsWindow(_dataService); // DataService уже в DI
+            var reportsWin = new ReportsWindow(_SqliteDataService); // SqliteDataService уже в DI
             reportsWin.ShowDialog();
         }
 
@@ -1132,7 +1112,7 @@ namespace MyPanelCarWashing
             // ========== 1. ОБРАБОТКА ЗАПИСИ (Appointment) ==========
             if (SelectedItem.IsAppointment && SelectedItem.AppointmentId.HasValue)
             {
-                var appointment = _dataService.GetAppointmentById(SelectedItem.AppointmentId.Value);
+                var appointment = _SqliteDataService.GetAppointmentById(SelectedItem.AppointmentId.Value);
                 if (appointment != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"Найдена запись ID: {appointment.Id}, IsCompleted: {appointment.IsCompleted}, OrderId: {appointment.OrderId}");
@@ -1148,7 +1128,7 @@ namespace MyPanelCarWashing
                         if (result == MessageBoxResult.Yes)
                         {
                             Logger.Info($"Удаление записи (заказ сохранён): #{appointment.Id} | Авто: {SelectedItem.CarNumber}", "ORDER");
-                            _dataService.DeleteAppointment(appointment.Id);
+                            _SqliteDataService.DeleteAppointment(appointment.Id);
                             LoadData();
                             MessageBox.Show("Запись удалена (заказ сохранен)", "Успешно");
                         }
@@ -1163,7 +1143,7 @@ namespace MyPanelCarWashing
                         if (result == MessageBoxResult.Yes)
                         {
                             Logger.Info($"Удаление записи: #{appointment.Id} | Авто: {appointment.CarNumber}", "ORDER");
-                            _dataService.DeleteAppointment(appointment.Id);
+                            _SqliteDataService.DeleteAppointment(appointment.Id);
                             LoadData();
                             MessageBox.Show("Запись удалена", "Успешно");
                         }
@@ -1204,35 +1184,18 @@ namespace MyPanelCarWashing
 
                         try
                         {
-                            var appData = FileDataService.LoadData();
-                            var shift = appData.Shifts.FirstOrDefault(s => s.Id == originalOrder.ShiftId);
-                            if (shift != null)
-                            {
-                                var orderToRemove = shift.Orders?.FirstOrDefault(o => o.Id == originalOrder.Id);
-                                if (orderToRemove != null)
-                                {
-                                    shift.Orders.Remove(orderToRemove);
-                                    FileDataService.SaveData(appData);
-                                    Logger.Info($"Удаление успешно: Заказ #{originalOrder.Id}", "ORDER");
-                                }
-                                else
-                                {
-                                    Logger.Warn($"Заказ #{originalOrder.Id} не найден в смене #{shift.Id}", "ORDER");
-                                }
-                            }
-                            else
-                            {
-                                Logger.Warn($"Смена #{originalOrder.ShiftId} не найдена для удаления заказа #{originalOrder.Id}", "ORDER");
-                            }
+                            // Обновляем статус заказа на "Отменен" вместо удаления
+                            _SqliteDataService.UpdateOrderStatus(originalOrder.Id, "Отменен");
 
-                            _dataService = new DataService();
+                            // Обновляем данные
+                            _SqliteDataService = new SqliteDataService();
                             LoadData();
-                            MessageBox.Show("Заказ удален", "Успешно");
+                            MessageBox.Show("Заказ отменен", "Успешно");
                         }
                         catch (Exception ex)
                         {
-                            Logger.Error("Ошибка при удалении заказа", ex, "ORDER");
-                            MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
+                            Logger.Error("Ошибка при отмене заказа", ex, "ORDER");
+                            MessageBox.Show($"Ошибка при отмене: {ex.Message}", "Ошибка",
                                 MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
@@ -1252,19 +1215,8 @@ namespace MyPanelCarWashing
                         {
                             try
                             {
-                                var appData = FileDataService.LoadData();
-                                var shift = appData.Shifts.FirstOrDefault(s => s.Id == fallbackOrder.ShiftId);
-                                if (shift != null)
-                                {
-                                    var orderToRemove = shift.Orders?.FirstOrDefault(o => o.Id == fallbackOrder.Id);
-                                    if (orderToRemove != null)
-                                    {
-                                        shift.Orders.Remove(orderToRemove);
-                                        FileDataService.SaveData(appData);
-                                        Logger.Info($"Удаление успешно (fallback): Заказ #{fallbackOrder.Id}", "ORDER");
-                                    }
-                                }
-                                _dataService = new DataService();
+                                _SqliteDataService.UpdateOrderStatus(originalOrder.Id, "Отменен");
+                                _SqliteDataService = new SqliteDataService();
                                 LoadData();
                                 MessageBox.Show("Заказ удален", "Успешно");
                             }
@@ -1305,7 +1257,7 @@ namespace MyPanelCarWashing
                 {
                     System.Diagnostics.Debug.WriteLine("=== Запись добавлена, обновляем MainWindow ===");
                     // Полностью перезагружаем данные
-                    _dataService = new DataService();
+                    _SqliteDataService = new SqliteDataService();
                     LoadData();
                 }
             };
@@ -1336,43 +1288,38 @@ namespace MyPanelCarWashing
         }
         private void LoadAppointmentsToDisplay()
         {
-            // Получаем все записи на сегодня, которые еще не выполнены
-            var todayAppointments = _dataService.GetAppointmentsByDate(DateTime.Now);
+            var todayAppointments = _SqliteDataService.GetAppointmentsByDate(DateTime.Now);
 
-            // Если нет активной смены, показываем записи с предупреждением
             if (_currentShift == null || _currentShift.IsClosed)
             {
                 if (todayAppointments.Any())
                 {
-                    // Показываем записи в специальном виде
                     ShowAppointmentsAsWarning(todayAppointments);
                 }
                 return;
             }
 
-            // Если есть активная смена, записи должны быть конвертированы в заказы
-            // Проверяем, все ли записи на сегодня конвертированы
             var unconvertedAppointments = todayAppointments.Where(a => !a.IsCompleted).ToList();
 
             if (unconvertedAppointments.Any())
             {
-                // Конвертируем неконвертированные записи
                 foreach (var appointment in unconvertedAppointments)
                 {
                     int defaultWasherId = _currentShift.EmployeeIds.FirstOrDefault();
                     if (defaultWasherId == 0)
                     {
-                        var allUsers = _dataService.GetAllUsers();
+                        var allUsers = _SqliteDataService.GetAllUsers();
                         defaultWasherId = allUsers.FirstOrDefault()?.Id ?? 1;
                     }
 
-                    var order = _dataService.ConvertAppointmentToOrder(appointment, _currentShift.Id, defaultWasherId);
+                    var order = _SqliteDataService.ConvertAppointmentToOrder(appointment, _currentShift.Id, defaultWasherId);
                     _currentShift.Orders.Add(order);
                 }
-                _dataService.SaveData();
+                // Убираем вызов SaveData() – изменения уже сохранены в ConvertAppointmentToOrder через транзакцию
 
-                // Перезагружаем заказы
-                _allOrders = _currentShift.Orders.ToList();
+                // Перезагружаем заказы из БД
+                _currentShift = _SqliteDataService.GetCurrentOpenShift();
+                _allOrders = _currentShift?.Orders.ToList() ?? new List<CarWashOrder>();
                 ApplyFilterAndDisplay();
                 UpdateInfo();
             }
@@ -1381,7 +1328,7 @@ namespace MyPanelCarWashing
         private void ShowAppointmentsAsWarning(List<Appointment> appointments)
         {
             // Создаем временные отображаемые элементы для записей
-            var allServices = _dataService.GetAllServices();
+            var allServices = _SqliteDataService.GetAllServices();
 
             var warningAppointmentItems = appointments.Select(a => new OrderDisplayItem
             {
@@ -1427,6 +1374,34 @@ namespace MyPanelCarWashing
             clientsWin.ShowDialog();
         }
 
+        private void StartShiftButton_Click(object sender, RoutedEventArgs e)
+        {
+            var startShiftWin = new StartShiftWindow(_SqliteDataService);
+            if (startShiftWin.ShowDialog() == true)
+            {
+                // Принудительно пересоздаём сервис и загружаем данные
+                _SqliteDataService = new SqliteDataService();
+                _currentShift = _SqliteDataService.GetCurrentOpenShift();
+
+                System.Diagnostics.Debug.WriteLine($"=== Смена создана, ID: {_currentShift?.Id} ===");
+
+                // Обновляем оверлей
+                if (AppointmentsOverlay != null)
+                {
+                    AppointmentsOverlay.SqliteDataService = _SqliteDataService;
+                    AppointmentsOverlay.CurrentShift = _currentShift;
+                }
+
+                LoadData();
+
+                // Принудительно обновляем UI
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentShiftInfo)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalOrdersInfo)));
+
+                Logger.Info($"Смена начата | Дата: {DateTime.Now:dd.MM.yyyy} | ID смены: {_currentShift?.Id}", "SHIFT");
+                MessageBox.Show($"Смена успешно начата!", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
     }
 
     public class OrderDisplayItem : INotifyPropertyChanged

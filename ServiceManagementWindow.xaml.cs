@@ -12,19 +12,19 @@ namespace MyPanelCarWashing
 {
     public partial class ServiceManagementWindow : Window
     {
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private List<Service> _allServices;
 
-        public ServiceManagementWindow(DataService dataService)
+        public ServiceManagementWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             LoadServices();
         }
 
         private void LoadServices()
         {
-            _allServices = _dataService.GetAllServices().ToList();
+            _allServices = _SqliteDataService.GetAllServices().ToList();
             ApplyFilter();
             System.Diagnostics.Debug.WriteLine($"Загружено услуг: {_allServices.Count}");
         }
@@ -91,10 +91,10 @@ namespace MyPanelCarWashing
         {
             if (service == null) return;
 
-            var editWin = new AddEditServiceWindow(_dataService, service);
+            var editWin = new AddEditServiceWindow(_SqliteDataService, service);
             if (editWin.ShowDialog() == true)
             {
-                _dataService = new DataService();
+                _SqliteDataService = new SqliteDataService();
                 LoadServices();
                 MessageBox.Show("Услуга обновлена", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
@@ -121,18 +121,7 @@ namespace MyPanelCarWashing
             {
                 try
                 {
-                    var appData = FileDataService.LoadData();
-                    var serviceToDelete = appData.Services.FirstOrDefault(s => s.Id == service.Id);
-                    if (serviceToDelete != null)
-                    {
-                        appData.Services.Remove(serviceToDelete);
-                        FileDataService.SaveData(appData);
-
-                        _dataService = new DataService();
-                        LoadServices();
-                        MessageBox.Show("Услуга удалена", "Успешно",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
+                    _SqliteDataService.DeleteService(service.Id);
                 }
                 catch (Exception ex)
                 {
@@ -144,7 +133,7 @@ namespace MyPanelCarWashing
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
-            _dataService = new DataService();
+            _SqliteDataService = new SqliteDataService();
             LoadServices();
             MessageBox.Show("Список услуг обновлен", "Обновление",
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -170,10 +159,10 @@ namespace MyPanelCarWashing
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
-            var addWin = new AddEditServiceWindow(_dataService, null);
+            var addWin = new AddEditServiceWindow(_SqliteDataService, null);
             if (addWin.ShowDialog() == true)
             {
-                _dataService = new DataService();
+                _SqliteDataService = new SqliteDataService();
                 LoadServices();
                 MessageBox.Show("Услуга добавлена", "Успешно",
                     MessageBoxButton.OK, MessageBoxImage.Information);
@@ -210,7 +199,7 @@ namespace MyPanelCarWashing
 
         private void CheckIntegrityButton_Click(object sender, RoutedEventArgs e)
         {
-            var allServices = _dataService.GetAllServices();
+            var allServices = _SqliteDataService.GetAllServices();
 
             var duplicateIds = allServices
                 .GroupBy(s => s.Id)

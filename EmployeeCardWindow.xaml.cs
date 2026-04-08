@@ -14,7 +14,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private List<User> _allEmployees;
         private List<User> _employeesList;
         private string _searchFilter = "";
@@ -30,12 +30,12 @@ namespace MyPanelCarWashing
             }
         }
 
-        public EmployeeCardWindow(DataService dataService)
+        public EmployeeCardWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
-            DataService.DataChanged += OnDataChanged;
+            SqliteDataService.DataChanged += OnDataChanged;
 
             EmployeesListView.LostFocus += (s, e) =>
             {
@@ -62,7 +62,7 @@ namespace MyPanelCarWashing
         private void LoadEmployees()
         {
             // Используем GetAllUsersIncludingInactive для отображения всех сотрудников
-            _allEmployees = _dataService.GetAllUsersIncludingInactive();
+            _allEmployees = _SqliteDataService.GetAllUsersIncludingInactive();
             ApplyFilter();
         }
         private bool _isUpdating = false;
@@ -76,7 +76,7 @@ namespace MyPanelCarWashing
 
             Dispatcher.Invoke(() =>
             {
-                _allEmployees = _dataService.GetAllUsersIncludingInactive();
+                _allEmployees = _SqliteDataService.GetAllUsersIncludingInactive();
                 ApplyFilter();
             });
         }
@@ -109,7 +109,7 @@ namespace MyPanelCarWashing
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
-            var addWin = new AddEditEmployeeWindow(_dataService, null);
+            var addWin = new AddEditEmployeeWindow(_SqliteDataService, null);
             if (addWin.ShowDialog() == true)
             {
                 LoadEmployees();
@@ -141,7 +141,7 @@ namespace MyPanelCarWashing
 
         private void OpenEditEmployee(User employee)
         {
-            var editWin = new AddEditEmployeeWindow(_dataService, employee);
+            var editWin = new AddEditEmployeeWindow(_SqliteDataService, employee);
             if (editWin.ShowDialog() == true)
             {
                 LoadEmployees();
@@ -151,10 +151,10 @@ namespace MyPanelCarWashing
         private void ActivateEmployee(User employee)
         {
             employee.IsActive = true;
-            _dataService.UpdateUser(employee);
+            _SqliteDataService.UpdateUser(employee);
 
             // Оповещаем об изменении
-            DataService.NotifyDataChanged();
+            SqliteDataService.NotifyDataChanged();
 
             LoadEmployees();
         }
@@ -187,7 +187,7 @@ namespace MyPanelCarWashing
 
         private void ScheduleButton_Click(object sender, RoutedEventArgs e)
         {
-            var scheduleWin = new ScheduleWindow(_dataService);
+            var scheduleWin = new ScheduleWindow(_SqliteDataService);
             scheduleWin.ShowDialog();
         }
 

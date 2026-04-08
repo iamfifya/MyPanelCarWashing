@@ -209,9 +209,9 @@
                             Background="#9B59B6" Foreground="White" BorderThickness="0"
                             Cursor="Hand" Height="35"/>
                     <Button x:Name="StartShiftButton" Content="📅 Начать смену" 
-                            Click="StartShiftButton_Click" Padding="15,8" Margin="10,0,5,0"
-                            Background="#27AE60" Foreground="White" BorderThickness="0"
-                            Cursor="Hand" Height="35"/>
+        Click="StartShiftButton_Click" Padding="15,8" Margin="10,0,5,0"
+        Background="#27AE60" Foreground="White" BorderThickness="0"
+        Cursor="Hand" Height="35"/>
                     <Button x:Name="CloseShiftButton" Content="🔒 Закрыть смену" 
                             Click="CloseShiftButton_Click" Padding="15,8" Margin="0,0,10,0"
                             Background="#E74C3C" Foreground="White" BorderThickness="0"

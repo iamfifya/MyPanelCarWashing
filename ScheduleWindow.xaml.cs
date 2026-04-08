@@ -12,17 +12,17 @@ namespace MyPanelCarWashing
 {
     public partial class ScheduleWindow : Window
     {
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private DateTime _currentDate;
         private List<EmployeeSchedule> _scheduleData;
         private Dictionary<int, Border> _dayHeaders = new Dictionary<int, Border>();
         private Dictionary<string, Border> _cells = new Dictionary<string, Border>();
         private bool _isDataModified = false; // Флаг изменения данных
 
-        public ScheduleWindow(DataService dataService)
+        public ScheduleWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             _currentDate = DateTime.Now;
             LoadSchedule();
         }
@@ -30,7 +30,7 @@ namespace MyPanelCarWashing
         private void LoadSchedule()
         {
             // Загружаем существующий график, НЕ создаем автоматически
-            _scheduleData = _dataService.GetSchedule(_currentDate.Year, _currentDate.Month);
+            _scheduleData = _SqliteDataService.GetSchedule(_currentDate.Year, _currentDate.Month);
 
             if (_scheduleData == null || !_scheduleData.Any())
             {
@@ -100,7 +100,7 @@ namespace MyPanelCarWashing
                 return;
             }
 
-            _dataService.SaveSchedule(_currentDate.Year, _currentDate.Month, _scheduleData);
+            _SqliteDataService.SaveSchedule(_currentDate.Year, _currentDate.Month, _scheduleData);
             _isDataModified = false;
             UpdateSaveButtonState();
 
@@ -164,12 +164,12 @@ namespace MyPanelCarWashing
 
         private void CreateDefaultSchedule()
         {
-            var employees = _dataService.GetAllUsers();
+            var employees = _SqliteDataService.GetAllUsers();
             var daysInMonth = DateTime.DaysInMonth(_currentDate.Year, _currentDate.Month);
 
             // Получаем график предыдущего месяца
             var prevMonthDate = _currentDate.AddMonths(-1);
-            var prevMonthSchedule = _dataService.GetSchedule(prevMonthDate.Year, prevMonthDate.Month);
+            var prevMonthSchedule = _SqliteDataService.GetSchedule(prevMonthDate.Year, prevMonthDate.Month);
 
             // Разделяем сотрудников
             var admins = employees.Where(e => e.IsAdmin).OrderBy(e => e.Id).ToList();

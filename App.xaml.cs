@@ -44,8 +44,7 @@ namespace MyPanelCarWashing
         private void ConfigureServices(IServiceCollection services)
         {
             // Регистрируем сервисы как Singleton (один экземпляр на всё приложение)
-            services.AddSingleton<DataService>();
-            services.AddSingleton<TransactionService>();
+            services.AddSingleton<SqliteDataService>();
 
             // Регистрируем ViewModels как Transient (новый экземпляр при каждом запросе)
             services.AddTransient<AddEditOrderViewModel>();

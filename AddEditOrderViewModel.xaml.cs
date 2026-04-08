@@ -16,20 +16,21 @@ namespace MyPanelCarWashing
 {
     public partial class AddEditOrderWindow : Window
     {
-        private readonly DataService _dataService;
+        private readonly SqliteDataService _SqliteDataService;
         private readonly Shift _currentShift;
         private readonly AddEditOrderViewModel _viewModel;
 
         public AddEditOrderWindow(
-    DataService dataService,
+    SqliteDataService SqliteDataService,
     AddEditOrderViewModel viewModel,
     Shift currentShift = null,
     CarWashOrder order = null)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             _currentShift = currentShift;
             ClientComboBox.SelectionChanged += ClientComboBox_SelectionChanged;
+            
 
             viewModel.Initialize(currentShift, order);
             _viewModel = viewModel;
@@ -37,8 +38,10 @@ namespace MyPanelCarWashing
             DataContext = _viewModel;
             _viewModel.Recalculate();
 
+
+
             // Получаем список всех пользователей
-            var allUsers = _dataService.GetAllUsers();
+            var allUsers = _SqliteDataService.GetAllUsers();
 
             // Устанавливаем ItemsSource для ComboBox мойщиков
             WasherComboBox.ItemsSource = allUsers;
@@ -142,7 +145,7 @@ namespace MyPanelCarWashing
             // Для записей - загружаем длительность
             if (_viewModel.IsAppointment && order != null)
             {
-                var appointment = _dataService.GetAppointmentById(order.AppointmentId.Value);
+                var appointment = _SqliteDataService.GetAppointmentById(order.AppointmentId.Value);
                 if (appointment != null)
                 {
                     DurationTextBox.Text = appointment.DurationMinutes.ToString();
@@ -237,7 +240,7 @@ namespace MyPanelCarWashing
                         return;
                     }
 
-                    var appointment = _dataService.GetAppointmentById(_viewModel.CurrentOrder.AppointmentId.Value);
+                    var appointment = _SqliteDataService.GetAppointmentById(_viewModel.CurrentOrder.AppointmentId.Value);
                     if (appointment != null)
                     {
                         appointment.DurationMinutes = duration;
@@ -302,7 +305,7 @@ namespace MyPanelCarWashing
 
                 if (success)
                 {
-                    DataService.NotifyDataChanged();
+                    SqliteDataService.NotifyDataChanged();
 
                     string successMessage = _viewModel.IsAppointment
                         ? $"✅ Запись обновлена!\n\n🚗 {_viewModel.CurrentOrder.CarModel} ({_viewModel.CurrentOrder.CarNumber})\n" +
@@ -380,13 +383,13 @@ namespace MyPanelCarWashing
             }
             else if (_viewModel.CurrentOrder.WasherId > 0)
             {
-                selectedWasher = _dataService.GetAllUsers().FirstOrDefault(u => u.Id == _viewModel.CurrentOrder.WasherId);
+                selectedWasher = _SqliteDataService.GetAllUsers().FirstOrDefault(u => u.Id == _viewModel.CurrentOrder.WasherId);
             }
 
             // Если мойщик не выбран, показываем диалог
             if (selectedWasher == null)
             {
-                var washers = _dataService.GetAllUsers();
+                var washers = _SqliteDataService.GetAllUsers();
                 if (!washers.Any())
                 {
                     MessageBox.Show("Нет доступных мойщиков!", "Ошибка",
@@ -442,7 +445,7 @@ namespace MyPanelCarWashing
             try
             {
                 // Проверяем, не создан ли уже заказ для этой записи
-                var existingOrder = _dataService.GetOrderByAppointmentId(_viewModel.CurrentOrder.AppointmentId.Value);
+                var existingOrder = _SqliteDataService.GetOrderByAppointmentId(_viewModel.CurrentOrder.AppointmentId.Value);
                 if (existingOrder != null)
                 {
                     MessageBox.Show($"Для этой записи уже создан заказ #{existingOrder.Id}.\n\n" +
@@ -463,89 +466,72 @@ namespace MyPanelCarWashing
                 string paymentMethod = PaymentMethodComboBox.SelectedValue?.ToString() ?? "Наличные";
                 string bodyTypeName = GetCategoryName(_viewModel.SelectedBodyTypeCategory);
 
-                var order = await Task.Run(() => TransactionService.ExecuteInTransaction(appData =>
+                // Получаем запись
+                var appointment = _SqliteDataService.GetAppointmentById(_viewModel.CurrentOrder.AppointmentId.Value);
+                if (appointment == null)
                 {
-                    var appointment = appData.Appointments.FirstOrDefault(a => a.Id == _viewModel.CurrentOrder.AppointmentId.Value);
-                    if (appointment == null)
-                        throw new Exception("Запись не найдена!");
+                    MessageBox.Show("Запись не найдена!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
-                    var newOrder = new CarWashOrder
-                    {
-                        Id = GetNextOrderId(appData),
-                        CarModel = _viewModel.CurrentOrder.CarModel,
-                        CarNumber = _viewModel.CurrentOrder.CarNumber,
-                        CarBodyType = bodyTypeName,
-                        BodyTypeCategory = _viewModel.SelectedBodyTypeCategory,
-                        Time = _viewModel.CurrentOrder.Time,
-                        BoxNumber = _viewModel.CurrentOrder.BoxNumber,
-                        WasherId = selectedWasher.Id,
-                        ServiceIds = serviceIds,
-                        ExtraCost = _viewModel.ExtraCost,
-                        ExtraCostReason = _viewModel.CurrentOrder.ExtraCostReason ?? appointment.ExtraCostReason,
-                        TotalPrice = _viewModel.ServicesTotal,
-                        Status = "Выполняется",
-                        PaymentMethod = paymentMethod,
-                        ClientId = _viewModel.CurrentOrder.ClientId,
-                        Notes = appointment.Notes,
-                        IsAppointment = false,
-                        AppointmentId = appointment.Id,
-                        ShiftId = _currentShift != null ? _currentShift.Id : 0
-                    };
+                // Создаём новый заказ
+                var newOrder = new CarWashOrder
+                {
+                    Id = 0,
+                    CarModel = _viewModel.CurrentOrder.CarModel,
+                    CarNumber = _viewModel.CurrentOrder.CarNumber,
+                    CarBodyType = bodyTypeName,
+                    BodyTypeCategory = _viewModel.SelectedBodyTypeCategory,
+                    Time = _viewModel.CurrentOrder.Time,
+                    BoxNumber = _viewModel.CurrentOrder.BoxNumber,
+                    WasherId = selectedWasher.Id,
+                    ServiceIds = serviceIds,
+                    ExtraCost = _viewModel.ExtraCost,
+                    ExtraCostReason = _viewModel.CurrentOrder.ExtraCostReason ?? appointment.ExtraCostReason,
+                    TotalPrice = _viewModel.ServicesTotal,
+                    Status = "Выполняется",
+                    PaymentMethod = paymentMethod,
+                    ClientId = _viewModel.CurrentOrder.ClientId,
+                    Notes = appointment.Notes,
+                    IsAppointment = false,
+                    AppointmentId = appointment.Id,
+                    ShiftId = _currentShift != null ? _currentShift.Id : 0
+                };
 
-                    appointment.IsCompleted = true;
-                    appointment.OrderId = newOrder.Id;
+                // Сохраняем заказ в БД
+                _SqliteDataService.AddOrder(newOrder, serviceIds);
 
-                    var shift = appData.Shifts.FirstOrDefault(s => s.Id == (_currentShift != null ? _currentShift.Id : 0));
-                    if (shift != null)
-                    {
-                        if (shift.Orders == null) shift.Orders = new List<CarWashOrder>();
-                        shift.Orders.Add(newOrder);
-                    }
+                // Отмечаем запись как выполненную
+                appointment.IsCompleted = true;
+                appointment.OrderId = newOrder.Id;
+                _SqliteDataService.UpdateAppointment(appointment);
 
-                    if (newOrder.ClientId.HasValue)
-                    {
-                        var client = appData.Clients.FirstOrDefault(c => c.Id == newOrder.ClientId.Value);
-                        if (client != null)
-                        {
-                            client.VisitsCount++;
-                            client.TotalSpent += newOrder.FinalPrice;
-                            client.LastVisitDate = DateTime.Now;
-                        }
-                    }
-
-                    return newOrder;
-                }));
-
-                _viewModel.CurrentOrder.Id = order.Id;
+                _viewModel.CurrentOrder.Id = newOrder.Id;
                 _viewModel.CurrentOrder.IsAppointment = false;
 
-                string clientName = GetClientName(order.ClientId);
+                string clientName = GetClientName(newOrder.ClientId);
 
-                var allServices = _dataService.GetAllServices();
-                var calc = OrderMath.Calculate(order, allServices);
+                var allServices = _SqliteDataService.GetAllServices();
+                var calc = OrderMath.Calculate(newOrder, allServices);
 
                 MessageBox.Show($"✅ Заказ успешно создан из записи!\n\n" +
-                    $"🚗 {order.CarModel} ({order.CarNumber})\n" +
-                    $"🚘 Категория кузова: {order.CarBodyType}\n" +
+                    $"🚗 {newOrder.CarModel} ({newOrder.CarNumber})\n" +
+                    $"🚘 Категория кузова: {newOrder.CarBodyType}\n" +
                     $"👤 Мойщик: {selectedWasher.FullName}\n" +
                     $"👤 Клиент: {clientName}\n" +
-                    $"📅 {order.Time:dd.MM.yyyy HH:mm}\n" +
-                    $"💰 Услуги: {order.TotalPrice:N0} ₽\n" +
-                    $"➕ Дополнительно: {order.ExtraCost:N0} ₽\n" +
-                    $"💵 Итоговая сумма: {order.FinalPrice:N0} ₽\n" +
-                    $"💳 Способ оплаты: {order.PaymentMethod}\n" +
-                    $"👤 Мойщику (35%): {calc.WasherEarnings:N0} ₽\n" +  // ← Через calc
-                    $"🏢 Компании (65%): {calc.CompanyEarnings:N0} ₽\n\n" +  // ← Через calc
-                    $"📝 Примечания: {(string.IsNullOrEmpty(order.Notes) ? "нет" : order.Notes)}",
+                    $"📅 {newOrder.Time:dd.MM.yyyy HH:mm}\n" +
+                    $"💰 Услуги: {newOrder.TotalPrice:N0} ₽\n" +
+                    $"➕ Дополнительно: {newOrder.ExtraCost:N0} ₽\n" +
+                    $"💵 Итоговая сумма: {newOrder.FinalPrice:N0} ₽\n" +
+                    $"💳 Способ оплаты: {newOrder.PaymentMethod}\n" +
+                    $"👤 Мойщику (35%): {calc.WasherEarnings:N0} ₽\n" +
+                    $"🏢 Компании (65%): {calc.CompanyEarnings:N0} ₽\n\n" +
+                    $"📝 Примечания: {(string.IsNullOrEmpty(newOrder.Notes) ? "нет" : newOrder.Notes)}",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
 
+                SqliteDataService.NotifyDataChanged();
                 DialogResult = true;
                 Close();
-            }
-            catch (TransactionException ex)
-            {
-                MessageBox.Show($"Ошибка при сохранении: {ex.Message}\n\nДанные не были сохранены.",
-                    "Ошибка транзакции", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
@@ -570,7 +556,7 @@ namespace MyPanelCarWashing
         private string GetClientName(int? clientId)
         {
             if (!clientId.HasValue) return "Не указан";
-            var client = _dataService.GetClientById(clientId.Value);
+            var client = _SqliteDataService.GetClientById(clientId.Value);
             return client?.FullName ?? $"Клиент #{clientId}";
         }
 
@@ -602,7 +588,7 @@ namespace MyPanelCarWashing
 
         private void LoadClients()
         {
-            var clients = _dataService.GetAllClients();
+            var clients = _SqliteDataService.GetAllClients();
             System.Diagnostics.Debug.WriteLine($"LoadClients: загружено {clients.Count} клиентов");
             ClientComboBox.ItemsSource = clients;
 
@@ -619,7 +605,7 @@ namespace MyPanelCarWashing
 
         private void AddNewClient_Click(object sender, RoutedEventArgs e)
         {
-            var addClientWin = new AddEditClientWindow(_dataService, null);
+            var addClientWin = new AddEditClientWindow(_SqliteDataService, null);
             if (addClientWin.ShowDialog() == true)
             {
                 LoadClients();
@@ -631,5 +617,6 @@ namespace MyPanelCarWashing
             DialogResult = false;
             Close();
         }
+
     }
 }
