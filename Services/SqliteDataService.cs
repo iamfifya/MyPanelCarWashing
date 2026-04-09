@@ -1,15 +1,18 @@
-using Microsoft.Data.Sqlite;
-using MyPanelCarWashing.Models;
 using System;
 using System.Collections.Generic;
+using System.Data.SQLite;
 using System.IO;
 using System.Linq;
+using MyPanelCarWashing.Models;
 
 namespace MyPanelCarWashing.Services
 {
     public class SqliteDataService
     {
         private readonly string _connectionString;
+
+        // Статический конструктор - вызывается один раз при первом обращении к классу
+        
 
         public SqliteDataService()
         {
@@ -19,14 +22,14 @@ namespace MyPanelCarWashing.Services
             string dbPath = Path.Combine(dbFolder, "data.db");
             _connectionString = $"Data Source={dbPath}";
             InitializeDatabase();
-
-            // ДОБАВЬТЕ ЭТУ СТРОКУ - вызов проверки услуг
             CheckServices();
         }
 
+
+
         private void InitializeDatabase()
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
 
@@ -144,7 +147,7 @@ namespace MyPanelCarWashing.Services
                 FOREIGN KEY (EmployeeId) REFERENCES Users(Id) ON DELETE CASCADE
             );
         ";
-                using (var command = new SqliteCommand(createTables, connection))
+                using (var command = new SQLiteCommand(createTables, connection))
                     command.ExecuteNonQuery();
 
                 System.Diagnostics.Debug.WriteLine("Таблицы созданы или уже существуют");
@@ -154,10 +157,10 @@ namespace MyPanelCarWashing.Services
             }
         }
 
-        private void AddInitialData(SqliteConnection connection)
+        private void AddInitialData(SQLiteConnection connection)
         {
             // === ДОБАВЛЯЕМ ПОЛЬЗОВАТЕЛЕЙ (только если нет ни одного) ===
-            using (var checkCmd = new SqliteCommand("SELECT COUNT(*) FROM Users", connection))
+            using (var checkCmd = new SQLiteCommand("SELECT COUNT(*) FROM Users", connection))
             {
                 long count = (long)checkCmd.ExecuteScalar();
                 System.Diagnostics.Debug.WriteLine($"Пользователей в БД: {count}");
@@ -174,7 +177,7 @@ namespace MyPanelCarWashing.Services
                 INSERT OR IGNORE INTO Users (FullName, Login, Password, IsAdmin, IsActive, Phone)
                 VALUES ('переименуй меня', '1', '1', 0, 1, NULL);
             ";
-                    using (var cmd = new SqliteCommand(insertUsers, connection))
+                    using (var cmd = new SQLiteCommand(insertUsers, connection))
                         cmd.ExecuteNonQuery();
 
                     System.Diagnostics.Debug.WriteLine("Пользователи добавлены");
@@ -182,7 +185,7 @@ namespace MyPanelCarWashing.Services
             }
 
             // === ДОБАВЛЯЕМ УСЛУГИ (только если нет ни одной) ===
-            using (var checkCmd = new SqliteCommand("SELECT COUNT(*) FROM Services", connection))
+            using (var checkCmd = new SQLiteCommand("SELECT COUNT(*) FROM Services", connection))
             {
                 long count = (long)checkCmd.ExecuteScalar();
                 System.Diagnostics.Debug.WriteLine($"Услуг в БД: {count}");
@@ -376,7 +379,7 @@ namespace MyPanelCarWashing.Services
 
             foreach (var s in servicesData)
             {
-                using (var ins = new SqliteCommand(@"
+                using (var ins = new SQLiteCommand(@"
             INSERT INTO Services (Name, DurationMinutes, Description, IsActive)
             VALUES (@name, @dur, @desc, 1);
             SELECT last_insert_rowid();
@@ -390,7 +393,7 @@ namespace MyPanelCarWashing.Services
 
                     foreach (var p in s.Prices)
                     {
-                        using (var priceCmd = new SqliteCommand(@"
+                        using (var priceCmd = new SQLiteCommand(@"
                     INSERT INTO ServicePrices (ServiceId, BodyTypeCategory, Price)
                     VALUES (@sid, @cat, @price);
                 ", connection))
@@ -410,16 +413,16 @@ namespace MyPanelCarWashing.Services
         private class ServiceSeed { public string Name; public int Duration; public string Description; public List<PriceSeed> Prices; }
         private class PriceSeed { public int Cat; public decimal Price; }
 
-        private bool TableHasData(SqliteConnection connection, string tableName)
+        private bool TableHasData(SQLiteConnection connection, string tableName)
         {
-            using (var cmd = new SqliteCommand($"SELECT COUNT(*) FROM {tableName}", connection))
+            using (var cmd = new SQLiteCommand($"SELECT COUNT(*) FROM {tableName}", connection))
                 return (long)cmd.ExecuteScalar() > 0;
         }
 
-        private void SeedDefaultData(SqliteConnection connection)
+        private void SeedDefaultData(SQLiteConnection connection)
         {
             // Проверяем, есть ли уже пользователи
-            using (var checkCmd = new SqliteCommand("SELECT COUNT(*) FROM Users", connection))
+            using (var checkCmd = new SQLiteCommand("SELECT COUNT(*) FROM Users", connection))
             {
                 long userCount = (long)checkCmd.ExecuteScalar();
                 System.Diagnostics.Debug.WriteLine($"SeedDefaultData: найдено пользователей: {userCount}");
@@ -427,7 +430,7 @@ namespace MyPanelCarWashing.Services
                 if (userCount == 0)
                 {
                     System.Diagnostics.Debug.WriteLine("Добавляем начальных пользователей...");
-                    using (var cmd = new SqliteCommand(@"
+                    using (var cmd = new SQLiteCommand(@"
                 INSERT INTO Users (FullName, Login, Password, IsAdmin, IsActive, Phone)
                 VALUES ('Анна', '1', '1', 1, 1, NULL);
                 INSERT INTO Users (FullName, Login, Password, IsAdmin, IsActive, Phone)
@@ -440,7 +443,7 @@ namespace MyPanelCarWashing.Services
             }
 
             // Проверяем, есть ли уже услуги
-            using (var checkServices = new SqliteCommand("SELECT COUNT(*) FROM Services", connection))
+            using (var checkServices = new SQLiteCommand("SELECT COUNT(*) FROM Services", connection))
             {
                 long servicesCount = (long)checkServices.ExecuteScalar();
                 System.Diagnostics.Debug.WriteLine($"SeedDefaultData: найдено услуг: {servicesCount}");
@@ -506,7 +509,7 @@ namespace MyPanelCarWashing.Services
 
             foreach (var s in servicesData)
             {
-                using (var ins = new SqliteCommand(@"
+                using (var ins = new SQLiteCommand(@"
             INSERT INTO Services (Name, DurationMinutes, Description, IsActive)
             VALUES (@name, @dur, @desc, 1);
             SELECT last_insert_rowid();
@@ -520,7 +523,7 @@ namespace MyPanelCarWashing.Services
 
                     foreach (var p in s.Prices)
                     {
-                        using (var priceCmd = new SqliteCommand(@"
+                        using (var priceCmd = new SQLiteCommand(@"
                     INSERT INTO ServicePrices (ServiceId, BodyTypeCategory, Price)
                     VALUES (@sid, @cat, @price);
                 ", connection))
@@ -544,7 +547,7 @@ namespace MyPanelCarWashing.Services
         public List<User> GetAllUsersIncludingInactive()
         {
             var users = new List<User>();
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -571,7 +574,7 @@ namespace MyPanelCarWashing.Services
 
         public User AuthenticateUser(string login, string password)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -600,7 +603,7 @@ namespace MyPanelCarWashing.Services
 
         public void AddUser(User user)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -620,7 +623,7 @@ namespace MyPanelCarWashing.Services
 
         public void UpdateUser(User user)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -643,7 +646,7 @@ namespace MyPanelCarWashing.Services
         public List<Service> GetAllServices()
         {
             var services = new List<Service>();
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -681,7 +684,7 @@ namespace MyPanelCarWashing.Services
 
         public void AddService(Service service)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var transaction = connection.BeginTransaction())
@@ -712,7 +715,7 @@ namespace MyPanelCarWashing.Services
 
         public void UpdateService(Service service)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var transaction = connection.BeginTransaction())
@@ -746,7 +749,7 @@ namespace MyPanelCarWashing.Services
 
         public void DeleteService(int serviceId)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -759,7 +762,7 @@ namespace MyPanelCarWashing.Services
         // ---- Shifts ----
         public Shift GetCurrentOpenShift()
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
 
@@ -882,7 +885,7 @@ namespace MyPanelCarWashing.Services
 
         public void StartShift(Shift shift)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var trans = connection.BeginTransaction())
@@ -916,7 +919,7 @@ namespace MyPanelCarWashing.Services
 
         public void CloseShift(int shiftId, string notes)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -940,7 +943,7 @@ namespace MyPanelCarWashing.Services
 
         public Shift GetShiftById(int shiftId)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -975,7 +978,7 @@ namespace MyPanelCarWashing.Services
         public List<Shift> GetAllShifts()
         {
             var shifts = new List<Shift>();
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1012,7 +1015,7 @@ namespace MyPanelCarWashing.Services
         // ---- Orders ----
         public void AddOrder(CarWashOrder order, List<int> serviceIds)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var trans = connection.BeginTransaction())
@@ -1063,7 +1066,7 @@ namespace MyPanelCarWashing.Services
 
         public void UpdateOrder(CarWashOrder order)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var trans = connection.BeginTransaction())
@@ -1116,7 +1119,7 @@ namespace MyPanelCarWashing.Services
 
         public CarWashOrder GetOrderById(int orderId)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1164,7 +1167,7 @@ namespace MyPanelCarWashing.Services
 
         public void UpdateOrderStatus(int orderId, string status)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1179,7 +1182,7 @@ namespace MyPanelCarWashing.Services
         public List<Client> GetAllClients()
         {
             var clients = new List<Client>();
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1213,7 +1216,7 @@ namespace MyPanelCarWashing.Services
 
         public Client GetClientById(int id)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1245,7 +1248,7 @@ namespace MyPanelCarWashing.Services
 
         public void AddClient(Client client)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1272,7 +1275,7 @@ namespace MyPanelCarWashing.Services
 
         public void UpdateClient(Client client)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1299,7 +1302,7 @@ namespace MyPanelCarWashing.Services
 
         public void DeleteClient(int clientId)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1312,7 +1315,7 @@ namespace MyPanelCarWashing.Services
         public List<CarWashOrder> GetOrdersByClientId(int clientId)
         {
             var orders = new List<CarWashOrder>();
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1365,7 +1368,7 @@ namespace MyPanelCarWashing.Services
         public List<Appointment> GetAllAppointments()
         {
             var apps = new List<Appointment>();
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1416,7 +1419,7 @@ namespace MyPanelCarWashing.Services
 
         public Appointment GetAppointmentById(int id)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1460,7 +1463,7 @@ namespace MyPanelCarWashing.Services
 
         public void AddAppointment(Appointment appointment)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var trans = connection.BeginTransaction())
@@ -1504,7 +1507,7 @@ namespace MyPanelCarWashing.Services
 
         public void UpdateAppointment(Appointment appointment)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var trans = connection.BeginTransaction())
@@ -1553,7 +1556,7 @@ namespace MyPanelCarWashing.Services
 
         public void DeleteAppointment(int appointmentId)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1566,7 +1569,7 @@ namespace MyPanelCarWashing.Services
         public bool IsBoxAvailable(int boxNumber, DateTime startTime, int durationMinutes)
         {
             var endTime = startTime.AddMinutes(durationMinutes);
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1590,7 +1593,7 @@ namespace MyPanelCarWashing.Services
         {
             var result = new List<EmployeeSchedule>();
             var users = GetAllUsersIncludingInactive();
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 foreach (var u in users)
@@ -1621,7 +1624,7 @@ namespace MyPanelCarWashing.Services
 
         public void SaveSchedule(int year, int month, List<EmployeeSchedule> scheduleData)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var trans = connection.BeginTransaction())
@@ -1712,7 +1715,7 @@ namespace MyPanelCarWashing.Services
         // ---- Additional methods for compatibility ----
         public CarWashOrder ConvertAppointmentToOrder(Appointment appointment, int shiftId, int washerId)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 using (var trans = connection.BeginTransaction())
@@ -1800,7 +1803,7 @@ namespace MyPanelCarWashing.Services
 
         public CarWashOrder GetOrderByAppointmentId(int appointmentId)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1815,7 +1818,7 @@ namespace MyPanelCarWashing.Services
 
         public bool IsShiftOpen(int shiftId)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
@@ -1830,7 +1833,7 @@ namespace MyPanelCarWashing.Services
         // ВРЕМЕННЫЙ МЕТОД ДЛЯ ПРОВЕРКИ НАЛИЧИЯ ДАННЫХ В ТАБЛИЦЕ УСЛУГ SERVICES
         public void CheckServices()
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
