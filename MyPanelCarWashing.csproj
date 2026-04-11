@@ -85,6 +85,9 @@
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Глянец - Панель управления.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="ClosedXML, Version=0.105.0.0, Culture=neutral, PublicKeyToken=fd1eb21b62ae805b, processorArchitecture=MSIL">
       <HintPath>packages\ClosedXML.0.105.0\lib\netstandard2.0\ClosedXML.dll</HintPath>
@@ -286,6 +289,7 @@
       <DependentUpon>WasherSelectionDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="ZeroToVisibilityConverter.cs" />
+    <Resource Include="Глянец - Панель управления.ico" />
     <Page Include="AddEditClientWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -370,7 +374,6 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Models\AppData.cs" />
     <Compile Include="Models\CarWashOrder.cs" />
     <Compile Include="Models\Service.cs" />
     <Compile Include="Models\Shift.cs" />

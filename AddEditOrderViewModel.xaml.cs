@@ -572,20 +572,6 @@ namespace MyPanelCarWashing
             }
         }
 
-        private int GetNextOrderId(AppData appData)
-        {
-            int maxId = 0;
-            foreach (var shift in appData.Shifts)
-            {
-                if (shift.Orders != null && shift.Orders.Any())
-                {
-                    var maxInShift = shift.Orders.Max(o => o.Id);
-                    if (maxInShift > maxId) maxId = maxInShift;
-                }
-            }
-            return maxId + 1;
-        }
-
         private void LoadClients()
         {
             var clients = _SqliteDataService.GetAllClients();

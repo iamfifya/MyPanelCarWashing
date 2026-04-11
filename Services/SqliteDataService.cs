@@ -1791,7 +1791,8 @@ namespace MyPanelCarWashing.Services
 
         public string ExportDataToJson(string exportType = "full")
         {
-            var appData = new AppData
+            // 1. Создаем структуру "на лету" без класса AppData
+            var exportData = new
             {
                 Users = GetAllUsersIncludingInactive(),
                 Services = GetAllServices(),
@@ -1799,14 +1800,26 @@ namespace MyPanelCarWashing.Services
                 Appointments = GetAllAppointments(),
                 Shifts = GetAllShifts()
             };
-            string exportsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Exports");
-            if (!Directory.Exists(exportsFolder)) Directory.CreateDirectory(exportsFolder);
+
+            // 2. Безопасный путь: сохраняем в "Мои документы\MyCarWashing\Exports"
+            // Windows 100% разрешит сюда запись, и юзер легко найдет свои файлы
+            string documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string exportsFolder = Path.Combine(documentsFolder, "MyCarWashing", "Exports");
+
+            if (!Directory.Exists(exportsFolder))
+            {
+                Directory.CreateDirectory(exportsFolder);
+            }
+
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
             string fileName = $"export_{exportType}_{timestamp}.json";
             string filePath = Path.Combine(exportsFolder, fileName);
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(appData, Newtonsoft.Json.Formatting.Indented);
+
+            // 3. Конвертируем и сохраняем
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(exportData, Newtonsoft.Json.Formatting.Indented);
             File.WriteAllText(filePath, json);
-            return filePath;
+
+            return filePath; // Возвращаем путь, чтобы интерфейс мог показать юзеру, где лежит файл
         }
 
         public static event Action DataChanged;
