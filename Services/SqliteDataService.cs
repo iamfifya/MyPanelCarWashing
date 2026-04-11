@@ -890,20 +890,63 @@ namespace MyPanelCarWashing.Services
                 connection.Open();
                 using (var trans = connection.BeginTransaction())
                 {
-                    var cmd = connection.CreateCommand();
-                    cmd.CommandText = @"
-                INSERT INTO Shifts (Date, StartTime, IsClosed, Notes)
-                VALUES (@date, @start, 0, @notes);
-                SELECT last_insert_rowid();
-            ";
-                    // Используем DateTime.Now.Date для текущей даты, а не SelectedDate
-                    cmd.Parameters.AddWithValue("@date", DateTime.Now.ToString("yyyy-MM-dd"));
-                    cmd.Parameters.AddWithValue("@start", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    cmd.Parameters.AddWithValue("@notes", shift.Notes ?? "");
-                    shift.Id = (int)(long)cmd.ExecuteScalar();
+                    // 1. Проверяем, есть ли уже смена за сегодня
+                    string todayStr = DateTime.Now.ToString("yyyy-MM-dd");
+                    var checkCmd = connection.CreateCommand();
+                    checkCmd.CommandText = "SELECT Id, IsClosed FROM Shifts WHERE date(Date) = @today LIMIT 1";
+                    checkCmd.Parameters.AddWithValue("@today", todayStr);
 
-                    System.Diagnostics.Debug.WriteLine($"StartShift: создана смена ID={shift.Id}, Date={DateTime.Now:yyyy-MM-dd}");
+                    int? existingShiftId = null;
+                    bool isClosed = false;
 
+                    using (var reader = checkCmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            existingShiftId = reader.GetInt32(0);
+                            isClosed = reader.GetInt32(1) == 1;
+                        }
+                    }
+
+                    if (existingShiftId.HasValue)
+                    {
+                        // 2А. СМЕНА НАЙДЕНА: Возобновляем её
+                        shift.Id = existingShiftId.Value;
+
+                        if (isClosed)
+                        {
+                            var updateCmd = connection.CreateCommand();
+                            updateCmd.CommandText = "UPDATE Shifts SET IsClosed = 0, EndTime = NULL, Notes = @notes WHERE Id = @id";
+                            updateCmd.Parameters.AddWithValue("@id", existingShiftId.Value);
+                            updateCmd.Parameters.AddWithValue("@notes", shift.Notes ?? "");
+                            updateCmd.ExecuteNonQuery();
+                        }
+
+                        // Так как состав мойщиков мог поменяться, удаляем старые записи для этой смены
+                        var delCmd = connection.CreateCommand();
+                        delCmd.CommandText = "DELETE FROM ShiftEmployees WHERE ShiftId = @sid";
+                        delCmd.Parameters.AddWithValue("@sid", shift.Id);
+                        delCmd.ExecuteNonQuery();
+
+                        System.Diagnostics.Debug.WriteLine($"StartShift: Возобновлена смена ID={shift.Id}, Date={todayStr}");
+                    }
+                    else
+                    {
+                        // 2Б. СМЕНЫ НЕТ: Создаем новую (твой оригинальный код)
+                        var insertCmd = connection.CreateCommand();
+                        insertCmd.CommandText = @"
+                    INSERT INTO Shifts (Date, StartTime, IsClosed, Notes)
+                    VALUES (@date, @start, 0, @notes);
+                    SELECT last_insert_rowid();";
+                        insertCmd.Parameters.AddWithValue("@date", todayStr);
+                        insertCmd.Parameters.AddWithValue("@start", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                        insertCmd.Parameters.AddWithValue("@notes", shift.Notes ?? "");
+                        shift.Id = (int)(long)insertCmd.ExecuteScalar();
+
+                        System.Diagnostics.Debug.WriteLine($"StartShift: Создана новая смена ID={shift.Id}, Date={todayStr}");
+                    }
+
+                    // 3. Записываем актуальных мойщиков (работает и для новой, и для возобновленной смены)
                     foreach (int eid in shift.EmployeeIds)
                     {
                         var eCmd = connection.CreateCommand();
@@ -912,9 +955,13 @@ namespace MyPanelCarWashing.Services
                         eCmd.Parameters.AddWithValue("@eid", eid);
                         eCmd.ExecuteNonQuery();
                     }
+
                     trans.Commit();
                 }
             }
+
+            // Уведомляем систему, что данные обновились
+            NotifyDataChanged();
         }
 
         public void CloseShift(int shiftId, string notes)

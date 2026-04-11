@@ -158,22 +158,17 @@ namespace MyPanelCarWashing.ViewModels
 
         public void Recalculate()
         {
-            _currentCalc = null;
-
-            var selectedCount = Services?.Count(s => s.IsSelected) ?? 0;
-            System.Diagnostics.Debug.WriteLine($"[DEBUG] Recalculate: {selectedCount} услуг выбрано");
-            if (Services != null)
+            // 1. ВАЖНО: Сначала жестко синхронизируем галочки из интерфейса с объектом заказа!
+            SyncServiceIds();
+            if (CurrentOrder != null)
             {
-                foreach (var s in Services.Where(s => s.IsSelected))
-                {
-                    System.Diagnostics.Debug.WriteLine($"  - {s.Name}: {s.Price} ₽");
-                }
+                CurrentOrder.BodyTypeCategory = SelectedBodyTypeCategory;
             }
 
-            System.Diagnostics.Debug.WriteLine($"  ServicesTotal: {ServicesTotal}");
-            System.Diagnostics.Debug.WriteLine($"  FinalTotal: {FinalTotal}");
-            System.Diagnostics.Debug.WriteLine($"  WasherEarnings: {WasherEarningsDisplay}");
+            // 2. Сбрасываем старый кэш расчетов, чтобы OrderMath взял новые услуги
+            _currentCalc = null;
 
+            // 3. Уведомляем интерфейс, что цифры обновились
             OnPropertyChanged(nameof(FinalTotal));
             OnPropertyChanged(nameof(WasherEarningsDisplay));
             OnPropertyChanged(nameof(CompanyEarningsDisplay));
@@ -362,22 +357,28 @@ namespace MyPanelCarWashing.ViewModels
             success = false; message = "";
             if (!Validate()) return;
 
-            var selectedServices = Services.Where(s => s.IsSelected).ToList();
-            var serviceIds = selectedServices.Select(s => s.Id).ToList();
-
-            CurrentOrder.ServiceIds = serviceIds;
-            CurrentOrder.TotalPrice = ServicesTotal;
+            // 1. Финальная синхронизация всех полей перед сохранением
+            SyncServiceIds();
             CurrentOrder.BodyTypeCategory = SelectedBodyTypeCategory;
-            CurrentOrder.OriginalTotalPrice = ServicesTotal;
             CurrentOrder.DiscountPercent = DiscountPercent;
             CurrentOrder.DiscountAmount = DiscountAmount;
 
+            // 2. СБРАСЫВАЕМ КЭШ и считаем финальные чистые цифры для БД
+            _currentCalc = null;
+            var services = _sqliteDataService.GetAllServices();
+            var calc = OrderMath.Calculate(CurrentOrder, services);
+
+            // 3. ЖЕСТКО ЗАПИСЫВАЕМ ЦЕНЫ В МОДЕЛЬ перед отправкой в базу!
+            CurrentOrder.TotalPrice = calc.ServicesTotal;
+            CurrentOrder.OriginalTotalPrice = calc.BaseAmount;
+
+            // 4. Логика сохранения
             if (!IsEditMode && !IsAppointment)
             {
                 if (CurrentOrder.Id == 0)
                 {
                     CurrentOrder.ShiftId = _currentShift?.Id ?? 0;
-                    _sqliteDataService.AddOrder(CurrentOrder, serviceIds);
+                    _sqliteDataService.AddOrder(CurrentOrder, CurrentOrder.ServiceIds);
                     message = "Заказ добавлен!"; success = true;
                 }
                 else message = "Ошибка: ID заказа уже существует";
@@ -387,9 +388,16 @@ namespace MyPanelCarWashing.ViewModels
                 var apt = _sqliteDataService.GetAppointmentById(CurrentOrder.AppointmentId.Value);
                 if (apt != null)
                 {
-                    apt.CarModel = CurrentOrder.CarModel; apt.CarNumber = CurrentOrder.CarNumber; apt.CarBodyType = CurrentOrder.CarBodyType;
-                    apt.BodyTypeCategory = SelectedBodyTypeCategory; apt.AppointmentDate = CurrentOrder.Time; apt.BoxNumber = CurrentOrder.BoxNumber;
-                    apt.ServiceIds = serviceIds; apt.ExtraCost = ExtraCost; apt.ExtraCostReason = CurrentOrder.ExtraCostReason;
+                    apt.CarModel = CurrentOrder.CarModel;
+                    apt.CarNumber = CurrentOrder.CarNumber;
+                    apt.CarBodyType = CurrentOrder.CarBodyType;
+                    apt.BodyTypeCategory = CurrentOrder.BodyTypeCategory;
+                    apt.AppointmentDate = CurrentOrder.Time;
+                    apt.BoxNumber = CurrentOrder.BoxNumber;
+                    apt.ServiceIds = CurrentOrder.ServiceIds;
+                    apt.ExtraCost = CurrentOrder.ExtraCost;
+                    apt.ExtraCostReason = CurrentOrder.ExtraCostReason;
+
                     _sqliteDataService.UpdateAppointment(apt);
                     message = "Запись обновлена!"; success = true;
                 }

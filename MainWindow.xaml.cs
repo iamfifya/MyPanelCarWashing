@@ -1379,11 +1379,10 @@ namespace MyPanelCarWashing
             var startShiftWin = new StartShiftWindow(_SqliteDataService);
             if (startShiftWin.ShowDialog() == true)
             {
-                // Принудительно пересоздаём сервис и загружаем данные
-                _SqliteDataService = new SqliteDataService();
+                // Берем актуальную смену из базы (она уже либо создана, либо возобновлена внутри StartShiftWindow)
                 _currentShift = _SqliteDataService.GetCurrentOpenShift();
 
-                System.Diagnostics.Debug.WriteLine($"=== Смена создана, ID: {_currentShift?.Id} ===");
+                System.Diagnostics.Debug.WriteLine($"=== Смена активна, ID: {_currentShift?.Id} ===");
 
                 // Обновляем оверлей
                 if (AppointmentsOverlay != null)
@@ -1398,8 +1397,8 @@ namespace MyPanelCarWashing
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentShiftInfo)));
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TotalOrdersInfo)));
 
-                Logger.Info($"Смена начата | Дата: {DateTime.Now:dd.MM.yyyy} | ID смены: {_currentShift?.Id}", "SHIFT");
-                MessageBox.Show($"Смена успешно начата!", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                Logger.Info($"Смена начата/возобновлена | Дата: {DateTime.Now:dd.MM.yyyy} | ID смены: {_currentShift?.Id}", "SHIFT");
+                MessageBox.Show($"Смена успешно открыта!", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
