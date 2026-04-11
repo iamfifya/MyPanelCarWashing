@@ -1178,6 +1178,59 @@ namespace MyPanelCarWashing.Services
             }
         }
 
+        public List<CarWashOrder> GetOrdersByShiftId(int shiftId)
+        {
+            var orders = new List<CarWashOrder>();
+            using (var connection = new SQLiteConnection(_connectionString))
+            {
+                connection.Open();
+                var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT Id, ShiftId, ClientId, CarModel, CarNumber, BodyTypeCategory, Time, BoxNumber, WasherId,
+                           PaymentMethod, TotalPrice, ExtraCost, ExtraCostReason,
+                           DiscountPercent, DiscountAmount, Notes, Status
+                    FROM Orders WHERE ShiftId = @sid";
+                cmd.Parameters.AddWithValue("@sid", shiftId);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var order = new CarWashOrder
+                        {
+                            Id = reader.GetInt32(0),
+                            ShiftId = reader.GetInt32(1),
+                            ClientId = reader.IsDBNull(2) ? (int?)null : reader.GetInt32(2),
+                            CarModel = reader.GetString(3),
+                            CarNumber = reader.GetString(4),
+                            BodyTypeCategory = reader.GetInt32(5),
+                            Time = DateTime.Parse(reader.GetString(6)),
+                            BoxNumber = reader.GetInt32(7),
+                            WasherId = reader.GetInt32(8),
+                            PaymentMethod = reader.GetString(9),
+                            TotalPrice = (decimal)reader.GetDouble(10),
+                            ExtraCost = (decimal)reader.GetDouble(11),
+                            ExtraCostReason = reader.IsDBNull(12) ? null : reader.GetString(12),
+                            DiscountPercent = (decimal)reader.GetDouble(13),
+                            DiscountAmount = (decimal)reader.GetDouble(14),
+                            Notes = reader.IsDBNull(15) ? null : reader.GetString(15),
+                            Status = reader.GetString(16),
+                            ServiceIds = new List<int>()
+                        };
+
+                        var svcCmd = connection.CreateCommand();
+                        svcCmd.CommandText = "SELECT ServiceId FROM OrderServices WHERE OrderId = @oid";
+                        svcCmd.Parameters.AddWithValue("@oid", order.Id);
+                        using (var svcR = svcCmd.ExecuteReader())
+                        {
+                            while (svcR.Read()) order.ServiceIds.Add(svcR.GetInt32(0));
+                        }
+                        orders.Add(order);
+                    }
+                }
+            }
+            return orders;
+        }
+
         // ---- Clients ----
         public List<Client> GetAllClients()
         {

@@ -226,6 +226,9 @@
     </Compile>
     <Compile Include="DecimalToEmptyZeroConverter.cs" />
     <Compile Include="ExcelExporter.cs" />
+    <Compile Include="HistoryWindow.xaml.cs">
+      <DependentUpon>HistoryWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="IntToBoolConverter.cs" />
     <Compile Include="InverseBoolConverter.cs" />
     <Compile Include="InverseBoolToVisibilityConverter.cs" />
@@ -312,6 +315,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="CustomReportWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="HistoryWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

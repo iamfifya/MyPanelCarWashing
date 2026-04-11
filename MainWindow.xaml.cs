@@ -1402,6 +1402,12 @@ namespace MyPanelCarWashing
                 MessageBox.Show($"Смена успешно начата!", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+
+        private void HistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            HistoryWindow historyWin = new HistoryWindow(_SqliteDataService);
+            historyWin.ShowDialog();
+        }
     }
 
     public class OrderDisplayItem : INotifyPropertyChanged
