@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using MyPanelCarWashing.Models;
 using MyPanelCarWashing.Services;
 using System;
@@ -13,7 +14,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private DateTime _selectedDate;
         private MonthlyReport _currentMonthlyReport;
 
@@ -27,10 +28,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public MonthlyReportWindow(DataService dataService)
+        public MonthlyReportWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
             SelectedDate = DateTime.Now;
             MonthPicker.SelectedDate = DateTime.Now;
@@ -196,51 +197,34 @@ namespace MyPanelCarWashing
         {
             if (_currentMonthlyReport == null)
             {
-                MessageBox.Show("Сначала сформируйте отчет", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Сначала сформируйте отчет", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            try
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
             {
-                var saveDialog = new Microsoft.Win32.SaveFileDialog
-                {
-                    Filter = "Excel файлы (*.xlsx)|*.xlsx|CSV файлы (*.csv)|*.csv|JSON файлы (*.json)|*.json",
-                    DefaultExt = "xlsx",
-                    FileName = $"MonthlyReport_{_currentMonthlyReport.Year:0000}-{_currentMonthlyReport.Month:00}"
-                };
+                Filter = "Excel файл (*.xlsx)|*.xlsx",
+                FileName = $"Месячный_Отчет_{_currentMonthlyReport.MonthName}_{_currentMonthlyReport.Year}.xlsx",
+                DefaultExt = ".xlsx"
+            };
 
-                if (saveDialog.ShowDialog() == true)
+            if (saveDialog.ShowDialog() == true)
+            {
+                try
                 {
-                    string extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLower();
+                    // Используем наш прокачанный ExcelExporter
+                    ExcelExporter.ExportMonthlyReport(_currentMonthlyReport, saveDialog.FileName);
 
-                    if (extension == ".xlsx")
-                    {
-                        ExportToExcel(_currentMonthlyReport, saveDialog.FileName);
-                        MessageBox.Show($"Отчет успешно экспортирован в Excel\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else if (extension == ".csv")
-                    {
-                        ExportToCsv(_currentMonthlyReport, saveDialog.FileName);
-                        MessageBox.Show($"Отчет успешно экспортирован в CSV\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else if (extension == ".json")
-                    {
-                        var json = Newtonsoft.Json.JsonConvert.SerializeObject(_currentMonthlyReport, Newtonsoft.Json.Formatting.Indented);
-                        System.IO.File.WriteAllText(saveDialog.FileName, json);
-                        MessageBox.Show($"Отчет успешно экспортирован в JSON\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
+                    MessageBox.Show("Отчет успешно экспортирован!", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при экспорте:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
+
+        
 
         private void ExportToExcel(MonthlyReport report, string filePath)
         {

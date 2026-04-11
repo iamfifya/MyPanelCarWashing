@@ -8,12 +8,12 @@ namespace MyPanelCarWashing
 {
     public partial class LoginWindow : Window
     {
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
 
-        public LoginWindow(DataService dataService)
+        public LoginWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
         }
 
         private void LoginButton_Click(object sender, RoutedEventArgs e)
@@ -30,7 +30,7 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                var user = _dataService.AuthenticateUser(login, password);
+                var user = _SqliteDataService.AuthenticateUser(login, password);
 
                 if (user != null)
                 {
@@ -38,7 +38,7 @@ namespace MyPanelCarWashing
                     Logger.SetUserContext(user.FullName, user.Id);
                     Logger.Info("Вход выполнен", "AUTH", $"Логин: {login} | Роль: {(user.IsAdmin ? "Админ" : "Сотрудник")}");
 
-                    var mainWindow = new MainWindow(_dataService, user);
+                    var mainWindow = new MainWindow(_SqliteDataService, user);
                     mainWindow.Show();
                     this.Close();
                 }

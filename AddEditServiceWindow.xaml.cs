@@ -8,14 +8,14 @@ namespace MyPanelCarWashing
 {
     public partial class AddEditServiceWindow : Window
     {
-        private readonly DataService _dataService;
+        private readonly SqliteDataService _SqliteDataService;
         public Service CurrentService { get; set; }
         public string WindowTitle { get; set; }
 
-        public AddEditServiceWindow(DataService dataService, Service service)
+        public AddEditServiceWindow(SqliteDataService SqliteDataService, Service service)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
 
             if (service == null)
             {
@@ -99,14 +99,14 @@ namespace MyPanelCarWashing
 
                 if (CurrentService.Id == 0)
                 {
-                    // === НОВАЯ УСЛУГА: используем DataService.AddService() для правильного ID ===
-                    _dataService.AddService(CurrentService);
+                    // === НОВАЯ УСЛУГА: используем SqliteDataService.AddService() для правильного ID ===
+                    _SqliteDataService.AddService(CurrentService);
                     System.Diagnostics.Debug.WriteLine($"Добавлена новая услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                 }
                 else
                 {
-                    // === ОБНОВЛЕНИЕ: используем DataService.UpdateService() ===
-                    _dataService.UpdateService(CurrentService);
+                    // === ОБНОВЛЕНИЕ: используем SqliteDataService.UpdateService() ===
+                    _SqliteDataService.UpdateService(CurrentService);
                     System.Diagnostics.Debug.WriteLine($"Обновлена услуга: ID={CurrentService.Id}, Name={CurrentService.Name}");
                 }
 

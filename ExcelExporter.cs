@@ -156,147 +156,139 @@ namespace MyPanelCarWashing
             {
                 using (var workbook = new XLWorkbook())
                 {
-                    var worksheet = workbook.Worksheets.Add($"Отчет за {report.MonthName}");
+                    var ws = workbook.Worksheets.Add("Месячный отчет");
 
-                    // Заголовок
-                    worksheet.Cell(1, 1).Value = $"Месячный отчет за {report.MonthName}";
-                    worksheet.Cell(1, 1).Style.Font.Bold = true;
-                    worksheet.Cell(1, 1).Style.Font.FontSize = 16;
-                    worksheet.Range(1, 1, 1, 5).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    // Шапка
+                    ws.Cell(1, 1).Value = $"Отчет за {report.MonthName} {report.Year}";
+                    ws.Cell(1, 1).Style.Font.Bold = true;
+                    ws.Cell(1, 1).Style.Font.FontSize = 16;
+                    ws.Range(1, 1, 1, 4).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-                    // Итоги
-                    int row = 3;
-                    worksheet.Cell(row, 1).Value = "Всего машин за месяц:";
-                    worksheet.Cell(row, 2).Value = report.TotalCars;
+                    // Общие показатели
+                    ws.Cell(3, 1).Value = "Общие показатели";
+                    ws.Cell(3, 1).Style.Font.Bold = true;
+
+                    ws.Cell(4, 1).Value = "Всего машин:"; ws.Cell(4, 2).Value = report.TotalCars;
+                    ws.Cell(5, 1).Value = "Общая выручка:"; ws.Cell(5, 2).Value = report.TotalRevenue; ws.Cell(5, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(6, 1).Value = "ЗП Мойщикам:"; ws.Cell(6, 2).Value = report.TotalWasherEarnings; ws.Cell(6, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(7, 1).Value = "Доход компании:"; ws.Cell(7, 2).Value = report.TotalCompanyEarnings; ws.Cell(7, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
+
+                    // Сводка по сотрудникам
+                    int row = 9;
+                    ws.Cell(row, 1).Value = "СВОДКА ПО СОТРУДНИКАМ";
+                    ws.Cell(row, 1).Style.Font.Bold = true;
                     row++;
 
-                    worksheet.Cell(row, 1).Value = "Общая выручка:";
-                    worksheet.Cell(row, 2).Value = report.TotalRevenue;
-                    worksheet.Cell(row, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    row++;
-
-                    worksheet.Cell(row, 1).Value = "Выплаты мойщикам (35%):";
-                    worksheet.Cell(row, 2).Value = report.TotalWasherEarnings;
-                    worksheet.Cell(row, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    row++;
-
-                    worksheet.Cell(row, 1).Value = "Доход компании (65%):";
-                    worksheet.Cell(row, 2).Value = report.TotalCompanyEarnings;
-                    worksheet.Cell(row, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    row += 2;
-
-                    // Заголовок таблицы по дням
-                    worksheet.Cell(row, 1).Value = "Дата";
-                    worksheet.Cell(row, 2).Value = "Машин";
-                    worksheet.Cell(row, 3).Value = "Выручка";
-                    worksheet.Cell(row, 4).Value = "Мойщикам";
-                    worksheet.Cell(row, 5).Value = "Компании";
-                    worksheet.Range(row, 1, row, 5).Style.Font.Bold = true;
-                    worksheet.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.LightGray;
-                    row++;
-
-                    // Данные по дням
-                    foreach (var day in report.DailyReports.OrderBy(d => d.Date))
-                    {
-                        worksheet.Cell(row, 1).Value = day.Date.ToString("dd.MM.yyyy");
-                        worksheet.Cell(row, 2).Value = day.Cars;
-                        worksheet.Cell(row, 3).Value = day.Revenue;
-                        worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                        worksheet.Cell(row, 4).Value = day.WasherEarnings;
-                        worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                        worksheet.Cell(row, 5).Value = day.CompanyEarnings;
-                        worksheet.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 ₽";
-                        row++;
-                    }
-
-                    row += 2;
-
-                    // Таблица по сотрудникам (сводная)
-                    worksheet.Cell(row, 1).Value = "СВОДНАЯ СТАТИСТИКА СОТРУДНИКОВ";
-                    worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
-                    worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = XLColor.LightGray;
-                    row++;
-
-                    worksheet.Cell(row, 1).Value = "Сотрудник";
-                    worksheet.Cell(row, 2).Value = "Всего машин";
-                    worksheet.Cell(row, 3).Value = "Общая выручка";
-                    worksheet.Cell(row, 4).Value = "Заработок (35%)";
-                    worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
+                    ws.Cell(row, 1).Value = "Сотрудник";
+                    ws.Cell(row, 2).Value = "Машин";
+                    ws.Cell(row, 3).Value = "Выручка";
+                    ws.Cell(row, 4).Value = "Заработок";
+                    ws.Range(row, 1, row, 4).Style.Font.Bold = true;
+                    ws.Range(row, 1, row, 4).Style.Fill.BackgroundColor = XLColor.LightGray;
                     row++;
 
                     foreach (var emp in report.EmployeesReport.OrderByDescending(e => e.Earnings))
                     {
-                        worksheet.Cell(row, 1).Value = emp.EmployeeName;
-                        worksheet.Cell(row, 2).Value = emp.CarsWashed;
-                        worksheet.Cell(row, 3).Value = emp.TotalAmount;
-                        worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                        worksheet.Cell(row, 4).Value = emp.Earnings;
-                        worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
+                        ws.Cell(row, 1).Value = emp.EmployeeName;
+                        ws.Cell(row, 2).Value = emp.CarsWashed;
+                        ws.Cell(row, 3).Value = emp.TotalAmount; ws.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                        ws.Cell(row, 4).Value = emp.Earnings; ws.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
                         row++;
                     }
 
-                    row++;
-                    worksheet.Cell(row, 1).Value = "ИТОГО:";
-                    worksheet.Cell(row, 2).Value = report.TotalCars;
-                    worksheet.Cell(row, 3).Value = report.TotalRevenue;
-                    worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Cell(row, 4).Value = report.TotalWasherEarnings;
-                    worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
-                    row += 2;
-
-                    // Детальная таблица по дням для каждого сотрудника
-                    worksheet.Cell(row, 1).Value = "ПОДРОБНО ПО ДНЯМ (по сотрудникам)";
-                    worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
-                    worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = XLColor.LightGray;
-                    row++;
-
-                    foreach (var emp in report.EmployeesReport.OrderBy(e => e.EmployeeName))
-                    {
-                        row++;
-                        worksheet.Cell(row, 1).Value = emp.EmployeeName;
-                        worksheet.Range(row, 1, row, 1).Style.Font.Bold = true;
-                        worksheet.Range(row, 1, row, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
-                        row++;
-
-                        worksheet.Cell(row, 1).Value = "Дата";
-                        worksheet.Cell(row, 2).Value = "Машин";
-                        worksheet.Cell(row, 3).Value = "Выручка";
-                        worksheet.Cell(row, 4).Value = "Заработок";
-                        worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
-                        row++;
-
-                        foreach (var day in emp.DailyWork.OrderBy(d => d.Date))
-                        {
-                            worksheet.Cell(row, 1).Value = day.Date.ToString("dd.MM.yyyy");
-                            worksheet.Cell(row, 2).Value = day.CarsWashed;
-                            worksheet.Cell(row, 3).Value = day.TotalAmount;
-                            worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                            worksheet.Cell(row, 4).Value = day.Earnings;
-                            worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                            row++;
-                        }
-
-                        row++;
-                        worksheet.Cell(row, 1).Value = "Итого:";
-                        worksheet.Cell(row, 2).Value = emp.CarsWashed;
-                        worksheet.Cell(row, 3).Value = emp.TotalAmount;
-                        worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                        worksheet.Cell(row, 4).Value = emp.Earnings;
-                        worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                        worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
-                        row += 2;
-                    }
-
-                    // Автоширина колонок
-                    worksheet.Columns().AdjustToContents();
+                    // Автоширина
+                    ws.Columns().AdjustToContents();
 
                     workbook.SaveAs(filePath);
                 }
             }
             catch (Exception ex)
             {
-                throw new Exception($"Ошибка экспорта в Excel: {ex.Message}");
+                throw new Exception($"Ошибка при создании Excel файла: {ex.Message}", ex);
+            }
+        }
+
+        public static void ExportCustomPeriodReport(CustomPeriodReport report, string filePath)
+        {
+            try
+            {
+                using (var workbook = new XLWorkbook())
+                {
+                    var ws = workbook.Worksheets.Add("Выборочный отчет");
+
+                    // Шапка
+                    ws.Cell(1, 1).Value = $"Отчет за период с {report.StartDate:dd.MM.yyyy} по {report.EndDate:dd.MM.yyyy}";
+                    ws.Cell(1, 1).Style.Font.Bold = true;
+                    ws.Cell(1, 1).Style.Font.FontSize = 16;
+                    ws.Range(1, 1, 1, 5).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    // Общие показатели
+                    ws.Cell(3, 1).Value = "ОБЩИЕ ПОКАЗАТЕЛИ";
+                    ws.Cell(3, 1).Style.Font.Bold = true;
+                    ws.Cell(3, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                    ws.Range(3, 1, 3, 2).Merge();
+
+                    ws.Cell(4, 1).Value = "Всего машин:"; ws.Cell(4, 2).Value = report.TotalCars;
+                    ws.Cell(5, 1).Value = "Общая выручка:"; ws.Cell(5, 2).Value = report.TotalRevenue; ws.Cell(5, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(6, 1).Value = "ЗП Мойщикам:"; ws.Cell(6, 2).Value = report.TotalWasherEarnings; ws.Cell(6, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(7, 1).Value = "Доход компании:"; ws.Cell(7, 2).Value = report.TotalCompanyEarnings; ws.Cell(7, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
+
+                    // Способы оплаты 
+                    ws.Cell(9, 1).Value = "СПОСОБЫ ОПЛАТЫ";
+                    ws.Cell(9, 1).Style.Font.Bold = true;
+                    ws.Cell(9, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                    ws.Range(9, 1, 9, 3).Merge();
+
+                    ws.Cell(10, 1).Value = "Наличные:"; ws.Cell(10, 2).Value = $"{report.TotalCashCount} шт."; ws.Cell(10, 3).Value = report.TotalCashAmount; ws.Cell(10, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(11, 1).Value = "Карта:"; ws.Cell(11, 2).Value = $"{report.TotalCardCount} шт."; ws.Cell(11, 3).Value = report.TotalCardAmount; ws.Cell(11, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(12, 1).Value = "Перевод:"; ws.Cell(12, 2).Value = $"{report.TotalTransferCount} шт."; ws.Cell(12, 3).Value = report.TotalTransferAmount; ws.Cell(12, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(13, 1).Value = "QR-код:"; ws.Cell(13, 2).Value = $"{report.TotalQrCount} шт."; ws.Cell(13, 3).Value = report.TotalQrAmount; ws.Cell(13, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+
+                    // Детализация по дням
+                    int row = 15;
+                    ws.Cell(row, 1).Value = "ДЕТАЛИЗАЦИЯ ПО ДНЯМ";
+                    ws.Cell(row, 1).Style.Font.Bold = true;
+                    ws.Range(row, 1, row, 5).Merge();
+                    row++;
+
+                    ws.Cell(row, 1).Value = "Дата";
+                    ws.Cell(row, 2).Value = "Машин";
+                    ws.Cell(row, 3).Value = "Выручка";
+                    ws.Cell(row, 4).Value = "ЗП Мойщикам";
+                    ws.Cell(row, 5).Value = "Доход компании";
+                    ws.Range(row, 1, row, 5).Style.Font.Bold = true;
+                    ws.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.LightBlue;
+                    row++;
+
+                    // Сортируем дни по порядку
+                    foreach (var day in report.DailyReports.OrderBy(d => d.Date))
+                    {
+                        ws.Cell(row, 1).Value = day.Date.ToString("dd.MM.yyyy");
+
+                        // Используем правильные свойства из класса DailyReportSummary
+                        ws.Cell(row, 2).Value = day.Cars;
+
+                        ws.Cell(row, 3).Value = day.Revenue;
+                        ws.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+
+                        ws.Cell(row, 4).Value = day.WasherEarnings;
+                        ws.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
+
+                        ws.Cell(row, 5).Value = day.CompanyEarnings;
+                        ws.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 ₽";
+
+                        row++;
+                    }
+
+                    // Наводим красоту: автоширина колонок
+                    ws.Columns().AdjustToContents();
+
+                    workbook.SaveAs(filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ошибка при создании Excel файла: {ex.Message}", ex);
             }
         }
     }

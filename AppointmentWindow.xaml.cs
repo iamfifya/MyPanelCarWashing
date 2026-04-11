@@ -11,14 +11,14 @@ namespace MyPanelCarWashing
 {
     public partial class AppointmentWindow : Window
     {
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private AppointmentViewModel _viewModel;
         private int _selectedBox = 1;
 
-        public AppointmentWindow(DataService dataService)
+        public AppointmentWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             var viewModel = App.GetService<AppointmentViewModel>();
             _viewModel = viewModel;
             DataContext = _viewModel;
@@ -159,7 +159,7 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                var isAvailable = _dataService.IsBoxAvailable(_selectedBox, startTime, duration);
+                var isAvailable = _SqliteDataService.IsBoxAvailable(_selectedBox, startTime, duration);
 
                 if (isAvailable)
                 {
@@ -254,7 +254,7 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                bool isAvailable = _dataService.IsBoxAvailable(_selectedBox, startTime, duration);
+                bool isAvailable = _SqliteDataService.IsBoxAvailable(_selectedBox, startTime, duration);
                 if (!isAvailable)
                 {
                     MessageBox.Show($"Время {startTime:HH:mm} уже занято другой записью!\n\nПожалуйста, выберите другое время.", "Ошибка");
@@ -281,8 +281,8 @@ namespace MyPanelCarWashing
                     IsCompleted = false
                 };
 
-                _dataService.AddAppointment(appointment);
-                DataService.NotifyDataChanged(); // Оповещаем все окна
+                _SqliteDataService.AddAppointment(appointment);
+                SqliteDataService.NotifyDataChanged(); // Оповещаем все окна
 
                 MessageBox.Show($"✅ Запись создана!\n\n" +
                     $"🚗 {appointment.CarModel} ({appointment.CarNumber})\n" +

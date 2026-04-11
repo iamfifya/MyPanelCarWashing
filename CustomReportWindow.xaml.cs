@@ -13,7 +13,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private DateTime _startDate;
         private DateTime _endDate;
         private CustomPeriodReport _currentReport;
@@ -38,10 +38,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public CustomReportWindow(DataService dataService)
+        public CustomReportWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
 
             StartDate = DateTime.Now.AddDays(-6);
@@ -224,49 +224,30 @@ namespace MyPanelCarWashing
         {
             if (_currentReport == null)
             {
-                MessageBox.Show("Сначала сформируйте отчет", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Сначала сформируйте отчет", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            try
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
             {
-                var saveDialog = new Microsoft.Win32.SaveFileDialog
-                {
-                    Filter = "Excel файлы (*.xlsx)|*.xlsx|CSV файлы (*.csv)|*.csv|JSON файлы (*.json)|*.json",
-                    DefaultExt = "xlsx",
-                    FileName = $"CustomReport_{_currentReport.StartDate:yyyy-MM-dd}_to_{_currentReport.EndDate:yyyy-MM-dd}"
-                };
+                Filter = "Excel файл (*.xlsx)|*.xlsx",
+                FileName = $"Выборочный_Отчет_{_currentReport.StartDate:dd.MM.yyyy}-{_currentReport.EndDate:dd.MM.yyyy}.xlsx",
+                DefaultExt = ".xlsx"
+            };
 
-                if (saveDialog.ShowDialog() == true)
+            if (saveDialog.ShowDialog() == true)
+            {
+                try
                 {
-                    string extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLower();
+                    // Вызываем наш новый красивый метод экспорта
+                    ExcelExporter.ExportCustomPeriodReport(_currentReport, saveDialog.FileName);
 
-                    if (extension == ".xlsx")
-                    {
-                        ExportToExcel(_currentReport, saveDialog.FileName);
-                        MessageBox.Show($"Отчет успешно экспортирован в Excel\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else if (extension == ".csv")
-                    {
-                        ExportToCsv(_currentReport, saveDialog.FileName);
-                        MessageBox.Show($"Отчет успешно экспортирован в CSV\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else if (extension == ".json")
-                    {
-                        var json = Newtonsoft.Json.JsonConvert.SerializeObject(_currentReport, Newtonsoft.Json.Formatting.Indented);
-                        System.IO.File.WriteAllText(saveDialog.FileName, json);
-                        MessageBox.Show($"Отчет успешно экспортирован в JSON\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
+                    MessageBox.Show("Отчет успешно экспортирован!", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при экспорте:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 

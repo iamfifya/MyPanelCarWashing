@@ -12,7 +12,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private DateTime _selectedDate;
         private List<EmployeeSelection> _employees;
 
@@ -38,10 +38,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public StartShiftWindow(DataService dataService)
+        public StartShiftWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
             SelectedDate = DateTime.Now.Date;
             LoadEmployees();
@@ -49,7 +49,7 @@ namespace MyPanelCarWashing
 
         private void LoadEmployees()
         {
-            var allEmployees = _dataService.GetAllUsers();
+            var allEmployees = _SqliteDataService.GetAllUsers();
             Employees = allEmployees.Select(e => new EmployeeSelection
             {
                 Id = e.Id,
@@ -72,11 +72,9 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // Получаем все смены через _dataService
-                var allShifts = _dataService.GetAllShifts();
-
                 // Проверяем, есть ли открытая смена на выбранную дату
-                var existingOpenShift = allShifts.FirstOrDefault(s => s.Date.Date == SelectedDate.Date && !s.IsClosed);
+                var existingOpenShift = _SqliteDataService.GetAllShifts()
+                    .FirstOrDefault(s => s.Date.Date == SelectedDate.Date && !s.IsClosed);
 
                 if (existingOpenShift != null)
                 {
@@ -87,35 +85,33 @@ namespace MyPanelCarWashing
                         "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                     if (result != MessageBoxResult.Yes)
-                    {
                         return;
-                    }
 
-                    // Удаляем старую смену
-                    allShifts.Remove(existingOpenShift);
+                    // Закрываем существующую смену
+                    _SqliteDataService.CloseShift(existingOpenShift.Id, "Автоматически закрыта при старте новой смены");
                 }
 
-                // Создаем новую смену
+                // Создаём новую смену - всегда на текущую дату, а не выбранную пользователем
                 var newShift = new Shift
                 {
-                    Id = allShifts.Any() ? allShifts.Max(s => s.Id) + 1 : 1,
-                    Date = SelectedDate.Date,
+                    Date = DateTime.Now.Date,  // Всегда сегодня
                     StartTime = DateTime.Now,
                     IsClosed = false,
                     EmployeeIds = selectedEmployees.Select(emp => emp.Id).ToList(),
-                    Orders = new List<CarWashOrder>()
+                    Orders = new List<CarWashOrder>(),
+                    Notes = null
                 };
 
-                // Добавляем новую смену
-                allShifts.Add(newShift);
+                // Сохраняем новую смену
+                _SqliteDataService.StartShift(newShift);
 
-                // Сохраняем через _dataService (он сам сохранит в файл)
-                var appData = FileDataService.LoadData();
-                appData.Shifts = allShifts;
-                FileDataService.SaveData(appData);
-
-                // Обновляем данные в _dataService
-                _dataService = new DataService();
+                // Проверяем, что смена создалась
+                var verifyShift = _SqliteDataService.GetCurrentOpenShift();
+                if (verifyShift == null)
+                {
+                    MessageBox.Show("Ошибка: смена не была создана!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
                 MessageBox.Show($"Смена на {SelectedDate:dd.MM.yyyy} успешно открыта!\n\n" +
                     $"Сотрудников: {selectedEmployees.Count}\n" +
@@ -130,6 +126,7 @@ namespace MyPanelCarWashing
             {
                 MessageBox.Show($"Ошибка при открытии смены: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+                DialogResult = false;
             }
         }
 

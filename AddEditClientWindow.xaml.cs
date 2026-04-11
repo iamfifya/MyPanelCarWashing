@@ -9,14 +9,14 @@ namespace MyPanelCarWashing
 {
     public partial class AddEditClientWindow : Window
     {
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         public Client CurrentClient { get; set; }
         public string WindowTitle { get; set; }
 
-        public AddEditClientWindow(DataService dataService, Client client)
+        public AddEditClientWindow(SqliteDataService SqliteDataService, Client client)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
 
             if (client == null)
             {
@@ -77,14 +77,14 @@ namespace MyPanelCarWashing
 
                 if (CurrentClient.Id == 0)
                 {
-                    _dataService.AddClient(CurrentClient);
+                    _SqliteDataService.AddClient(CurrentClient);
                     Logger.Info($"Клиент ДОБАВЛЕН | ФИО: {CurrentClient.FullName} | Тел: {CurrentClient.Phone} | Авто: {CurrentClient.CarNumber}", "CLIENT_AUDIT");
                     MessageBox.Show("Клиент добавлен", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
                     // Получаем старые данные для сравнения
-                    var oldClient = _dataService.GetClientById(CurrentClient.Id);
+                    var oldClient = _SqliteDataService.GetClientById(CurrentClient.Id);
                     string changes = "";
 
                     if (oldClient != null)
@@ -95,7 +95,7 @@ namespace MyPanelCarWashing
                         if (oldClient.DefaultDiscountPercent != CurrentClient.DefaultDiscountPercent) changes += $"Скидка: {oldClient.DefaultDiscountPercent}%→{CurrentClient.DefaultDiscountPercent}%; ";
                     }
 
-                    _dataService.UpdateClient(CurrentClient);
+                    _SqliteDataService.UpdateClient(CurrentClient);
 
                     // Логируем только если что-то реально изменилось
                     if (!string.IsNullOrEmpty(changes))
