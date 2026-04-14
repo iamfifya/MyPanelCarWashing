@@ -163,30 +163,10 @@ namespace MyPanelCarWashing
 
         private void ShowClientStats(Client client)
         {
-            // Получаем заказы клиента
-            var clientOrders = _SqliteDataService.GetOrdersByClientId(client.Id);
-
-            string message = $"📊 СТАТИСТИКА КЛИЕНТА\n\n" +
-                $"👤 {client.FullName}\n" +
-                $"📞 {client.Phone}\n" +
-                $"🚗 {client.CarModel} ({client.CarNumber})\n\n" +
-                $"📅 Зарегистрирован: {client.RegistrationDate:dd.MM.yyyy}\n" +
-                $"🔄 Всего визитов: {client.VisitsCount}\n" +
-                $"💰 Общая сумма: {client.TotalSpent:N0} ₽\n" +
-                $"📊 Средний чек: {client.AverageCheck:N0} ₽\n" +
-                $"📅 Последний визит: {(client.LastVisitDate?.ToString("dd.MM.yyyy") ?? "нет")}\n\n" +
-                $"📋 История заказов ({clientOrders.Count}):\n";
-
-            foreach (var order in clientOrders.OrderByDescending(o => o.Time).Take(10))
+            if (client != null)
             {
-                message += $"\n  {order.Time:dd.MM.yyyy HH:mm} - {order.FinalPrice:N0} ₽ - {order.Status}";
+                DetailsOverlay.ShowClient(client, _SqliteDataService);
             }
-
-            if (clientOrders.Count > 10)
-                message += $"\n\n... и еще {clientOrders.Count - 10} заказов";
-
-            MessageBox.Show(message, $"Клиент: {client.FullName}",
-                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
