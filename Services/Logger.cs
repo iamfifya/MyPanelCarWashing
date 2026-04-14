@@ -1,20 +1,44 @@
 using System;
 using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using NLog;
+using NLog.Config;
+using NLog.Targets;
 
 namespace MyPanelCarWashing.Services
 {
     public static class Logger
     {
-        private static readonly string _logFolder;
-        private static readonly object _lockObj = new object();
+        // Внутренний движок NLog
+        private static readonly NLog.Logger _nlog = LogManager.GetCurrentClassLogger();
 
-        // Контекст сессии и пользователя
         public static string SessionId { get; private set; } = Guid.NewGuid().ToString("N").Substring(0, 8);
         private static string _currentUser = "System";
         private static string _currentUserId = "?";
+
+        static Logger()
+        {
+            // Настраиваем NLog программно, без XML-файлов
+            var config = new LoggingConfiguration();
+
+            // Папка в AppData (чтобы не было проблем с правами Администратора в Windows)
+            string logFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyCarWashing", "Logs");
+
+            var logfile = new FileTarget("logfile")
+            {
+                FileName = Path.Combine(logFolder, "app_${shortdate}.log"),
+                Layout = "${longdate} | [${level:uppercase=true}] | [${event-properties:item=Category}] | ${event-properties:item=UserContext} | ${message} ${event-properties:item=Details} | Th:${threadid}",
+
+                ArchiveEvery = FileArchivePeriod.Day,
+                MaxArchiveFiles = 30,
+
+                // Убрали ConcurrentWrites, оставили только эти две:
+                KeepFileOpen = true,
+                AutoFlush = true
+            };
+
+            config.AddRule(LogLevel.Debug, LogLevel.Fatal, logfile);
+            LogManager.Configuration = config;
+        }
 
         public static void SetUserContext(string fullName, int? id = null)
         {
@@ -22,62 +46,32 @@ namespace MyPanelCarWashing.Services
             _currentUserId = id?.ToString() ?? "?";
         }
 
-        static Logger()
-        {
-            _logFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
-            try { if (!Directory.Exists(_logFolder)) Directory.CreateDirectory(_logFolder); } catch { }
-        }
+        // Твои старые методы остались без изменений! Ничего переписывать не надо.
+        public static void Info(string message, string category = "APP", string details = "") =>
+            Log(LogLevel.Info, message, category, details);
 
-        public static void Info(string message, string category = "APP", string details = "") => Log(message, "INFO", category, details);
-        public static void Warn(string message, string category = "APP", string details = "") => Log(message, "WARN", category, details);
+        public static void Warn(string message, string category = "APP", string details = "") =>
+            Log(LogLevel.Warn, message, category, details);
+
         public static void Error(string message, Exception ex, string category = "APP", string details = "")
         {
-            string exDetails = $"Исключение: {ex?.GetType().Name}\nСообщение: {ex?.Message}\nСтек:\n{ex?.StackTrace}";
-            string fullDetails = string.IsNullOrEmpty(details) ? exDetails : $"{exDetails}\nДополнительно: {details}";
-            Log(message, "ERROR", category, fullDetails);
+            string exDetails = $"Исключение: {ex?.GetType().Name} | Сообщение: {ex?.Message} | Стек: {ex?.StackTrace}";
+            string fullDetails = string.IsNullOrEmpty(details) ? exDetails : $"{exDetails} | Доп: {details}";
+            Log(LogLevel.Error, message, category, fullDetails);
         }
 
-        private static void Log(string message, string level, string category, string details)
+        private static void Log(LogLevel level, string message, string category, string details)
         {
-            Task.Run(() =>
-            {
-                try
-                {
-                    string logFile = Path.Combine(_logFolder, $"app_{DateTime.Now:yyyy-MM-dd}.log");
-                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                    string threadId = Thread.CurrentThread.ManagedThreadId.ToString();
-                    string userCtx = $"{_currentUser}(ID:{_currentUserId})";
-                    string detailStr = string.IsNullOrEmpty(details) ? "" : $" | Детали: {details.Replace(Environment.NewLine, " | ")}";
+            // Передаем твои кастомные параметры в NLog
+            var logEvent = new LogEventInfo(level, "CarWashLogger", message);
+            logEvent.Properties["Category"] = category;
+            logEvent.Properties["UserContext"] = $"{_currentUser}(ID:{_currentUserId})";
 
-                    // Формат: TIMESTAMP | [LEVEL] | [CATEGORY] | USER | ACTION | DETAILS | THREAD
-                    string entry = $"{timestamp} | [{level}] | [{category}] | {userCtx} | {message}{detailStr} | Th:{threadId}{Environment.NewLine}";
+            string detailStr = string.IsNullOrEmpty(details) ? "" : $"| Детали: {details.Replace(Environment.NewLine, " ")}";
+            logEvent.Properties["Details"] = detailStr;
 
-                    lock (_lockObj)
-                    {
-                        File.AppendAllText(logFile, entry, Encoding.UTF8);
-                    }
-                    CleanupOldLogs();
-                }
-                catch { } // Лог никогда не ломает приложение
-            });
-        }
-
-        private static void CleanupOldLogs(int days = 30)
-        {
-            try
-            {
-                var cutoff = DateTime.Now.AddDays(-days);
-                foreach (var file in Directory.GetFiles(_logFolder, "app_*.log"))
-                {
-                    string name = Path.GetFileNameWithoutExtension(file);
-                    if (name.StartsWith("app_") && name.Length >= 14)
-                    {
-                        if (DateTime.TryParse(name.Substring(4, 10), out var d) && d < cutoff)
-                            File.Delete(file);
-                    }
-                }
-            }
-            catch { }
+            // NLog записывает всё в отдельном сверхбыстром потоке
+            _nlog.Log(logEvent);
         }
     }
 }

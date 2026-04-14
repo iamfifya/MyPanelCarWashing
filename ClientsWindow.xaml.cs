@@ -46,7 +46,8 @@ namespace MyPanelCarWashing
 
         private void LoadClients()
         {
-            var clients = _SqliteDataService.GetAllClients();
+            // Записываем данные в правильную глобальную переменную
+            _allClients = _SqliteDataService.GetAllClients();
             ApplyFilter();
         }
 

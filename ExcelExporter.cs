@@ -17,13 +17,11 @@ namespace MyPanelCarWashing
                 {
                     var worksheet = workbook.Worksheets.Add("Отчет о смене");
 
-                    // Заголовок
                     worksheet.Cell(1, 1).Value = $"Отчет о смене от {report.Date:dd.MM.yyyy}";
                     worksheet.Cell(1, 1).Style.Font.Bold = true;
                     worksheet.Cell(1, 1).Style.Font.FontSize = 16;
                     worksheet.Range(1, 1, 1, 6).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-                    // Основная информация
                     int row = 3;
                     worksheet.Cell(row, 1).Value = "Дата:";
                     worksheet.Cell(row, 2).Value = report.Date.ToString("dd.MM.yyyy");
@@ -56,7 +54,6 @@ namespace MyPanelCarWashing
                     worksheet.Cell(row, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
                     row += 2;
 
-                    // Статистика по способам оплаты
                     worksheet.Cell(row, 1).Value = "СТАТИСТИКА ПО СПОСОБАМ ОПЛАТЫ";
                     worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
                     worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = XLColor.LightGray;
@@ -99,7 +96,6 @@ namespace MyPanelCarWashing
                     worksheet.Range(row, 1, row, 3).Style.Font.Bold = true;
                     row += 2;
 
-                    // Заголовок таблицы сотрудников
                     worksheet.Cell(row, 1).Value = "Сотрудник";
                     worksheet.Cell(row, 2).Value = "Машин";
                     worksheet.Cell(row, 3).Value = "Выручка";
@@ -108,7 +104,6 @@ namespace MyPanelCarWashing
                     worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = XLColor.LightGray;
                     row++;
 
-                    // Данные сотрудников
                     foreach (var emp in report.EmployeesWork.OrderByDescending(e => e.CarsWashed))
                     {
                         worksheet.Cell(row, 1).Value = emp.EmployeeName;
@@ -120,7 +115,6 @@ namespace MyPanelCarWashing
                         row++;
                     }
 
-                    // Итоговая строка
                     worksheet.Cell(row, 1).Value = "ИТОГО:";
                     worksheet.Cell(row, 2).Value = report.EmployeesWork.Sum(e => e.CarsWashed);
                     worksheet.Cell(row, 3).Value = report.EmployeesWork.Sum(e => e.TotalAmount);
@@ -130,7 +124,6 @@ namespace MyPanelCarWashing
                     worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
                     row++;
 
-                    // Примечание
                     if (!string.IsNullOrEmpty(report.Notes))
                     {
                         row++;
@@ -138,9 +131,7 @@ namespace MyPanelCarWashing
                         worksheet.Cell(row, 2).Value = report.Notes;
                     }
 
-                    // Автоширина колонок
                     worksheet.Columns().AdjustToContents();
-
                     workbook.SaveAs(filePath);
                 }
             }
@@ -158,13 +149,11 @@ namespace MyPanelCarWashing
                 {
                     var ws = workbook.Worksheets.Add("Месячный отчет");
 
-                    // Шапка
                     ws.Cell(1, 1).Value = $"Отчет за {report.MonthName} {report.Year}";
                     ws.Cell(1, 1).Style.Font.Bold = true;
                     ws.Cell(1, 1).Style.Font.FontSize = 16;
                     ws.Range(1, 1, 1, 4).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-                    // Общие показатели
                     ws.Cell(3, 1).Value = "Общие показатели";
                     ws.Cell(3, 1).Style.Font.Bold = true;
 
@@ -173,7 +162,6 @@ namespace MyPanelCarWashing
                     ws.Cell(6, 1).Value = "ЗП Мойщикам:"; ws.Cell(6, 2).Value = report.TotalWasherEarnings; ws.Cell(6, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
                     ws.Cell(7, 1).Value = "Доход компании:"; ws.Cell(7, 2).Value = report.TotalCompanyEarnings; ws.Cell(7, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
 
-                    // Сводка по сотрудникам
                     int row = 9;
                     ws.Cell(row, 1).Value = "СВОДКА ПО СОТРУДНИКАМ";
                     ws.Cell(row, 1).Style.Font.Bold = true;
@@ -187,7 +175,8 @@ namespace MyPanelCarWashing
                     ws.Range(row, 1, row, 4).Style.Fill.BackgroundColor = XLColor.LightGray;
                     row++;
 
-                    foreach (var emp in report.EmployeesReport.OrderByDescending(e => e.Earnings))
+                    // ИСПОЛЬЗУЕМ EmployeesWork
+                    foreach (var emp in report.EmployeesWork.OrderByDescending(e => e.Earnings))
                     {
                         ws.Cell(row, 1).Value = emp.EmployeeName;
                         ws.Cell(row, 2).Value = emp.CarsWashed;
@@ -196,9 +185,7 @@ namespace MyPanelCarWashing
                         row++;
                     }
 
-                    // Автоширина
                     ws.Columns().AdjustToContents();
-
                     workbook.SaveAs(filePath);
                 }
             }
@@ -216,13 +203,11 @@ namespace MyPanelCarWashing
                 {
                     var ws = workbook.Worksheets.Add("Выборочный отчет");
 
-                    // Шапка
                     ws.Cell(1, 1).Value = $"Отчет за период с {report.StartDate:dd.MM.yyyy} по {report.EndDate:dd.MM.yyyy}";
                     ws.Cell(1, 1).Style.Font.Bold = true;
                     ws.Cell(1, 1).Style.Font.FontSize = 16;
                     ws.Range(1, 1, 1, 5).Merge().Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-                    // Общие показатели
                     ws.Cell(3, 1).Value = "ОБЩИЕ ПОКАЗАТЕЛИ";
                     ws.Cell(3, 1).Style.Font.Bold = true;
                     ws.Cell(3, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
@@ -233,18 +218,17 @@ namespace MyPanelCarWashing
                     ws.Cell(6, 1).Value = "ЗП Мойщикам:"; ws.Cell(6, 2).Value = report.TotalWasherEarnings; ws.Cell(6, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
                     ws.Cell(7, 1).Value = "Доход компании:"; ws.Cell(7, 2).Value = report.TotalCompanyEarnings; ws.Cell(7, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
 
-                    // Способы оплаты 
                     ws.Cell(9, 1).Value = "СПОСОБЫ ОПЛАТЫ";
                     ws.Cell(9, 1).Style.Font.Bold = true;
                     ws.Cell(9, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
                     ws.Range(9, 1, 9, 3).Merge();
 
-                    ws.Cell(10, 1).Value = "Наличные:"; ws.Cell(10, 2).Value = $"{report.TotalCashCount} шт."; ws.Cell(10, 3).Value = report.TotalCashAmount; ws.Cell(10, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    ws.Cell(11, 1).Value = "Карта:"; ws.Cell(11, 2).Value = $"{report.TotalCardCount} шт."; ws.Cell(11, 3).Value = report.TotalCardAmount; ws.Cell(11, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    ws.Cell(12, 1).Value = "Перевод:"; ws.Cell(12, 2).Value = $"{report.TotalTransferCount} шт."; ws.Cell(12, 3).Value = report.TotalTransferAmount; ws.Cell(12, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    ws.Cell(13, 1).Value = "QR-код:"; ws.Cell(13, 2).Value = $"{report.TotalQrCount} шт."; ws.Cell(13, 3).Value = report.TotalQrAmount; ws.Cell(13, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    // ИСПОЛЬЗУЕМ ОБНОВЛЕННЫЕ ИМЕНА (БЕЗ Total)
+                    ws.Cell(10, 1).Value = "Наличные:"; ws.Cell(10, 2).Value = $"{report.CashCount} шт."; ws.Cell(10, 3).Value = report.CashAmount; ws.Cell(10, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(11, 1).Value = "Карта:"; ws.Cell(11, 2).Value = $"{report.CardCount} шт."; ws.Cell(11, 3).Value = report.CardAmount; ws.Cell(11, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(12, 1).Value = "Перевод:"; ws.Cell(12, 2).Value = $"{report.TransferCount} шт."; ws.Cell(12, 3).Value = report.TransferAmount; ws.Cell(12, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                    ws.Cell(13, 1).Value = "QR-код:"; ws.Cell(13, 2).Value = $"{report.QrCount} шт."; ws.Cell(13, 3).Value = report.QrAmount; ws.Cell(13, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
 
-                    // Детализация по дням
                     int row = 15;
                     ws.Cell(row, 1).Value = "ДЕТАЛИЗАЦИЯ ПО ДНЯМ";
                     ws.Cell(row, 1).Style.Font.Bold = true;
@@ -260,29 +244,19 @@ namespace MyPanelCarWashing
                     ws.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.LightBlue;
                     row++;
 
-                    // Сортируем дни по порядку
                     foreach (var day in report.DailyReports.OrderBy(d => d.Date))
                     {
                         ws.Cell(row, 1).Value = day.Date.ToString("dd.MM.yyyy");
 
-                        // Используем правильные свойства из класса DailyReportSummary
-                        ws.Cell(row, 2).Value = day.Cars;
-
-                        ws.Cell(row, 3).Value = day.Revenue;
-                        ws.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-
-                        ws.Cell(row, 4).Value = day.WasherEarnings;
-                        ws.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-
-                        ws.Cell(row, 5).Value = day.CompanyEarnings;
-                        ws.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 ₽";
-
+                        // ИСПОЛЬЗУЕМ TotalCars и т.д.
+                        ws.Cell(row, 2).Value = day.TotalCars;
+                        ws.Cell(row, 3).Value = day.TotalRevenue; ws.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
+                        ws.Cell(row, 4).Value = day.TotalWasherEarnings; ws.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
+                        ws.Cell(row, 5).Value = day.TotalCompanyEarnings; ws.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 ₽";
                         row++;
                     }
 
-                    // Наводим красоту: автоширина колонок
                     ws.Columns().AdjustToContents();
-
                     workbook.SaveAs(filePath);
                 }
             }

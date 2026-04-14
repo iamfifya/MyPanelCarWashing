@@ -756,23 +756,20 @@ namespace MyPanelCarWashing
 
         private void CloseShiftButton_Click(object sender, RoutedEventArgs e)
         {
-            // === ВАЖНО: сохраняем данные смены ДО любых изменений ===
             int? shiftId = _currentShift?.Id;
             DateTime? shiftDate = _currentShift?.Date;
 
             if (_currentShift == null)
             {
                 Logger.Warn("Попытка закрыть смену, но _currentShift = null", "SHIFT");
-                MessageBox.Show("Нет активной смены для закрытия", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Нет активной смены для закрытия", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             if (_currentShift.IsClosed)
             {
                 Logger.Warn($"Попытка закрыть уже закрытую смену #{_currentShift.Id}", "SHIFT");
-                MessageBox.Show("Эта смена уже закрыта", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Эта смена уже закрыта", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -783,12 +780,10 @@ namespace MyPanelCarWashing
             if (canCloseError != null)
             {
                 Logger.Warn($"Невозможно закрыть смену #{_currentShift.Id}: {canCloseError}", "SHIFT");
-                MessageBox.Show(canCloseError, "Невозможно закрыть смену",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(canCloseError, "Невозможно закрыть смену", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            var allUsers = _SqliteDataService.GetAllUsers();
             var completedOrders = _allOrders.Where(o => o.Status == "Выполнен").ToList();
             var totalRevenue = completedOrders.Sum(o => o.FinalPrice);
             var allServices = _SqliteDataService.GetAllServices();
@@ -809,10 +804,8 @@ namespace MyPanelCarWashing
                     case "Перевод": transferCount++; transferAmount += order.FinalPrice; break;
                     case "QR-код": qrCount++; qrAmount += order.FinalPrice; break;
                 }
-            }
-
-            foreach (var order in completedOrders)
                 if (order.ClientId.HasValue) ValidateClientStats(order.ClientId.Value);
+            }
 
             var inProgressOrders = _allOrders.Where(o => o.Status == "Выполняется").ToList();
             var pendingAppointments = _SqliteDataService.GetAppointmentsByDate(DateTime.Now).Where(a => !a.IsCompleted).ToList();
@@ -838,117 +831,7 @@ namespace MyPanelCarWashing
 
             try
             {
-                // === ЗАКРЫВАЕМ СМЕНУ ===
-                _currentShift.EndTime = DateTime.Now;
-                _currentShift.IsClosed = true;
-
-                var report = new ShiftReport
-                {
-                    Id = Guid.NewGuid().GetHashCode(),
-                    Date = _currentShift.Date,
-                    StartTime = _currentShift.StartTime.Value,
-                    EndTime = _currentShift.EndTime.Value,
-                    TotalCars = completedOrders.Count,
-                    TotalRevenue = totalRevenue,
-                    TotalWasherEarnings = totalWasherEarnings,
-                    TotalCompanyEarnings = totalCompanyEarnings,
-                    CashCount = cashCount,
-                    CashAmount = cashAmount,
-                    CardCount = cardCount,
-                    CardAmount = cardAmount,
-                    TransferCount = transferCount,
-                    TransferAmount = transferAmount,
-                    QrCount = qrCount,
-                    QrAmount = qrAmount,
-                    Notes = "Смена закрыта штатно"
-                };
-
-                // === РАСЧЁТ ЗП МОЙЩИКОВ ЗА СМЕНУ ===
-
-                var washerPayReport = completedOrders
-                    .Where(o => o.WasherId > 0)
-                    .GroupBy(o => o.WasherId)
-                    .Select(g =>
-                    {
-                        // Проверяем, админ ли этот мойщик
-                        var washer = allUsers.FirstOrDefault(u => u.Id == g.Key);
-                        bool isWasherAdmin = washer?.IsAdmin == true;
-
-                        decimal basePay = g.Sum(o => OrderMath.Calculate(o, allServices).WasherEarnings);
-
-                        // Админам не делаем надбавку!
-                        decimal finalPay = isWasherAdmin ? basePay : Math.Max(basePay, OrderMath.MIN_WASHER_PAY_PER_SHIFT);
-                        decimal topUp = isWasherAdmin ? 0 : (finalPay - basePay);
-
-                        return new
-                        {
-                            WasherId = g.Key,
-                            BasePay = basePay,
-                            FinalPay = finalPay,
-                            TopUp = topUp,
-                            OrdersCount = g.Count(),
-                            IsAdmin = isWasherAdmin  // ← Для отладки/логирования
-                        };
-                    }).ToList();
-
-                // === ЛОГИРОВАНИЕ ===
-                foreach (var wp in washerPayReport)
-                {
-                    var washer = _SqliteDataService.GetAllUsers().FirstOrDefault(u => u.Id == wp.WasherId);
-                    string roleTag = wp.IsAdmin ? " [АДМИН]" : "";
-
-                    if (wp.TopUp > 0)
-                    {
-                        Logger.Info($"ДОПЛАТА до мин. ЗП{roleTag} | Мойщик: {washer?.FullName} | Заработано: {wp.BasePay:N0}₽ | Доплата: {wp.TopUp:N0}₽ | Итого: {wp.FinalPay:N0}₽", "SHIFT_PAY");
-                    }
-                    else if (wp.IsAdmin)
-                    {
-                        Logger.Info($"ЗП админа (без мин. гарантии){roleTag} | {washer?.FullName} | Заказы: {wp.OrdersCount} | Заработано: {wp.FinalPay:N0}₽", "SHIFT_PAY");
-                    }
-                    else
-                    {
-                        Logger.Info($"ЗП мойщика{roleTag} | {washer?.FullName} | Заказы: {wp.OrdersCount} | Заработано: {wp.FinalPay:N0}₽", "SHIFT_PAY");
-                    }
-                }
-
-                // === ФОРМИРОВАНИЕ ОТЧЁТА ПО СОТРУДНИКАМ ===
-                foreach (var empId in _currentShift.EmployeeIds)
-                {
-                    var employee = allUsers.FirstOrDefault(u => u.Id == empId);
-                    if (employee != null)
-                    {
-                        var pay = washerPayReport.FirstOrDefault(p => p.WasherId == empId);
-                        report.EmployeesWork.Add(new EmployeeWorkReport
-                        {
-                            EmployeeId = empId,
-                            EmployeeName = employee.FullName,
-                            CarsWashed = pay?.OrdersCount ?? 0,
-                            TotalAmount = pay?.BasePay ?? 0,
-                            Earnings = pay != null ? pay.FinalPay : 0m
-                        });
-                    }
-                }
-
-                // Добавляем мойщиков, которые работали, но не в текущей смене
-                foreach (var pay in washerPayReport.Where(p => !_currentShift.EmployeeIds.Contains(p.WasherId)))
-                {
-                    var employee = allUsers.FirstOrDefault(u => u.Id == pay.WasherId);
-                    if (employee != null)
-                    {
-                        report.EmployeesWork.Add(new EmployeeWorkReport
-                        {
-                            EmployeeId = pay.WasherId,
-                            EmployeeName = employee.FullName,
-                            CarsWashed = pay.OrdersCount,
-                            TotalAmount = pay.BasePay,
-                            Earnings = pay.FinalPay
-                        });
-                    }
-                }
-
-                SaveShiftReport(report);
-
-                // ВАЖНО: закрываем смену в БД
+                // ВАЖНО: Просто закрываем смену в БД! База всё посчитает сама при запросе.
                 _SqliteDataService.CloseShift(_currentShift.Id, "Смена закрыта штатно");
 
                 // Обновляем данные
@@ -960,28 +843,19 @@ namespace MyPanelCarWashing
 
                 LoadData();
 
-                // === ЛОГИРОВАНИЕ (используем сохранённые переменные, т.к. _currentShift может быть null) ===
-                Logger.Info($"Смена успешно закрыта", "SHIFT",
-                    $"ID: {shiftId} | Дата: {shiftDate?.ToString("dd.MM.yyyy")} | Выполнено: {report.TotalCars} | Выручка: {report.TotalRevenue:N0} ₽");
+                Logger.Info($"Смена успешно закрыта | ID: {shiftId} | Выполнено: {completedOrders.Count} | Выручка: {totalRevenue:N0} ₽", "SHIFT");
 
                 MessageBox.Show($"Смена успешно закрыта!\n\n" +
-                    $"📅 Дата: {report.Date:dd.MM.yyyy}\n" +
-                    $"🚗 Выполнено машин: {report.TotalCars}\n" +
-                    $"💰 Выручка: {report.TotalRevenue:N0} ₽\n" +
-                    $"👤 Мойщикам (35%): {report.TotalWasherEarnings:N0} ₽\n" +
-                    $"🏢 Компании (65%): {report.TotalCompanyEarnings:N0} ₽\n\n" +
-                    $"💳 Наличные: {report.CashCount} шт. / {report.CashAmount:N0} ₽\n" +
-                    $"💳 Карта: {report.CardCount} шт. / {report.CardAmount:N0} ₽\n" +
-                    $"📱 Перевод: {report.TransferCount} шт. / {report.TransferAmount:N0} ₽\n\n" +
-                    $"📁 Отчет сохранен в папке Reports",
+                    $"📅 Дата: {shiftDate?.ToString("dd.MM.yyyy")}\n" +
+                    $"🚗 Выполнено машин: {completedOrders.Count}\n" +
+                    $"💰 Выручка: {totalRevenue:N0} ₽\n\n" +
+                    $"✅ Отчет автоматически сохранен в Базу Данных!",
                     "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                Logger.Error("Критическая ошибка при закрытии смены", ex, "SHIFT",
-                    $"ID смены: {shiftId} | Дата: {shiftDate?.ToString("dd.MM.yyyy")}");
-                MessageBox.Show($"Ошибка при закрытии смены: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Logger.Error("Критическая ошибка при закрытии смены", ex, "SHIFT", $"ID смены: {shiftId}");
+                MessageBox.Show($"Ошибка при закрытии смены: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         private void ValidateClientStats(int clientId)
@@ -1032,31 +906,6 @@ namespace MyPanelCarWashing
                 Logger.Error("Ошибка при экспорте по запросу пользователя", ex, "EXPORT");
                 MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void SaveShiftReport(ShiftReport report)
-        {
-            try
-            {
-                string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-                if (!Directory.Exists(reportsPath))
-                    Directory.CreateDirectory(reportsPath);
-
-                string fileName = $"ShiftReport_{report.Date:yyyy-MM-dd_HHmmss}.json";
-                string filePath = Path.Combine(reportsPath, fileName);
-
-                var json = Newtonsoft.Json.JsonConvert.SerializeObject(report, Newtonsoft.Json.Formatting.Indented);
-                File.WriteAllText(filePath, json);
-
-                System.Diagnostics.Debug.WriteLine($"Отчет сохранен: {filePath}");
-
-                // ← ДОБАВЬ ЭТУ СТРОКУ:
-                Logger.Info($"Отчёт смены сохранён | Файл: {fileName} | Выручка: {report.TotalRevenue:N0} ₽", "REPORT");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Ошибка сохранения отчета: {ex.Message}");
-                Logger.Error("Ошибка сохранения отчёта смены", ex, "REPORT");
             }
         }
 

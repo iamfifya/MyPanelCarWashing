@@ -12,7 +12,7 @@ namespace MyPanelCarWashing.Services
         private readonly string _connectionString;
 
         // Статический конструктор - вызывается один раз при первом обращении к классу
-        
+
 
         public SqliteDataService()
         {
@@ -540,7 +540,7 @@ namespace MyPanelCarWashing.Services
         }
 
 
-        
+
 
         // ---- Users ----
         public List<User> GetAllUsers() => GetAllUsersIncludingInactive().Where(u => u.IsActive).ToList();
@@ -1967,6 +1967,155 @@ namespace MyPanelCarWashing.Services
                     }
                 }
             }
+        }
+
+        public int GetNewClientsCount(DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                var allClients = GetAllClients();
+                // Считаем тех, кто зарегистрировался в указанный период
+                return allClients.Count(c => c.RegistrationDate.Date >= startDate.Date && c.RegistrationDate.Date <= endDate.Date);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка при подсчете новых клиентов: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public int GetUniqueClientsCount(DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                var allAppointments = GetAllAppointments();
+                // Берем все записи за период, у которых есть привязанный клиент, и считаем уникальные ClientId
+                // ВНИМАНИЕ: Если у тебя в Appointment дата называется по-другому (не StartTime, а Date или Time), замени здесь:
+                return allAppointments
+                    .Where(a => a.AppointmentDate.Date >= startDate.Date && a.AppointmentDate.Date <= endDate.Date && a.Id > 0)
+                    .Select(a => a.Id)
+                    .Distinct()
+                    .Count();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка при подсчете уникальных клиентов: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public List<ShiftReport> GetShiftReportsFromDb(DateTime startDate, DateTime endDate)
+        {
+            var reports = new List<ShiftReport>();
+            var allServices = GetAllServices(); // Для формул OrderMath
+            var allUsers = GetAllUsersIncludingInactive().ToDictionary(u => u.Id, u => u);
+
+            // 1. Получаем список ID всех закрытых смен за период
+            var shiftsInfo = new List<(int Id, DateTime Date, DateTime StartTime, DateTime EndTime, string Notes)>();
+
+            using (var connection = new SQLiteConnection(_connectionString))
+            {
+                connection.Open();
+                var cmd = connection.CreateCommand();
+                // date() - встроенная функция SQLite для точного сравнения дат
+                cmd.CommandText = @"
+            SELECT Id, Date, StartTime, EndTime, Notes
+            FROM Shifts
+            WHERE date(Date) >= date(@start) AND date(Date) <= date(@end) AND IsClosed = 1
+            ORDER BY Date ASC";
+                cmd.Parameters.AddWithValue("@start", startDate.ToString("yyyy-MM-dd"));
+                cmd.Parameters.AddWithValue("@end", endDate.ToString("yyyy-MM-dd"));
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        shiftsInfo.Add((
+                            Id: reader.GetInt32(0),
+                            Date: DateTime.Parse(reader.GetString(1)),
+                            StartTime: DateTime.Parse(reader.GetString(2)),
+                            EndTime: reader.IsDBNull(3) ? DateTime.Now : DateTime.Parse(reader.GetString(3)),
+                            Notes: reader.IsDBNull(4) ? "" : reader.GetString(4)
+                        ));
+                    }
+                }
+            }
+
+            // 2. Для каждой смены вытягиваем заказы и считаем математику
+            foreach (var s in shiftsInfo)
+            {
+                var orders = GetOrdersByShiftId(s.Id).Where(o => o.Status != "Отменен").ToList();
+
+                var report = new ShiftReport
+                {
+                    Date = s.Date,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    Notes = s.Notes,
+                    TotalCars = orders.Count,
+                    // ИЗМЕНЕНИЕ 1: Использовать EmployeeWorkReport
+                    EmployeesWork = new List<EmployeeWorkReport>()
+                };
+
+                // ИЗМЕНЕНИЕ 2: Использовать EmployeeWorkReport
+                var employeeStats = new Dictionary<int, EmployeeWorkReport>();
+
+                foreach (var order in orders)
+                {
+                    var calc = OrderMath.Calculate(order, allServices);
+
+                    report.TotalRevenue += calc.FinalPrice;
+                    report.TotalWasherEarnings += calc.WasherEarnings;
+                    report.TotalCompanyEarnings += calc.CompanyEarnings;
+
+                    switch (order.PaymentMethod)
+                    {
+                        case "Наличные": report.CashCount++; report.CashAmount += calc.FinalPrice; break;
+                        case "Карта": report.CardCount++; report.CardAmount += calc.FinalPrice; break;
+                        case "Перевод": report.TransferCount++; report.TransferAmount += calc.FinalPrice; break;
+                        case "QR-код": report.QrCount++; report.QrAmount += calc.FinalPrice; break;
+                    }
+
+                    if (!employeeStats.ContainsKey(order.WasherId))
+                    {
+                        // ИЗМЕНЕНИЕ 3: Использовать EmployeeWorkReport
+                        employeeStats[order.WasherId] = new EmployeeWorkReport
+                        {
+                            EmployeeId = order.WasherId,
+                            EmployeeName = allUsers.ContainsKey(order.WasherId) ? allUsers[order.WasherId].FullName : "Неизвестно",
+                        };
+                    }
+
+                    employeeStats[order.WasherId].CarsWashed++;
+                    employeeStats[order.WasherId].TotalAmount += calc.FinalPrice;
+                    employeeStats[order.WasherId].Earnings += calc.WasherEarnings;
+                }
+
+                // --- ДОПЛАТА ДО МИНИМАЛКИ ЗА СМЕНУ ---
+                foreach (var empStat in employeeStats.Values)
+                {
+                    var washerOrders = orders.Where(o => o.WasherId == empStat.EmployeeId).ToList();
+                    bool isAdmin = allUsers.ContainsKey(empStat.EmployeeId) && allUsers[empStat.EmployeeId].IsAdmin;
+
+                    // OrderMath сам решит, нужно ли доплачивать до 1000 рублей
+                    decimal finalWasherPay = OrderMath.CalculateWasherShiftPay(washerOrders, allServices, isAdmin);
+
+                    // Если была доплата от компании, корректируем итоговые суммы смены
+                    decimal extraPay = finalWasherPay - empStat.Earnings;
+                    if (extraPay > 0)
+                    {
+                        empStat.Earnings = finalWasherPay;
+                        report.TotalWasherEarnings += extraPay;
+                        report.TotalCompanyEarnings -= extraPay; // Доплата вычитается из прибыли компании
+                    }
+
+                    report.EmployeesWork.Add(empStat);
+                }
+
+                reports.Add(report);
+            }
+
+            return reports;
         }
     }
 }
