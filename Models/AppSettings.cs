@@ -15,7 +15,7 @@ namespace MyPanelCarWashing.Models
         public bool RequireConfirmationForDelete { get; set; } = true;
         public DateTime LastSettingsChange { get; set; }
 
-        private static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyCarWashing", "settings.json");
+        private static string SettingsPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
 
         public static AppSettings Load()
         {

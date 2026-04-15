@@ -231,6 +231,9 @@
     <Compile Include="Controls\AppointmentsOverlay.xaml.cs">
       <DependentUpon>AppointmentsOverlay.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Controls\CashboxOverlay.xaml.cs">
+      <DependentUpon>CashboxOverlay.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Controls\CustomComboBox.cs" />
     <Compile Include="CurrencyConverter.cs" />
     <Compile Include="CustomDatePicker.xaml.cs">
@@ -253,13 +256,9 @@
     <Compile Include="Models\AppSettings.cs" />
     <Compile Include="Models\Client.cs" />
     <Compile Include="Models\EmployeeShiftReport.cs" />
-    <Compile Include="Models\MonthlyReport.cs" />
-    <Compile Include="Models\Reports\ReportModels.cs" />
+    <Compile Include="Models\ReportModels.cs" />
     <Compile Include="Models\Schedule.cs" />
-    <Compile Include="Models\ShiftReport.cs" />
-    <Compile Include="MonthlyReportWindow.xaml.cs">
-      <DependentUpon>MonthlyReportWindow.xaml</DependentUpon>
-    </Compile>
+    <Compile Include="Models\Transaction.cs" />
     <Compile Include="PercentageConverter.cs" />
     <Compile Include="SafePriceConverter.cs" />
     <Compile Include="ScheduleWindow.xaml.cs">
@@ -331,6 +330,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Controls\CashboxOverlay.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="CustomDatePicker.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -340,10 +343,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="HistoryWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="MonthlyReportWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -422,9 +421,6 @@
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <None Include="Reports\.gitkeep">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <Resource Include="Resources\Noto\NotoSans-Bold.ttf" />
     <Resource Include="Resources\Noto\NotoSans-BoldItalic.ttf" />

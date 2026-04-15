@@ -3,7 +3,6 @@ using MyPanelCarWashing.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Windows;
 
@@ -20,7 +19,7 @@ namespace MyPanelCarWashing
 
         public DateTime StartDate
         {
-            get => _startDate;
+            get { return _startDate; }
             set
             {
                 _startDate = value;
@@ -30,7 +29,7 @@ namespace MyPanelCarWashing
 
         public DateTime EndDate
         {
-            get => _endDate;
+            get { return _endDate; }
             set
             {
                 _endDate = value;
@@ -64,20 +63,22 @@ namespace MyPanelCarWashing
                     return;
                 }
 
-                // === 1. МАГИЯ БАЗЫ ДАННЫХ ВМЕСТО JSON ===
+                // 1. Получаем смены и клиентов
                 var periodReports = _SqliteDataService.GetShiftReportsFromDb(startDate, endDate);
                 int newClients = _SqliteDataService.GetNewClientsCount(startDate, endDate);
                 int uniqueClients = _SqliteDataService.GetUniqueClientsCount(startDate, endDate);
-                // =======================================
 
-                if (!periodReports.Any())
+                // 2. Получаем транзакции за период
+                var periodTransactions = _SqliteDataService.GetTransactionsByDateRange(startDate, endDate);
+
+                if (!periodReports.Any() && !periodTransactions.Any())
                 {
-                    MessageBox.Show($"За период с {startDate:dd.MM.yyyy} по {endDate:dd.MM.yyyy} нет закрытых смен",
+                    MessageBox.Show($"За период с {startDate:dd.MM.yyyy} по {endDate:dd.MM.yyyy} нет данных",
                         "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                // Итоговые суммы
+                // Итоговые суммы по заказам
                 var totalCars = periodReports.Sum(r => r.TotalCars);
                 var totalRevenue = periodReports.Sum(r => r.TotalRevenue);
                 var totalWasherEarnings = periodReports.Sum(r => r.TotalWasherEarnings);
@@ -91,10 +92,14 @@ namespace MyPanelCarWashing
                 var totalQrCount = periodReports.Sum(r => r.QrCount);
                 var totalQrAmount = periodReports.Sum(r => r.QrAmount);
 
+                // Итоговые суммы по транзакциям
+                var totalExpenses = periodTransactions.Where(t => t.Type == "Расход").Sum(t => t.Amount);
+                var totalAdvances = periodTransactions.Where(t => t.Type == "Аванс мойщику").Sum(t => t.Amount);
+
                 // Дневные сводки
                 var dailySummaries = periodReports
                     .OrderBy(r => r.Date)
-                    .Select(r => new Models.DailyReportSummary
+                    .Select(r => new DailyReportSummary
                     {
                         Date = r.Date,
                         TotalCars = r.TotalCars,
@@ -111,18 +116,15 @@ namespace MyPanelCarWashing
                         QrAmount = r.QrAmount
                     }).ToList();
 
-                // Статистика по сотрудникам
-                // ИСПОЛЬЗУЕМ НОВЫЙ КЛАСС EmployeeReport для итогового отчета
+                // Статистика по сотрудникам (Зарплатная ведомость)
                 var employeesData = new Dictionary<int, EmployeeReport>();
 
                 foreach (var report in periodReports.OrderBy(r => r.Date))
                 {
-                    // emp прилетает к нам как старый EmployeeWorkReport из одиночной смены
                     foreach (var emp in report.EmployeesWork)
                     {
                         if (!employeesData.ContainsKey(emp.EmployeeId))
                         {
-                            // А складываем мы всё в новый EmployeeReport, у которого ЕСТЬ DailyWork
                             employeesData[emp.EmployeeId] = new EmployeeReport
                             {
                                 EmployeeId = emp.EmployeeId,
@@ -130,6 +132,7 @@ namespace MyPanelCarWashing
                                 CarsWashed = 0,
                                 TotalAmount = 0,
                                 Earnings = 0,
+                                Advances = 0,
                                 DailyWork = new List<DailyEmployeeReport>()
                             };
                         }
@@ -137,14 +140,31 @@ namespace MyPanelCarWashing
                         employeesData[emp.EmployeeId].CarsWashed += emp.CarsWashed;
                         employeesData[emp.EmployeeId].TotalAmount += emp.TotalAmount;
                         employeesData[emp.EmployeeId].Earnings += emp.Earnings;
+                    }
+                }
 
-                        employeesData[emp.EmployeeId].DailyWork.Add(new DailyEmployeeReport
+                // Распределяем авансы по сотрудникам
+                foreach (var t in periodTransactions.Where(x => x.Type == "Аванс мойщику" && x.EmployeeId.HasValue))
+                {
+                    int empId = t.EmployeeId.Value;
+                    if (employeesData.ContainsKey(empId))
+                    {
+                        employeesData[empId].Advances += t.Amount;
+                    }
+                    else
+                    {
+                        var allUsers = _SqliteDataService.GetAllUsers();
+                        var user = allUsers.FirstOrDefault(u => u.Id == empId);
+                        if (user != null)
                         {
-                            Date = report.Date,
-                            CarsWashed = emp.CarsWashed,
-                            TotalAmount = emp.TotalAmount,
-                            Earnings = emp.Earnings
-                        });
+                            employeesData[empId] = new EmployeeReport
+                            {
+                                EmployeeId = empId,
+                                EmployeeName = user.FullName,
+                                Advances = t.Amount,
+                                DailyWork = new List<DailyEmployeeReport>()
+                            };
+                        }
                     }
                 }
 
@@ -159,13 +179,14 @@ namespace MyPanelCarWashing
                 TotalWasherText.Text = $"{totalWasherEarnings:N0} ₽";
                 TotalCompanyText.Text = $"{totalCompanyEarnings:N0} ₽";
 
-                // Обновляем стату по клиентам
-                if (UniqueClientsText != null) UniqueClientsText.Text = uniqueClients.ToString();
-                if (NewClientsText != null) NewClientsText.Text = newClients.ToString();
+                TotalAdvancesText.Text = $"{totalAdvances:N0} ₽";
+                TotalExpensesText.Text = $"{totalExpenses:N0} ₽";
+                NetProfitText.Text = $"{(totalCompanyEarnings - totalExpenses):N0} ₽";
 
-                DailyReportsList.ItemsSource = dailySummaries;
+                UniqueClientsText.Text = uniqueClients.ToString();
+                NewClientsText.Text = newClients.ToString();
+
                 EmployeesSalaryList.ItemsSource = employeesReport;
-                EmployeesDetailControl.ItemsSource = employeesReport;
 
                 ReportContent.Visibility = Visibility.Visible;
                 NoDataText.Visibility = Visibility.Collapsed;
@@ -179,6 +200,8 @@ namespace MyPanelCarWashing
                     TotalRevenue = totalRevenue,
                     TotalWasherEarnings = totalWasherEarnings,
                     TotalCompanyEarnings = totalCompanyEarnings,
+                    TotalAdvances = totalAdvances,
+                    TotalExpenses = totalExpenses,
                     CashCount = totalCashCount,
                     CashAmount = totalCashAmount,
                     CardCount = totalCardCount,
@@ -219,7 +242,7 @@ namespace MyPanelCarWashing
             var saveDialog = new Microsoft.Win32.SaveFileDialog
             {
                 Filter = "Excel файл (*.xlsx)|*.xlsx",
-                FileName = $"Выборочный_Отчет_{_currentReport.StartDate:dd.MM.yyyy}-{_currentReport.EndDate:dd.MM.yyyy}.xlsx",
+                FileName = $"Финансовый_Отчет_{_currentReport.StartDate:dd.MM.yyyy}-{_currentReport.EndDate:dd.MM.yyyy}.xlsx",
                 DefaultExt = ".xlsx"
             };
 

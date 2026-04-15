@@ -36,7 +36,8 @@ namespace MyPanelCarWashing
                     RegistrationDate = client.RegistrationDate,
                     TotalSpent = client.TotalSpent,
                     VisitsCount = client.VisitsCount,
-                    LastVisitDate = client.LastVisitDate
+                    LastVisitDate = client.LastVisitDate,
+                    DefaultDiscountPercent = client.DefaultDiscountPercent
                 };
                 WindowTitle = "✏ Редактирование клиента";
             }

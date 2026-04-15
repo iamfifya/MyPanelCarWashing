@@ -59,7 +59,6 @@ namespace MyPanelCarWashing
             services.AddTransient<ServiceManagementWindow>();
             services.AddTransient<AddEditServiceWindow>();
             services.AddTransient<ReportsWindow>();
-            services.AddTransient<MonthlyReportWindow>();
             services.AddTransient<CustomReportWindow>();
             services.AddTransient<StartShiftWindow>();
             services.AddTransient<AppointmentWindow>();

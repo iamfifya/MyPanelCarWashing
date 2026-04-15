@@ -146,6 +146,17 @@ namespace MyPanelCarWashing.Services
                 PRIMARY KEY (EmployeeId, Year, Month, Day),
                 FOREIGN KEY (EmployeeId) REFERENCES Users(Id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS Transactions (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ShiftId INTEGER,
+                EmployeeId INTEGER,
+                Amount REAL NOT NULL,
+                Type TEXT NOT NULL,
+                Comment TEXT,
+                DateTime TEXT NOT NULL,
+                FOREIGN KEY (ShiftId) REFERENCES Shifts(Id) ON DELETE CASCADE,
+                FOREIGN KEY (EmployeeId) REFERENCES Users(Id) ON DELETE SET NULL -- Внешний ключ
+            );
         ";
                 using (var command = new SQLiteCommand(createTables, connection))
                     command.ExecuteNonQuery();
@@ -413,135 +424,6 @@ namespace MyPanelCarWashing.Services
         private class ServiceSeed { public string Name; public int Duration; public string Description; public List<PriceSeed> Prices; }
         private class PriceSeed { public int Cat; public decimal Price; }
 
-        private bool TableHasData(SQLiteConnection connection, string tableName)
-        {
-            using (var cmd = new SQLiteCommand($"SELECT COUNT(*) FROM {tableName}", connection))
-                return (long)cmd.ExecuteScalar() > 0;
-        }
-
-        private void SeedDefaultData(SQLiteConnection connection)
-        {
-            // Проверяем, есть ли уже пользователи
-            using (var checkCmd = new SQLiteCommand("SELECT COUNT(*) FROM Users", connection))
-            {
-                long userCount = (long)checkCmd.ExecuteScalar();
-                System.Diagnostics.Debug.WriteLine($"SeedDefaultData: найдено пользователей: {userCount}");
-
-                if (userCount == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("Добавляем начальных пользователей...");
-                    using (var cmd = new SQLiteCommand(@"
-                INSERT INTO Users (FullName, Login, Password, IsAdmin, IsActive, Phone)
-                VALUES ('Анна', '1', '1', 1, 1, NULL);
-                INSERT INTO Users (FullName, Login, Password, IsAdmin, IsActive, Phone)
-                VALUES ('Анастасия', '1', '1', 1, 1, NULL);
-                INSERT INTO Users (FullName, Login, Password, IsAdmin, IsActive, Phone)
-                VALUES ('переименуй меня', '1', '1', 0, 1, NULL);
-            ", connection))
-                        cmd.ExecuteNonQuery();
-                }
-            }
-
-            // Проверяем, есть ли уже услуги
-            using (var checkServices = new SQLiteCommand("SELECT COUNT(*) FROM Services", connection))
-            {
-                long servicesCount = (long)checkServices.ExecuteScalar();
-                System.Diagnostics.Debug.WriteLine($"SeedDefaultData: найдено услуг: {servicesCount}");
-
-                if (servicesCount > 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("Услуги уже есть, пропускаем добавление");
-                    return;
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine("=== Добавляем начальные услуги ===");
-
-            var servicesData = new List<ServiceSeed>();
-            servicesData.Add(new ServiceSeed
-            {
-                Name = "Техническая мойка",
-                Duration = 30,
-                Description = "Двухфазная мойка без сушки, коврики",
-                Prices = new List<PriceSeed> {
-            new PriceSeed { Cat = 1, Price = 700m },
-            new PriceSeed { Cat = 2, Price = 750m },
-            new PriceSeed { Cat = 3, Price = 850m },
-            new PriceSeed { Cat = 4, Price = 900m }
-        }
-            });
-            servicesData.Add(new ServiceSeed
-            {
-                Name = "Профессиональная мойка кузова",
-                Duration = 45,
-                Description = "Двухфазная мойка, воск, турбосушка, коврики, педальный блок",
-                Prices = new List<PriceSeed> {
-            new PriceSeed { Cat = 1, Price = 1000m },
-            new PriceSeed { Cat = 2, Price = 1200m },
-            new PriceSeed { Cat = 3, Price = 1400m },
-            new PriceSeed { Cat = 4, Price = 1700m }
-        }
-            });
-            servicesData.Add(new ServiceSeed
-            {
-                Name = "Комплекс \"ИЗИ\"",
-                Duration = 60,
-                Description = "Трехфазная мойка, влажная уборка, пылесос, стекла, турбосушка, коврики, педальный блок, чернение",
-                Prices = new List<PriceSeed> {
-            new PriceSeed { Cat = 1, Price = 1900m },
-            new PriceSeed { Cat = 2, Price = 2100m },
-            new PriceSeed { Cat = 3, Price = 2400m },
-            new PriceSeed { Cat = 4, Price = 2700m }
-        }
-            });
-            servicesData.Add(new ServiceSeed
-            {
-                Name = "Комплекс \"Глянец\"",
-                Duration = 90,
-                Description = "Двухфазная мойка, кварц, влажная уборка, пылесос, стекла, багажник, полироль, турбосушка, коврики, педальный блок, чернение",
-                Prices = new List<PriceSeed> {
-            new PriceSeed { Cat = 1, Price = 2900m },
-            new PriceSeed { Cat = 2, Price = 3100m },
-            new PriceSeed { Cat = 3, Price = 3400m },
-            new PriceSeed { Cat = 4, Price = 3700m }
-        }
-            });
-
-            foreach (var s in servicesData)
-            {
-                using (var ins = new SQLiteCommand(@"
-            INSERT INTO Services (Name, DurationMinutes, Description, IsActive)
-            VALUES (@name, @dur, @desc, 1);
-            SELECT last_insert_rowid();
-        ", connection))
-                {
-                    ins.Parameters.AddWithValue("@name", s.Name);
-                    ins.Parameters.AddWithValue("@dur", s.Duration);
-                    ins.Parameters.AddWithValue("@desc", s.Description);
-                    long serviceId = (long)ins.ExecuteScalar();
-                    System.Diagnostics.Debug.WriteLine($"Добавлена услуга: ID={serviceId}, Name={s.Name}");
-
-                    foreach (var p in s.Prices)
-                    {
-                        using (var priceCmd = new SQLiteCommand(@"
-                    INSERT INTO ServicePrices (ServiceId, BodyTypeCategory, Price)
-                    VALUES (@sid, @cat, @price);
-                ", connection))
-                        {
-                            priceCmd.Parameters.AddWithValue("@sid", serviceId);
-                            priceCmd.Parameters.AddWithValue("@cat", p.Cat);
-                            priceCmd.Parameters.AddWithValue("@price", p.Price);
-                            priceCmd.ExecuteNonQuery();
-                            System.Diagnostics.Debug.WriteLine($"  Цена: Cat={p.Cat}, Price={p.Price}");
-                        }
-                    }
-                }
-            }
-        }
-
-
-
-
         // ---- Users ----
         public List<User> GetAllUsers() => GetAllUsersIncludingInactive().Where(u => u.IsActive).ToList();
         public List<User> GetAllUsersIncludingInactive()
@@ -603,42 +485,56 @@ namespace MyPanelCarWashing.Services
 
         public void AddUser(User user)
         {
-            using (var connection = new SQLiteConnection(_connectionString))
+            try
             {
-                connection.Open();
-                var cmd = connection.CreateCommand();
-                cmd.CommandText = @"
-                    INSERT INTO Users (FullName, Login, Password, IsAdmin, IsActive, Phone)
-                    VALUES (@fullname, @login, @pwd, @isAdmin, 1, @phone);
-                    SELECT last_insert_rowid();
-                ";
-                cmd.Parameters.AddWithValue("@fullname", user.FullName);
-                cmd.Parameters.AddWithValue("@login", user.Login);
-                cmd.Parameters.AddWithValue("@pwd", user.Password);
-                cmd.Parameters.AddWithValue("@isAdmin", user.IsAdmin ? 1 : 0);
-                cmd.Parameters.AddWithValue("@phone", user.Phone ?? (object)DBNull.Value);
-                user.Id = (int)(long)cmd.ExecuteScalar();
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+                    var cmd = connection.CreateCommand();
+                    cmd.CommandText = @"
+                        INSERT INTO Users (FullName, Login, Password, IsAdmin, IsActive, Phone)
+                        VALUES (@fullname, @login, @pwd, @isAdmin, 1, @phone);
+                        SELECT last_insert_rowid();
+                    ";
+                    cmd.Parameters.AddWithValue("@fullname", user.FullName);
+                    cmd.Parameters.AddWithValue("@login", user.Login);
+                    cmd.Parameters.AddWithValue("@pwd", user.Password);
+                    cmd.Parameters.AddWithValue("@isAdmin", user.IsAdmin ? 1 : 0);
+                    cmd.Parameters.AddWithValue("@phone", user.Phone ?? (object)DBNull.Value);
+                    user.Id = (int)(long)cmd.ExecuteScalar();
+                }
+            }
+            catch (SQLiteException ex) when (ex.ErrorCode == 19) // 19 = Ошибка уникальности (Constraint Violation)
+            {
+                throw new Exception("Сотрудник с таким логином уже существует! Придумайте другой логин.");
             }
         }
 
         public void UpdateUser(User user)
         {
-            using (var connection = new SQLiteConnection(_connectionString))
+            try
             {
-                connection.Open();
-                var cmd = connection.CreateCommand();
-                cmd.CommandText = @"
-                    UPDATE Users 
-                    SET FullName = @fullname, Login = @login, Password = @pwd, IsAdmin = @isAdmin, IsActive = @isActive, Phone = @phone
-                    WHERE Id = @id";
-                cmd.Parameters.AddWithValue("@fullname", user.FullName);
-                cmd.Parameters.AddWithValue("@login", user.Login);
-                cmd.Parameters.AddWithValue("@pwd", user.Password);
-                cmd.Parameters.AddWithValue("@isAdmin", user.IsAdmin ? 1 : 0);
-                cmd.Parameters.AddWithValue("@isActive", user.IsActive ? 1 : 0);
-                cmd.Parameters.AddWithValue("@phone", user.Phone ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@id", user.Id);
-                cmd.ExecuteNonQuery();
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+                    var cmd = connection.CreateCommand();
+                    cmd.CommandText = @"
+                        UPDATE Users 
+                        SET FullName = @fullname, Login = @login, Password = @pwd, IsAdmin = @isAdmin, IsActive = @isActive, Phone = @phone
+                        WHERE Id = @id";
+                    cmd.Parameters.AddWithValue("@fullname", user.FullName);
+                    cmd.Parameters.AddWithValue("@login", user.Login);
+                    cmd.Parameters.AddWithValue("@pwd", user.Password);
+                    cmd.Parameters.AddWithValue("@isAdmin", user.IsAdmin ? 1 : 0);
+                    cmd.Parameters.AddWithValue("@isActive", user.IsActive ? 1 : 0);
+                    cmd.Parameters.AddWithValue("@phone", user.Phone ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@id", user.Id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch (SQLiteException ex) when (ex.ErrorCode == 19) // 19 = Ошибка уникальности
+            {
+                throw new Exception("Сотрудник с таким логином уже существует! Придумайте другой логин.");
             }
         }
 
@@ -2017,7 +1913,6 @@ namespace MyPanelCarWashing.Services
             {
                 connection.Open();
                 var cmd = connection.CreateCommand();
-                // date() - встроенная функция SQLite для точного сравнения дат
                 cmd.CommandText = @"
             SELECT Id, Date, StartTime, EndTime, Notes
             FROM Shifts
@@ -2046,19 +1941,25 @@ namespace MyPanelCarWashing.Services
             {
                 var orders = GetOrdersByShiftId(s.Id).Where(o => o.Status != "Отменен").ToList();
 
+                // Загружаем все транзакции для этой смены
+                var shiftTransactions = GetTransactionsByShiftId(s.Id);
+
                 var report = new ShiftReport
                 {
+                    Id = s.Id,
                     Date = s.Date,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
                     Notes = s.Notes,
                     TotalCars = orders.Count,
-                    // ИЗМЕНЕНИЕ 1: Использовать EmployeeWorkReport
-                    EmployeesWork = new List<EmployeeWorkReport>()
+                    // Считаем общие расходы и авансы смены
+                    TotalExpenses = shiftTransactions.Where(t => t.Type == "Расход").Sum(t => t.Amount),
+                    TotalAdvances = shiftTransactions.Where(t => t.Type == "Аванс мойщику").Sum(t => t.Amount),
+                    EmployeesWork = new List<EmployeeReport>()
                 };
 
-                // ИЗМЕНЕНИЕ 2: Использовать EmployeeWorkReport
-                var employeeStats = new Dictionary<int, EmployeeWorkReport>();
+                // ВОТ ЗДЕСЬ БЫЛА ОШИБКА! Меняем EmployeeWorkReport на EmployeeReport
+                var employeeStats = new Dictionary<int, EmployeeReport>();
 
                 foreach (var order in orders)
                 {
@@ -2078,11 +1979,16 @@ namespace MyPanelCarWashing.Services
 
                     if (!employeeStats.ContainsKey(order.WasherId))
                     {
-                        // ИЗМЕНЕНИЕ 3: Использовать EmployeeWorkReport
-                        employeeStats[order.WasherId] = new EmployeeWorkReport
+                        // И ЗДЕСЬ ТОЖЕ EmployeeReport
+                        employeeStats[order.WasherId] = new EmployeeReport
                         {
                             EmployeeId = order.WasherId,
                             EmployeeName = allUsers.ContainsKey(order.WasherId) ? allUsers[order.WasherId].FullName : "Неизвестно",
+                            CarsWashed = 0,
+                            TotalAmount = 0,
+                            Earnings = 0,
+                            Advances = 0,
+                            DailyWork = new List<DailyEmployeeReport>() // Пустой список, чтобы не было NullReferenceException
                         };
                     }
 
@@ -2091,23 +1997,26 @@ namespace MyPanelCarWashing.Services
                     employeeStats[order.WasherId].Earnings += calc.WasherEarnings;
                 }
 
-                // --- ДОПЛАТА ДО МИНИМАЛКИ ЗА СМЕНУ ---
+                // --- ДОПЛАТА ДО МИНИМАЛКИ ЗА СМЕНУ И РАСПРЕДЕЛЕНИЕ АВАНСОВ ---
                 foreach (var empStat in employeeStats.Values)
                 {
                     var washerOrders = orders.Where(o => o.WasherId == empStat.EmployeeId).ToList();
                     bool isAdmin = allUsers.ContainsKey(empStat.EmployeeId) && allUsers[empStat.EmployeeId].IsAdmin;
 
-                    // OrderMath сам решит, нужно ли доплачивать до 1000 рублей
                     decimal finalWasherPay = OrderMath.CalculateWasherShiftPay(washerOrders, allServices, isAdmin);
 
-                    // Если была доплата от компании, корректируем итоговые суммы смены
                     decimal extraPay = finalWasherPay - empStat.Earnings;
                     if (extraPay > 0)
                     {
                         empStat.Earnings = finalWasherPay;
                         report.TotalWasherEarnings += extraPay;
-                        report.TotalCompanyEarnings -= extraPay; // Доплата вычитается из прибыли компании
+                        report.TotalCompanyEarnings -= extraPay;
                     }
+
+                    // Привязываем авансы к конкретному мойщику
+                    empStat.Advances = shiftTransactions
+                        .Where(t => t.Type == "Аванс мойщику" && t.EmployeeId == empStat.EmployeeId)
+                        .Sum(t => t.Amount);
 
                     report.EmployeesWork.Add(empStat);
                 }
@@ -2116,6 +2025,96 @@ namespace MyPanelCarWashing.Services
             }
 
             return reports;
+        }
+        // ---- Transactions (Касса) ----
+        public void AddTransaction(Transaction transaction)
+        {
+            using (var connection = new SQLiteConnection(_connectionString))
+            {
+                connection.Open();
+                var cmd = connection.CreateCommand();
+                cmd.CommandText = @"
+                    INSERT INTO Transactions (ShiftId, EmployeeId, Amount, Type, Comment, DateTime)
+                    VALUES (@sid, @eid, @amt, @type, @comment, @dt);
+                    SELECT last_insert_rowid();
+                ";
+                cmd.Parameters.AddWithValue("@sid", transaction.ShiftId ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@eid", transaction.EmployeeId ?? (object)DBNull.Value); // Сохраняем EmployeeId
+                cmd.Parameters.AddWithValue("@amt", transaction.Amount);
+                cmd.Parameters.AddWithValue("@type", transaction.Type);
+                cmd.Parameters.AddWithValue("@comment", transaction.Comment ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@dt", transaction.DateTime.ToString("yyyy-MM-dd HH:mm:ss"));
+
+                transaction.Id = (int)(long)cmd.ExecuteScalar();
+            }
+        }
+
+        public List<Transaction> GetTransactionsByShiftId(int shiftId)
+        {
+            var list = new List<Transaction>();
+            using (var connection = new SQLiteConnection(_connectionString))
+            {
+                connection.Open();
+                var cmd = connection.CreateCommand();
+                // Добавили EmployeeId в SELECT
+                cmd.CommandText = "SELECT Id, ShiftId, Amount, Type, Comment, DateTime, EmployeeId FROM Transactions WHERE ShiftId = @sid ORDER BY DateTime DESC";
+                cmd.Parameters.AddWithValue("@sid", shiftId);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        list.Add(new Transaction
+                        {
+                            Id = reader.GetInt32(0),
+                            ShiftId = reader.IsDBNull(1) ? (int?)null : reader.GetInt32(1),
+                            Amount = (decimal)reader.GetDouble(2),
+                            Type = reader.GetString(3),
+                            Comment = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            DateTime = DateTime.Parse(reader.GetString(5)),
+                            EmployeeId = reader.IsDBNull(6) ? (int?)null : reader.GetInt32(6) // Читаем EmployeeId
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+        public List<Transaction> GetTransactionsByDateRange(DateTime startDate, DateTime endDate)
+        {
+            var list = new List<Transaction>();
+            using (var connection = new SQLiteConnection(_connectionString))
+            {
+                connection.Open();
+                var cmd = connection.CreateCommand();
+
+                // date() позволяет корректно сравнивать даты, игнорируя время
+                cmd.CommandText = @"
+                    SELECT Id, ShiftId, Amount, Type, Comment, DateTime, EmployeeId 
+                    FROM Transactions 
+                    WHERE date(DateTime) >= date(@start) AND date(DateTime) <= date(@end) 
+                    ORDER BY DateTime DESC";
+
+                cmd.Parameters.AddWithValue("@start", startDate.ToString("yyyy-MM-dd"));
+                cmd.Parameters.AddWithValue("@end", endDate.ToString("yyyy-MM-dd"));
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        list.Add(new Transaction
+                        {
+                            Id = reader.GetInt32(0),
+                            ShiftId = reader.IsDBNull(1) ? (int?)null : reader.GetInt32(1),
+                            Amount = (decimal)reader.GetDouble(2),
+                            Type = reader.GetString(3),
+                            Comment = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            DateTime = DateTime.Parse(reader.GetString(5)),
+                            EmployeeId = reader.IsDBNull(6) ? (int?)null : reader.GetInt32(6)
+                        });
+                    }
+                }
+            }
+            return list;
         }
     }
 }

@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MyPanelCarWashing"
-        xmlns:controls="clr-namespace:MyPanelCarWashing.Controls" 
         mc:Ignorable="d"
         Title="Клиентская база"
         WindowStartupLocation="CenterScreen"
@@ -56,8 +55,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
-        <Grid Margin="10">
+    <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -238,7 +236,7 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border x:Name="RowBorder" Style="{StaticResource TableRowStyle}">
-                                <Grid>
+                                <Grid> 
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="0.6*" MinWidth="40"/>
                                         <ColumnDefinition Width="1.8*" MinWidth="100"/>
@@ -331,13 +329,9 @@
 
         <!-- Кнопка закрытия -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15">
-        <Button Content="✖ Закрыть" Click="CloseButton_Click" 
+            <Button Content="✖ Закрыть" Click="CloseButton_Click" 
                     MinWidth="80" MaxWidth="120" Height="35" 
                     Margin="5" Background="#E74C3C" Foreground="White"/>
         </StackPanel>
-
-    </Grid>
-    <controls:ClientDetailsOverlay x:Name="DetailsOverlay" Visibility="Collapsed" Panel.ZIndex="100"/>
-
     </Grid>
 </Window>

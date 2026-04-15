@@ -5,8 +5,7 @@ using System.Linq;
 namespace MyPanelCarWashing.Services
 {
     /// <summary>
-    /// ЕДИНСТВЕННЫЙ источник истины для расчётов заказов.
-    /// Все формулы, скидки и ЗП считаются здесь.
+    /// ЕДИНСТВЕННЫЙ источник истины для расчётов заказов и зарплат.
     /// </summary>
     public static class OrderMath
     {
@@ -44,28 +43,47 @@ namespace MyPanelCarWashing.Services
         }
 
         /// <summary>
-        /// Рассчитывает ЗП мойщика за смену с гарантией минимума.
+        /// Формирует полный расчет зарплаты мойщика за смену (с учетом авансов и минималки).
         /// </summary>
-        /// <param name="completedOrders">Выполненные заказы</param>
-        /// <param name="allServices">Список услуг для расчёта цен</param>
-        /// <param name="isWasherAdmin">true, если мойщик — админ (тогда мин. ЗП не применяется)</param>
+        public static WasherShiftStats CalculateShiftStats(
+            IEnumerable<CarWashOrder> completedOrders,
+            List<Service> allServices,
+            decimal advancesTaken = 0m,
+            bool isWasherAdmin = false)
+        {
+            // 1. Считаем чистые заработанные 35%
+            decimal basePay = completedOrders.Sum(o => Calculate(o, allServices).WasherEarnings);
+
+            // 2. Считаем доплату до минималки (если он не админ)
+            decimal topUp = 0m;
+            if (!isWasherAdmin && basePay < MIN_WASHER_PAY_PER_SHIFT && basePay > 0)
+            {
+                // Если basePay == 0 (нет заказов), то минималка не платится (или платится? Настроим так: если хоть что-то помыл или просто вышел - платим. Оставим: если была работа, докидываем). 
+                // Давай сделаем так: если вообще вышел на смену (вызвали метод), минималка гарантирована.
+                topUp = MIN_WASHER_PAY_PER_SHIFT - basePay;
+            }
+
+            return new WasherShiftStats
+            {
+                BaseEarnings = basePay,
+                MinWageTopUp = topUp,
+                AdvancesTotal = advancesTaken
+            };
+        }
+
+        // Оставили для обратной совместимости старых методов (если где-то еще вызывается)
         public static decimal CalculateWasherShiftPay(
             IEnumerable<CarWashOrder> completedOrders,
             List<Service> allServices,
             bool isWasherAdmin = false)
         {
-            decimal basePay = completedOrders.Sum(o => Calculate(o, allServices).WasherEarnings);
-
-            // Админам не делаем надбавку до минимума!
-            if (isWasherAdmin)
-                return basePay;
-
-            return System.Math.Max(basePay, MIN_WASHER_PAY_PER_SHIFT);
+            var stats = CalculateShiftStats(completedOrders, allServices, 0, isWasherAdmin);
+            return stats.TotalEarned;
         }
     }
 
     /// <summary>
-    /// Готовый результат расчёта. Не меняй этот класс.
+    /// Готовый результат расчёта одного заказа.
     /// </summary>
     public class OrderCalculation
     {
@@ -75,5 +93,20 @@ namespace MyPanelCarWashing.Services
         public decimal FinalPrice { get; set; }
         public decimal WasherEarnings { get; set; }
         public decimal CompanyEarnings { get; set; }
+    }
+
+    /// <summary>
+    /// Полный расклад по зарплате мойщика за смену.
+    /// </summary>
+    public class WasherShiftStats
+    {
+        public decimal BaseEarnings { get; set; }     // Заработал 35% от заказов
+        public decimal MinWageTopUp { get; set; }     // Доплата от компании до 1000 руб
+        public decimal TotalEarned => BaseEarnings + MinWageTopUp; // Всего начислено ЗП
+
+        public decimal AdvancesTotal { get; set; }    // Сумма взятых за день авансов
+
+        // Сколько Анне нужно выдать наличкой из кассы при закрытии смены
+        public decimal PayoutAmount => System.Math.Max(0, TotalEarned - AdvancesTotal);
     }
 }

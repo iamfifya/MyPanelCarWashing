@@ -30,7 +30,7 @@ namespace MyPanelCarWashing
             _SqliteDataService = SqliteDataService;
             _currentShift = currentShift;
             ClientComboBox.SelectionChanged += ClientComboBox_SelectionChanged;
-            
+
 
             viewModel.Initialize(currentShift, order);
             _viewModel = viewModel;

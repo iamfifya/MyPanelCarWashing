@@ -3,7 +3,6 @@ using MyPanelCarWashing.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,7 +19,7 @@ namespace MyPanelCarWashing
 
         public List<ShiftReport> Reports
         {
-            get => _reports;
+            get { return _reports; }
             set
             {
                 _reports = value;
@@ -30,7 +29,7 @@ namespace MyPanelCarWashing
 
         public ShiftReport SelectedReport
         {
-            get => _selectedReport;
+            get { return _selectedReport; }
             set
             {
                 _selectedReport = value;
@@ -50,10 +49,7 @@ namespace MyPanelCarWashing
         {
             try
             {
-                // Запрашиваем все отчеты из БД за очень широкий диапазон (от 2020 до 2050 года)
-                // GetShiftReportsFromDb сам соберет все закрытые смены и посчитает суммы!
                 var allReports = _SqliteDataService.GetShiftReportsFromDb(new DateTime(2020, 1, 1), new DateTime(2050, 1, 1));
-
                 Reports = allReports.OrderByDescending(r => r.Date).ToList();
 
                 if (Reports.Any())
@@ -63,17 +59,8 @@ namespace MyPanelCarWashing
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки отчетов: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Ошибка загрузки отчетов: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private void OpenFolderButton_Click(object sender, RoutedEventArgs args)
-        {
-            // Так как папки больше нет, просто сообщаем пользователю крутую новость :)
-            MessageBox.Show("Все отчеты теперь надежно зашифрованы и хранятся прямо внутри единой Базы Данных SQLite!\n\n" +
-                            "Вам больше не нужно искать файлы на диске. Вы можете экспортировать любой отчет в Excel по кнопке 'Экспорт'.",
-                            "Новая архитектура", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void ReportSelectionChanged(object sender, SelectionChangedEventArgs args)
@@ -81,16 +68,6 @@ namespace MyPanelCarWashing
             SelectedReport = ReportsListBox.SelectedItem as ShiftReport;
         }
 
-        private void RefreshButton_Click(object sender, RoutedEventArgs args)
-        {
-            LoadReports();
-        }
-
-        private void MonthlyReportButton_Click(object sender, RoutedEventArgs e)
-        {
-            var monthlyReportWin = new MonthlyReportWindow(_SqliteDataService);
-            monthlyReportWin.ShowDialog();
-        }
         private void CustomReportButton_Click(object sender, RoutedEventArgs e)
         {
             var customReportWin = new CustomReportWindow(_SqliteDataService);
@@ -101,8 +78,7 @@ namespace MyPanelCarWashing
         {
             if (SelectedReport == null)
             {
-                MessageBox.Show("Выберите отчет для экспорта", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Выберите отчет для экспорта", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -110,40 +86,31 @@ namespace MyPanelCarWashing
             {
                 var saveDialog = new Microsoft.Win32.SaveFileDialog
                 {
-                    Filter = "Excel файлы (*.xlsx)|*.xlsx|CSV файлы (*.csv)|*.csv|JSON файлы (*.json)|*.json",
-                    DefaultExt = "xlsx",
-                    FileName = $"ShiftReport_{SelectedReport.Date:yyyy-MM-dd}"
+                    Filter = "CSV файлы (*.csv)|*.csv|JSON файлы (*.json)|*.json",
+                    DefaultExt = "csv",
+                    FileName = $"Отчет_Смена_{SelectedReport.Date:yyyy-MM-dd}"
                 };
 
                 if (saveDialog.ShowDialog() == true)
                 {
                     string extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLower();
 
-                    if (extension == ".xlsx")
-                    {
-                        ExcelExporter.ExportShiftReport(SelectedReport, saveDialog.FileName);
-                        MessageBox.Show($"Отчет успешно экспортирован в Excel\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else if (extension == ".csv")
+                    if (extension == ".csv")
                     {
                         ExportToCsv(SelectedReport, saveDialog.FileName);
-                        MessageBox.Show($"Отчет успешно экспортирован в CSV\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"Отчет успешно экспортирован в CSV\n\n{saveDialog.FileName}", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else if (extension == ".json")
                     {
                         var json = Newtonsoft.Json.JsonConvert.SerializeObject(SelectedReport, Newtonsoft.Json.Formatting.Indented);
                         System.IO.File.WriteAllText(saveDialog.FileName, json);
-                        MessageBox.Show($"Отчет успешно экспортирован в JSON\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"Отчет успешно экспортирован в JSON\n\n{saveDialog.FileName}", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -151,17 +118,17 @@ namespace MyPanelCarWashing
         {
             var lines = new List<string>();
 
-            lines.Add("Дата;Время начала;Время окончания;Машин;Выручка;Мойщикам;Компании;Примечание");
+            lines.Add("Дата;Время начала;Время окончания;Машин;Выручка;Начислено Мойщикам;Расходы;Выдано авансов;Чистая прибыль(ЧПКО);Примечание");
             lines.Add($"{report.Date:dd.MM.yyyy};{report.StartTime:HH:mm};{report.EndTime:HH:mm};" +
-                      $"{report.TotalCars};{report.TotalRevenue:N0} ₽;{report.TotalWasherEarnings:N0} ₽;" +
-                      $"{report.TotalCompanyEarnings:N0} ₽;{report.Notes}");
+                      $"{report.TotalCars};{report.TotalRevenue:N0};{report.TotalWasherEarnings:N0};" +
+                      $"{report.TotalExpenses:N0};{report.TotalAdvances:N0};{report.NetProfit:N0};{report.Notes}");
 
             lines.Add("");
-            lines.Add("Сотрудник;Машин;Выручка;Заработок (35%)");
+            lines.Add("Сотрудник;Машин;Выручка(с машин);Начислено(ЗП+Мин);Взято авансов;К ВЫПЛАТЕ");
 
             foreach (var emp in report.EmployeesWork)
             {
-                lines.Add($"{emp.EmployeeName};{emp.CarsWashed};{emp.TotalAmount:N0} ₽;{emp.Earnings:N0} ₽");
+                lines.Add($"{emp.EmployeeName};{emp.CarsWashed};{emp.TotalAmount:N0};{emp.Earnings:N0};{emp.Advances:N0};{emp.ToPay:N0}");
             }
 
             System.IO.File.WriteAllLines(filePath, lines, System.Text.Encoding.UTF8);

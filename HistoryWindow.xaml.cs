@@ -12,7 +12,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly SqliteDataService _sqliteDataService;
+        private readonly SqliteDataService _SqliteDataService;
 
         private List<OrderDisplayItem> _box1History;
         private List<OrderDisplayItem> _box2History;
@@ -43,14 +43,14 @@ namespace MyPanelCarWashing
             set { _shiftSummary = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShiftSummary))); }
         }
 
-        public HistoryWindow(SqliteDataService dataService)
+        public HistoryWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _sqliteDataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
 
             // Ищем последнюю закрытую смену, чтобы не показывать пустой экран
-            var lastClosedShift = _sqliteDataService.GetAllShifts()
+            var lastClosedShift = _SqliteDataService.GetAllShifts()
                                                     .Where(s => s.IsClosed)
                                                     .OrderByDescending(s => s.Date)
                                                     .FirstOrDefault();
@@ -77,7 +77,7 @@ namespace MyPanelCarWashing
         {
             try
             {
-                var allShifts = _sqliteDataService.GetAllShifts();
+                var allShifts = _SqliteDataService.GetAllShifts();
                 var closedShiftsOnDate = allShifts.Where(s => s.Date.Date == date.Date && s.IsClosed).ToList();
 
                 if (!closedShiftsOnDate.Any())
@@ -94,12 +94,12 @@ namespace MyPanelCarWashing
                 foreach (var shift in closedShiftsOnDate)
                 {
                     // Дергаем тот самый новый метод из SqliteDataService
-                    var shiftOrders = _sqliteDataService.GetOrdersByShiftId(shift.Id);
+                    var shiftOrders = _SqliteDataService.GetOrdersByShiftId(shift.Id);
                     allOrdersOnDate.AddRange(shiftOrders);
                 }
 
-                var allServices = _sqliteDataService.GetAllServices();
-                var allUsers = _sqliteDataService.GetAllUsers();
+                var allServices = _SqliteDataService.GetAllServices();
+                var allUsers = _SqliteDataService.GetAllUsers();
 
                 var displayItems = allOrdersOnDate.Select(o => new OrderDisplayItem
                 {

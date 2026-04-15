@@ -1,10 +1,10 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace MyPanelCarWashing.Models
 {
-    // --- 1. Базовый класс для любого отчета (смена, месяц, период) ---
+    // --- 1. Базовый класс для отчетов ---
     public class BaseReport
     {
         public int TotalCars { get; set; }
@@ -12,46 +12,49 @@ namespace MyPanelCarWashing.Models
         public decimal TotalWasherEarnings { get; set; }
         public decimal TotalCompanyEarnings { get; set; }
 
-        // --- ИСПРАВЛЕННАЯ СТАТИСТИКА ПО ОПЛАТАМ ---
         [JsonProperty("TotalCashCount")]
         public int CashCount { get; set; }
-
         [JsonProperty("TotalCashAmount")]
         public decimal CashAmount { get; set; }
 
         [JsonProperty("TotalCardCount")]
         public int CardCount { get; set; }
-
         [JsonProperty("TotalCardAmount")]
         public decimal CardAmount { get; set; }
 
         [JsonProperty("TotalTransferCount")]
         public int TransferCount { get; set; }
-
         [JsonProperty("TotalTransferAmount")]
         public decimal TransferAmount { get; set; }
 
         [JsonProperty("TotalQrCount")]
         public int QrCount { get; set; }
-
         [JsonProperty("TotalQrAmount")]
         public decimal QrAmount { get; set; }
 
-        // НОВЫЕ ПОЛЯ АНАЛИТИКИ КЛИЕНТОВ (их можно оставить без атрибутов)
+        // Поля аналитики клиентов
         public int UniqueClientsCount { get; set; }
         public int NewClientsCount { get; set; }
 
-        public List<ServiceAnalytics> TopServices { get; set; } = new List<ServiceAnalytics>();
+        // Финансы и касса
+        public decimal TotalAdvances { get; set; }
+        public decimal TotalExpenses { get; set; }
+        public decimal NetProfit
+        {
+            get { return TotalCompanyEarnings - TotalExpenses; }
+        }
+
         public List<EmployeeReport> EmployeesWork { get; set; } = new List<EmployeeReport>();
     }
 
-    // --- 2. Модель для Месячного отчета ---
-    public class MonthlyReport : BaseReport
+    // --- 2. Модель для конкретной смены (Ежедневный отчет) ---
+    public class ShiftReport : BaseReport
     {
-        public int Year { get; set; }
-        public int Month { get; set; }
-        public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM yyyy");
-        public List<DailyReportSummary> DailyReports { get; set; } = new List<DailyReportSummary>();
+        public int Id { get; set; }
+        public DateTime Date { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public string Notes { get; set; }
     }
 
     // --- 3. Модель для Выборочного (Интервального) отчета ---
@@ -62,8 +65,7 @@ namespace MyPanelCarWashing.Models
         public List<DailyReportSummary> DailyReports { get; set; } = new List<DailyReportSummary>();
     }
 
-    // --- 4. Вспомогательные классы (унифицированные имена) ---
-
+    // --- 4. Вспомогательные классы ---
     public class DailyReportSummary : BaseReport
     {
         public DateTime Date { get; set; }
@@ -75,7 +77,14 @@ namespace MyPanelCarWashing.Models
         public string EmployeeName { get; set; }
         public int CarsWashed { get; set; }
         public decimal TotalAmount { get; set; }
-        public decimal Earnings { get; set; }
+        public decimal Earnings { get; set; } // Итого начислено (35% + минималка)
+
+        public decimal Advances { get; set; } // Взято авансов
+        public decimal ToPay
+        {
+            get { return Math.Max(0, Earnings - Advances); } // Итого к выдаче
+        }
+
         public List<DailyEmployeeReport> DailyWork { get; set; } = new List<DailyEmployeeReport>();
     }
 
@@ -87,7 +96,6 @@ namespace MyPanelCarWashing.Models
         public decimal Earnings { get; set; }
     }
 
-    // Класс для аналитики услуг (Топ любимых услуг)
     public class ServiceAnalytics
     {
         public string ServiceName { get; set; }
