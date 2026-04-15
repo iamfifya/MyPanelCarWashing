@@ -13,7 +13,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private DateTime _startDate;
         private DateTime _endDate;
         private CustomPeriodReport _currentReport;
@@ -38,10 +38,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public CustomReportWindow(DataService dataService)
+        public CustomReportWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
 
             StartDate = DateTime.Now.AddDays(-6);
@@ -60,39 +60,19 @@ namespace MyPanelCarWashing
 
                 if (startDate > endDate)
                 {
-                    MessageBox.Show("Дата начала не может быть позже даты окончания", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Дата начала не может быть позже даты окончания", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-                if (!Directory.Exists(reportsPath))
-                {
-                    MessageBox.Show("Отчеты не найдены", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                var reportFiles = Directory.GetFiles(reportsPath, "ShiftReport_*.json");
-                var periodReports = new List<ShiftReport>();
-
-                foreach (var file in reportFiles)
-                {
-                    try
-                    {
-                        var json = File.ReadAllText(file);
-                        var report = Newtonsoft.Json.JsonConvert.DeserializeObject<ShiftReport>(json);
-                        if (report != null && report.Date.Date >= startDate.Date && report.Date.Date <= endDate.Date)
-                        {
-                            periodReports.Add(report);
-                        }
-                    }
-                    catch { }
-                }
+                // === 1. МАГИЯ БАЗЫ ДАННЫХ ВМЕСТО JSON ===
+                var periodReports = _SqliteDataService.GetShiftReportsFromDb(startDate, endDate);
+                int newClients = _SqliteDataService.GetNewClientsCount(startDate, endDate);
+                int uniqueClients = _SqliteDataService.GetUniqueClientsCount(startDate, endDate);
+                // =======================================
 
                 if (!periodReports.Any())
                 {
-                    MessageBox.Show($"За период с {startDate:dd.MM.yyyy} по {endDate:dd.MM.yyyy} нет отчетов",
+                    MessageBox.Show($"За период с {startDate:dd.MM.yyyy} по {endDate:dd.MM.yyyy} нет закрытых смен",
                         "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -117,10 +97,10 @@ namespace MyPanelCarWashing
                     .Select(r => new Models.DailyReportSummary
                     {
                         Date = r.Date,
-                        Cars = r.TotalCars,
-                        Revenue = r.TotalRevenue,
-                        WasherEarnings = r.TotalWasherEarnings,
-                        CompanyEarnings = r.TotalCompanyEarnings,
+                        TotalCars = r.TotalCars,
+                        TotalRevenue = r.TotalRevenue,
+                        TotalWasherEarnings = r.TotalWasherEarnings,
+                        TotalCompanyEarnings = r.TotalCompanyEarnings,
                         CashCount = r.CashCount,
                         CashAmount = r.CashAmount,
                         CardCount = r.CardCount,
@@ -131,16 +111,19 @@ namespace MyPanelCarWashing
                         QrAmount = r.QrAmount
                     }).ToList();
 
-                // Статистика по сотрудникам за период
-                var employeesData = new Dictionary<int, EmployeeMonthlyReport>();
+                // Статистика по сотрудникам
+                // ИСПОЛЬЗУЕМ НОВЫЙ КЛАСС EmployeeReport для итогового отчета
+                var employeesData = new Dictionary<int, EmployeeReport>();
 
                 foreach (var report in periodReports.OrderBy(r => r.Date))
                 {
+                    // emp прилетает к нам как старый EmployeeWorkReport из одиночной смены
                     foreach (var emp in report.EmployeesWork)
                     {
                         if (!employeesData.ContainsKey(emp.EmployeeId))
                         {
-                            employeesData[emp.EmployeeId] = new EmployeeMonthlyReport
+                            // А складываем мы всё в новый EmployeeReport, у которого ЕСТЬ DailyWork
+                            employeesData[emp.EmployeeId] = new EmployeeReport
                             {
                                 EmployeeId = emp.EmployeeId,
                                 EmployeeName = emp.EmployeeName,
@@ -165,7 +148,6 @@ namespace MyPanelCarWashing
                     }
                 }
 
-                // Создаём список сотрудников для отчёта
                 var employeesReport = employeesData.Values.OrderByDescending(e => e.Earnings).ToList();
                 int daysCount = (endDate - startDate).Days + 1;
 
@@ -176,6 +158,10 @@ namespace MyPanelCarWashing
                 TotalRevenueText.Text = $"{totalRevenue:N0} ₽";
                 TotalWasherText.Text = $"{totalWasherEarnings:N0} ₽";
                 TotalCompanyText.Text = $"{totalCompanyEarnings:N0} ₽";
+
+                // Обновляем стату по клиентам
+                if (UniqueClientsText != null) UniqueClientsText.Text = uniqueClients.ToString();
+                if (NewClientsText != null) NewClientsText.Text = newClients.ToString();
 
                 DailyReportsList.ItemsSource = dailySummaries;
                 EmployeesSalaryList.ItemsSource = employeesReport;
@@ -193,17 +179,20 @@ namespace MyPanelCarWashing
                     TotalRevenue = totalRevenue,
                     TotalWasherEarnings = totalWasherEarnings,
                     TotalCompanyEarnings = totalCompanyEarnings,
-                    TotalCashCount = totalCashCount,
-                    TotalCashAmount = totalCashAmount,
-                    TotalCardCount = totalCardCount,
-                    TotalCardAmount = totalCardAmount,
-                    TotalTransferCount = totalTransferCount,
-                    TotalTransferAmount = totalTransferAmount,
-                    TotalQrCount = totalQrCount,
-                    TotalQrAmount = totalQrAmount,
+                    CashCount = totalCashCount,
+                    CashAmount = totalCashAmount,
+                    CardCount = totalCardCount,
+                    CardAmount = totalCardAmount,
+                    TransferCount = totalTransferCount,
+                    TransferAmount = totalTransferAmount,
+                    QrCount = totalQrCount,
+                    QrAmount = totalQrAmount,
+                    UniqueClientsCount = uniqueClients,
+                    NewClientsCount = newClients,
                     DailyReports = dailySummaries,
-                    EmployeesReport = employeesReport
+                    EmployeesWork = employeesReport
                 };
+
                 CustomCashCountText.Text = totalCashCount.ToString();
                 CustomCashAmountText.Text = $"{totalCashAmount:N0} ₽";
                 CustomCardCountText.Text = totalCardCount.ToString();
@@ -215,8 +204,7 @@ namespace MyPanelCarWashing
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка формирования отчета: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Ошибка формирования отчета: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -224,318 +212,34 @@ namespace MyPanelCarWashing
         {
             if (_currentReport == null)
             {
-                MessageBox.Show("Сначала сформируйте отчет", "Внимание",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Сначала сформируйте отчет", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            try
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
             {
-                var saveDialog = new Microsoft.Win32.SaveFileDialog
-                {
-                    Filter = "Excel файлы (*.xlsx)|*.xlsx|CSV файлы (*.csv)|*.csv|JSON файлы (*.json)|*.json",
-                    DefaultExt = "xlsx",
-                    FileName = $"CustomReport_{_currentReport.StartDate:yyyy-MM-dd}_to_{_currentReport.EndDate:yyyy-MM-dd}"
-                };
+                Filter = "Excel файл (*.xlsx)|*.xlsx",
+                FileName = $"Выборочный_Отчет_{_currentReport.StartDate:dd.MM.yyyy}-{_currentReport.EndDate:dd.MM.yyyy}.xlsx",
+                DefaultExt = ".xlsx"
+            };
 
-                if (saveDialog.ShowDialog() == true)
+            if (saveDialog.ShowDialog() == true)
+            {
+                try
                 {
-                    string extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLower();
-
-                    if (extension == ".xlsx")
-                    {
-                        ExportToExcel(_currentReport, saveDialog.FileName);
-                        MessageBox.Show($"Отчет успешно экспортирован в Excel\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else if (extension == ".csv")
-                    {
-                        ExportToCsv(_currentReport, saveDialog.FileName);
-                        MessageBox.Show($"Отчет успешно экспортирован в CSV\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else if (extension == ".json")
-                    {
-                        var json = Newtonsoft.Json.JsonConvert.SerializeObject(_currentReport, Newtonsoft.Json.Formatting.Indented);
-                        System.IO.File.WriteAllText(saveDialog.FileName, json);
-                        MessageBox.Show($"Отчет успешно экспортирован в JSON\n\n{saveDialog.FileName}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
+                    ExcelExporter.ExportCustomPeriodReport(_currentReport, saveDialog.FileName);
+                    MessageBox.Show("Отчет успешно экспортирован!", "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при экспорте:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка экспорта: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void ExportToExcel(CustomPeriodReport report, string filePath)
-        {
-            using (var workbook = new ClosedXML.Excel.XLWorkbook())
-            {
-                var worksheet = workbook.Worksheets.Add($"Отчет {report.StartDate:dd.MM.yyyy}-{report.EndDate:dd.MM.yyyy}");
-
-                // Заголовок
-                worksheet.Cell(1, 1).Value = $"Отчет за период с {report.StartDate:dd.MM.yyyy} по {report.EndDate:dd.MM.yyyy}";
-                worksheet.Cell(1, 1).Style.Font.Bold = true;
-                worksheet.Cell(1, 1).Style.Font.FontSize = 16;
-                worksheet.Range(1, 1, 1, 7).Merge().Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
-
-                // Итоги
-                int row = 3;
-                worksheet.Cell(row, 1).Value = "Всего машин:";
-                worksheet.Cell(row, 2).Value = report.TotalCars;
-                row++;
-                worksheet.Cell(row, 1).Value = "Общая выручка:";
-                worksheet.Cell(row, 2).Value = report.TotalRevenue;
-                worksheet.Cell(row, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
-                row++;
-                worksheet.Cell(row, 1).Value = "Выплаты мойщикам (35%):";
-                worksheet.Cell(row, 2).Value = report.TotalWasherEarnings;
-                worksheet.Cell(row, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
-                row++;
-                worksheet.Cell(row, 1).Value = "Доход компании (65%):";
-                worksheet.Cell(row, 2).Value = report.TotalCompanyEarnings;
-                worksheet.Cell(row, 2).Style.NumberFormat.Format = "#,##0.00 ₽";
-                row += 2;
-
-                // Статистика по способам оплаты (итоговая)
-                worksheet.Cell(row, 1).Value = "ИТОГОВАЯ СТАТИСТИКА ПО СПОСОБАМ ОПЛАТЫ";
-                worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
-                worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
-                row++;
-
-                worksheet.Cell(row, 1).Value = "Способ оплаты";
-                worksheet.Cell(row, 2).Value = "Количество";
-                worksheet.Cell(row, 3).Value = "Сумма";
-                worksheet.Range(row, 1, row, 3).Style.Font.Bold = true;
-                row++;
-
-                worksheet.Cell(row, 1).Value = "💵 Наличные";
-                worksheet.Cell(row, 2).Value = report.TotalCashCount;
-                worksheet.Cell(row, 3).Value = report.TotalCashAmount;
-                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                row++;
-
-                worksheet.Cell(row, 1).Value = "💳 Карта";
-                worksheet.Cell(row, 2).Value = report.TotalCardCount;
-                worksheet.Cell(row, 3).Value = report.TotalCardAmount;
-                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                row++;
-
-                worksheet.Cell(row, 1).Value = "📱 Перевод";
-                worksheet.Cell(row, 2).Value = report.TotalTransferCount;
-                worksheet.Cell(row, 3).Value = report.TotalTransferAmount;
-                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                row++;
-
-                worksheet.Cell(row, 1).Value = "📱 QR-код";
-                worksheet.Cell(row, 2).Value = report.TotalQrCount;
-                worksheet.Cell(row, 3).Value = report.TotalQrAmount;
-                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                row++;
-
-                worksheet.Cell(row, 1).Value = "ИТОГО:";
-                worksheet.Cell(row, 2).Value = report.TotalCashCount + report.TotalCardCount + report.TotalTransferCount;
-                worksheet.Cell(row, 3).Value = report.TotalCashAmount + report.TotalCardAmount + report.TotalTransferAmount;
-                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                worksheet.Range(row, 1, row, 3).Style.Font.Bold = true;
-                row += 2;
-
-                // Таблица по дням
-                worksheet.Cell(row, 1).Value = "📅 ОТЧЕТ ПО ДНЯМ";
-                worksheet.Range(row, 1, row, 7).Merge().Style.Font.Bold = true;
-                worksheet.Range(row, 1, row, 7).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
-                row++;
-
-                worksheet.Cell(row, 1).Value = "Дата";
-                worksheet.Cell(row, 2).Value = "Машин";
-                worksheet.Cell(row, 3).Value = "Выручка";
-                worksheet.Cell(row, 4).Value = "Мойщикам";
-                worksheet.Cell(row, 5).Value = "Компании";
-                worksheet.Cell(row, 6).Value = "Наличные (сумма)";
-                worksheet.Cell(row, 7).Value = "Карта (сумма)";
-                worksheet.Cell(row, 8).Value = "Перевод (сумма)";
-                worksheet.Range(row, 1, row, 8).Style.Font.Bold = true;
-                row++;
-
-                foreach (var day in report.DailyReports.OrderBy(d => d.Date))
-                {
-                    worksheet.Cell(row, 1).Value = day.Date.ToString("dd.MM.yyyy");
-                    worksheet.Cell(row, 2).Value = day.Cars;
-                    worksheet.Cell(row, 3).Value = day.Revenue;
-                    worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Cell(row, 4).Value = day.WasherEarnings;
-                    worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Cell(row, 5).Value = day.CompanyEarnings;
-                    worksheet.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Cell(row, 6).Value = day.CashAmount;
-                    worksheet.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Cell(row, 7).Value = day.CardAmount;
-                    worksheet.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Cell(row, 8).Value = day.TransferAmount;
-                    worksheet.Cell(row, 8).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    row++;
-                }
-
-                row += 2;
-
-                // Сводная таблица сотрудников
-                worksheet.Cell(row, 1).Value = "👥 СВОДНАЯ СТАТИСТИКА СОТРУДНИКОВ";
-                worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
-                worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
-                row++;
-
-                worksheet.Cell(row, 1).Value = "Сотрудник";
-                worksheet.Cell(row, 2).Value = "Кол-во машин";
-                worksheet.Cell(row, 3).Value = "Выручка сотрудника";
-                worksheet.Cell(row, 4).Value = "Заработная плата (35%)";
-                worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
-                row++;
-
-                foreach (var emp in report.EmployeesReport.OrderByDescending(e => e.Earnings))
-                {
-                    worksheet.Cell(row, 1).Value = emp.EmployeeName;
-                    worksheet.Cell(row, 2).Value = emp.CarsWashed;
-                    worksheet.Cell(row, 3).Value = emp.TotalAmount;
-                    worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Cell(row, 4).Value = emp.Earnings;
-                    worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    row++;
-                }
-
-                row++;
-                worksheet.Cell(row, 1).Value = "ИТОГО:";
-                worksheet.Cell(row, 2).Value = report.EmployeesReport.Sum(e => e.CarsWashed);
-                worksheet.Cell(row, 3).Value = report.EmployeesReport.Sum(e => e.TotalAmount);
-                worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                worksheet.Cell(row, 4).Value = report.EmployeesReport.Sum(e => e.Earnings);
-                worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
-                row += 2;
-
-                // Детальная статистика по сотрудникам (по дням)
-                worksheet.Cell(row, 1).Value = "📋 ДЕТАЛЬНАЯ СТАТИСТИКА СОТРУДНИКОВ (ПО ДНЯМ)";
-                worksheet.Range(row, 1, row, 4).Merge().Style.Font.Bold = true;
-                worksheet.Range(row, 1, row, 4).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
-                row++;
-
-                foreach (var emp in report.EmployeesReport.OrderBy(e => e.EmployeeName))
-                {
-                    row++;
-                    worksheet.Cell(row, 1).Value = emp.EmployeeName;
-                    worksheet.Range(row, 1, row, 1).Style.Font.Bold = true;
-                    worksheet.Range(row, 1, row, 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
-                    row++;
-
-                    worksheet.Cell(row, 1).Value = "Дата";
-                    worksheet.Cell(row, 2).Value = "Машин";
-                    worksheet.Cell(row, 3).Value = "Выручка";
-                    worksheet.Cell(row, 4).Value = "Заработок";
-                    worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
-                    row++;
-
-                    foreach (var day in emp.DailyWork.OrderBy(d => d.Date))
-                    {
-                        worksheet.Cell(row, 1).Value = day.Date.ToString("dd.MM.yyyy");
-                        worksheet.Cell(row, 2).Value = day.CarsWashed;
-                        worksheet.Cell(row, 3).Value = day.TotalAmount;
-                        worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                        worksheet.Cell(row, 4).Value = day.Earnings;
-                        worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                        row++;
-                    }
-
-                    row++;
-                    worksheet.Cell(row, 1).Value = "Итого:";
-                    worksheet.Cell(row, 2).Value = emp.CarsWashed;
-                    worksheet.Cell(row, 3).Value = emp.TotalAmount;
-                    worksheet.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Cell(row, 4).Value = emp.Earnings;
-                    worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00 ₽";
-                    worksheet.Range(row, 1, row, 4).Style.Font.Bold = true;
-                    row += 2;
-                }
-
-                worksheet.Columns().AdjustToContents();
-                workbook.SaveAs(filePath);
-            }
-        }
-
-        private void ExportToCsv(CustomPeriodReport report, string filePath)
-        {
-            var lines = new List<string>();
-
-            lines.Add($"Отчет за период с {report.StartDate:dd.MM.yyyy} по {report.EndDate:dd.MM.yyyy}");
-            lines.Add("");
-            lines.Add($"Всего машин;{report.TotalCars}");
-            lines.Add($"Общая выручка;{report.TotalRevenue:N0} ₽");
-            lines.Add($"Выплаты мойщикам (35%);{report.TotalWasherEarnings:N0} ₽");
-            lines.Add($"Доход компании (65%);{report.TotalCompanyEarnings:N0} ₽");
-            lines.Add("");
-            lines.Add($"Наличные;{report.TotalCashCount};{report.TotalCashAmount:N0} ₽");
-            lines.Add($"Карта;{report.TotalCardCount};{report.TotalCardAmount:N0} ₽");
-            lines.Add($"Перевод;{report.TotalTransferCount};{report.TotalTransferAmount:N0} ₽");
-            lines.Add("");
-            lines.Add("ОТЧЕТ ПО ДНЯМ");
-            lines.Add("Дата;Машин;Выручка;Мойщикам;Компании;Наличные;Карта;Перевод");
-            foreach (var day in report.DailyReports.OrderBy(d => d.Date))
-            {
-                lines.Add($"{day.Date:dd.MM.yyyy};{day.Cars};{day.Revenue:N0} ₽;{day.WasherEarnings:N0} ₽;{day.CompanyEarnings:N0} ₽;{day.CashAmount:N0} ₽;{day.CardAmount:N0} ₽;{day.TransferAmount:N0} ₽");
-            }
-            lines.Add("");
-            lines.Add("СВОДНАЯ СТАТИСТИКА СОТРУДНИКОВ");
-            lines.Add("Сотрудник;Машин;Выручка;Заработок");
-            foreach (var emp in report.EmployeesReport.OrderByDescending(e => e.Earnings))
-            {
-                lines.Add($"{emp.EmployeeName};{emp.CarsWashed};{emp.TotalAmount:N0} ₽;{emp.Earnings:N0} ₽");
-            }
-            lines.Add("");
-            lines.Add($"ИТОГО;{report.EmployeesReport.Sum(e => e.CarsWashed)};{report.EmployeesReport.Sum(e => e.TotalAmount):N0} ₽;{report.EmployeesReport.Sum(e => e.Earnings):N0} ₽");
-            lines.Add("");
-            lines.Add("ДЕТАЛЬНАЯ СТАТИСТИКА СОТРУДНИКОВ (ПО ДНЯМ)");
-            foreach (var emp in report.EmployeesReport.OrderBy(e => e.EmployeeName))
-            {
-                lines.Add($"");
-                lines.Add($"СОТРУДНИК: {emp.EmployeeName}");
-                lines.Add($"Всего: {emp.CarsWashed} машин, выручка: {emp.TotalAmount:N0} ₽, заработок: {emp.Earnings:N0} ₽");
-                lines.Add("Дата;Машин;Выручка;Заработок");
-                foreach (var day in emp.DailyWork.OrderBy(d => d.Date))
-                {
-                    lines.Add($"{day.Date:dd.MM.yyyy};{day.CarsWashed};{day.TotalAmount:N0} ₽;{day.Earnings:N0} ₽");
-                }
-            }
-
-            System.IO.File.WriteAllLines(filePath, lines, System.Text.Encoding.UTF8);
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs args)
         {
             Close();
         }
-    }
-
-    public class CustomPeriodReport
-    {
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public int TotalCars { get; set; }
-        public decimal TotalRevenue { get; set; }
-        public decimal TotalWasherEarnings { get; set; }
-        public decimal TotalCompanyEarnings { get; set; }
-
-        // Способы оплаты
-        public int TotalCashCount { get; set; }
-        public decimal TotalCashAmount { get; set; }
-        public int TotalCardCount { get; set; }
-        public decimal TotalCardAmount { get; set; }
-        public int TotalTransferCount { get; set; }
-        public decimal TotalTransferAmount { get; set; }
-        public int TotalQrCount { get; set; }
-        public decimal TotalQrAmount { get; set; }
-
-        public List<Models.DailyReportSummary> DailyReports { get; set; } = new List<Models.DailyReportSummary>();
-        public List<EmployeeMonthlyReport> EmployeesReport { get; set; } = new List<EmployeeMonthlyReport>();
     }
 }

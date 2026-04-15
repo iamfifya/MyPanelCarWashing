@@ -9,14 +9,14 @@ namespace MyPanelCarWashing
 {
     public partial class AddEditEmployeeWindow : Window
     {
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         public User CurrentEmployee { get; set; }
         public new string Title { get; set; }
 
-        public AddEditEmployeeWindow(DataService dataService, User employee)
+        public AddEditEmployeeWindow(SqliteDataService SqliteDataService, User employee)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
 
             if (employee == null)
             {
@@ -101,19 +101,19 @@ namespace MyPanelCarWashing
 
                 if (CurrentEmployee.Id == 0)
                 {
-                    _dataService.AddUser(CurrentEmployee);
+                    _SqliteDataService.AddUser(CurrentEmployee);
                     MessageBox.Show("Сотрудник добавлен", "Успешно",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    _dataService.UpdateUser(CurrentEmployee);
+                    _SqliteDataService.UpdateUser(CurrentEmployee);
                     MessageBox.Show("Данные обновлены", "Успешно",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
                 // Оповещаем об изменении
-                DataService.NotifyDataChanged();
+                SqliteDataService.NotifyDataChanged();
 
                 DialogResult = true;
                 Close();

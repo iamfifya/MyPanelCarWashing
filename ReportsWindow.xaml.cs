@@ -14,7 +14,7 @@ namespace MyPanelCarWashing
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private List<ShiftReport> _reports;
         private ShiftReport _selectedReport;
 
@@ -38,10 +38,10 @@ namespace MyPanelCarWashing
             }
         }
 
-        public ReportsWindow(DataService dataService)
+        public ReportsWindow(SqliteDataService SqliteDataService)
         {
             InitializeComponent();
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             DataContext = this;
             LoadReports();
         }
@@ -50,33 +50,11 @@ namespace MyPanelCarWashing
         {
             try
             {
-                string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+                // Запрашиваем все отчеты из БД за очень широкий диапазон (от 2020 до 2050 года)
+                // GetShiftReportsFromDb сам соберет все закрытые смены и посчитает суммы!
+                var allReports = _SqliteDataService.GetShiftReportsFromDb(new DateTime(2020, 1, 1), new DateTime(2050, 1, 1));
 
-                if (!Directory.Exists(reportsPath))
-                {
-                    Reports = new List<ShiftReport>();
-                    return;
-                }
-
-                var reportFiles = Directory.GetFiles(reportsPath, "ShiftReport_*.json");
-                var reports = new List<ShiftReport>();
-
-                foreach (var file in reportFiles)
-                {
-                    try
-                    {
-                        var json = File.ReadAllText(file);
-                        var report = Newtonsoft.Json.JsonConvert.DeserializeObject<ShiftReport>(json);
-                        if (report != null)
-                            reports.Add(report);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Ошибка загрузки {file}: {ex.Message}");
-                    }
-                }
-
-                Reports = reports.OrderByDescending(r => r.Date).ToList();
+                Reports = allReports.OrderByDescending(r => r.Date).ToList();
 
                 if (Reports.Any())
                 {
@@ -90,6 +68,14 @@ namespace MyPanelCarWashing
             }
         }
 
+        private void OpenFolderButton_Click(object sender, RoutedEventArgs args)
+        {
+            // Так как папки больше нет, просто сообщаем пользователю крутую новость :)
+            MessageBox.Show("Все отчеты теперь надежно зашифрованы и хранятся прямо внутри единой Базы Данных SQLite!\n\n" +
+                            "Вам больше не нужно искать файлы на диске. Вы можете экспортировать любой отчет в Excel по кнопке 'Экспорт'.",
+                            "Новая архитектура", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         private void ReportSelectionChanged(object sender, SelectionChangedEventArgs args)
         {
             SelectedReport = ReportsListBox.SelectedItem as ShiftReport;
@@ -100,28 +86,14 @@ namespace MyPanelCarWashing
             LoadReports();
         }
 
-        private void OpenFolderButton_Click(object sender, RoutedEventArgs args)
-        {
-            string reportsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
-            if (Directory.Exists(reportsPath))
-            {
-                System.Diagnostics.Process.Start("explorer.exe", reportsPath);
-            }
-            else
-            {
-                MessageBox.Show("Папка Reports не найдена", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
         private void MonthlyReportButton_Click(object sender, RoutedEventArgs e)
         {
-            var monthlyReportWin = new MonthlyReportWindow(_dataService);
+            var monthlyReportWin = new MonthlyReportWindow(_SqliteDataService);
             monthlyReportWin.ShowDialog();
         }
         private void CustomReportButton_Click(object sender, RoutedEventArgs e)
         {
-            var customReportWin = new CustomReportWindow(_dataService);
+            var customReportWin = new CustomReportWindow(_SqliteDataService);
             customReportWin.ShowDialog();
         }
 

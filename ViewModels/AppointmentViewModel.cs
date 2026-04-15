@@ -12,7 +12,7 @@ namespace MyPanelCarWashing.ViewModels
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly DataService _dataService;
+        private readonly SqliteDataService _SqliteDataService;
         private List<ServiceViewModel> _services;
         private int _selectedBodyTypeCategory = 1;
         private decimal _extraCost;
@@ -64,15 +64,15 @@ namespace MyPanelCarWashing.ViewModels
 
         public decimal FinalTotal => ServicesTotal + ExtraCost;
 
-        public AppointmentViewModel(DataService dataService)
+        public AppointmentViewModel(SqliteDataService SqliteDataService)
         {
-            _dataService = dataService;
+            _SqliteDataService = SqliteDataService;
             LoadServices();
         }
 
         public void LoadServices()
         {
-            var allServices = _dataService.GetAllServices();
+            var allServices = _SqliteDataService.GetAllServices();
             Services = allServices.Select(s => new ServiceViewModel
             {
                 Id = s.Id,
@@ -86,7 +86,7 @@ namespace MyPanelCarWashing.ViewModels
         {
             if (Services != null)
             {
-                var allServices = _dataService.GetAllServices();
+                var allServices = _SqliteDataService.GetAllServices();
                 foreach (var serviceVM in Services)
                 {
                     var originalService = allServices.FirstOrDefault(s => s.Id == serviceVM.Id);

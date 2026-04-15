@@ -17,20 +17,20 @@ namespace MyPanelCarWashing.Controls
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private DataService _dataService;
+        private SqliteDataService _SqliteDataService;
         private Shift _currentShift;
         private List<AppointmentDisplayItem> _box1Items;
         private List<AppointmentDisplayItem> _box2Items;
         private List<AppointmentDisplayItem> _box3Items;
         private AppointmentDisplayItem _selectedItem;
 
-        public DataService DataService
+        public SqliteDataService SqliteDataService
         {
-            get => _dataService;
+            get => _SqliteDataService;
             set
             {
-                _dataService = value;
-                if (_dataService != null)
+                _SqliteDataService = value;
+                if (_SqliteDataService != null)
                 {
                     FilterDatePicker.SelectedDate = DateTime.Now;
                     LoadAppointments();
@@ -101,7 +101,7 @@ namespace MyPanelCarWashing.Controls
             DataContext = this;
 
             // Подписываемся на глобальное событие изменения данных
-            DataService.DataChanged += OnDataChanged;
+            SqliteDataService.DataChanged += OnDataChanged;
 
             // Подписываемся на изменение даты
             FilterDatePicker.SelectedDateChanged += FilterDatePicker_SelectedDateChanged;
@@ -124,7 +124,7 @@ namespace MyPanelCarWashing.Controls
         private void AppointmentsOverlay_Unloaded(object sender, RoutedEventArgs e)
         {
             // Отписываемся от событий при выгрузке контрола
-            DataService.DataChanged -= OnDataChanged;
+            SqliteDataService.DataChanged -= OnDataChanged;
             FilterDatePicker.SelectedDateChanged -= FilterDatePicker_SelectedDateChanged;
         }
 
@@ -144,7 +144,7 @@ namespace MyPanelCarWashing.Controls
             PopupPanel.Visibility = Visibility.Visible;
 
             // Загружаем данные
-            if (_dataService != null)
+            if (_SqliteDataService != null)
             {
                 LoadAppointments();
             }
@@ -183,9 +183,9 @@ namespace MyPanelCarWashing.Controls
 
         private void LoadAppointments()
         {
-            if (_dataService == null)
+            if (_SqliteDataService == null)
             {
-                System.Diagnostics.Debug.WriteLine("LoadAppointments: DataService is null!");
+                System.Diagnostics.Debug.WriteLine("LoadAppointments: SqliteDataService is null!");
                 return;
             }
 
@@ -199,8 +199,8 @@ namespace MyPanelCarWashing.Controls
 
             System.Diagnostics.Debug.WriteLine($"LoadAppointments: Loading for date {filterDate:dd.MM.yyyy}");
 
-            var allAppointments = _dataService.GetAllAppointments();
-            var allServices = _dataService.GetAllServices();
+            var allAppointments = _SqliteDataService.GetAllAppointments();
+            var allServices = _SqliteDataService.GetAllServices();
 
             var appointments = allAppointments
                 .Where(a => a.AppointmentDate.Date == filterDate.Value.Date && !a.IsCompleted)
@@ -246,7 +246,7 @@ namespace MyPanelCarWashing.Controls
             appointmentWin.Closed += (s, args) =>
             {
                 LoadAppointments();
-                DataService.NotifyDataChanged();
+                SqliteDataService.NotifyDataChanged();
             };
             appointmentWin.ShowDialog();
         }
@@ -259,7 +259,7 @@ namespace MyPanelCarWashing.Controls
                 return;
             }
 
-            var appointment = _dataService.GetAppointmentById(SelectedItem.Id);
+            var appointment = _SqliteDataService.GetAppointmentById(SelectedItem.Id);
             if (appointment != null)
             {
                 var tempOrder = new CarWashOrder
@@ -280,11 +280,11 @@ namespace MyPanelCarWashing.Controls
 
                 // Используем App.GetService, а не _viewModel
                 var viewModel = App.GetService<AddEditOrderViewModel>();
-                var editWin = new AddEditOrderWindow(_dataService, viewModel, _currentShift, tempOrder);
+                var editWin = new AddEditOrderWindow(_SqliteDataService, viewModel, _currentShift, tempOrder);
                 editWin.Closed += (s, args) =>
                 {
                     LoadAppointments();
-                    DataService.NotifyDataChanged();
+                    SqliteDataService.NotifyDataChanged();
                 };
                 editWin.ShowDialog();
             }
@@ -303,9 +303,9 @@ namespace MyPanelCarWashing.Controls
             if (MessageBox.Show("Удалить выбранную запись?", "Подтверждение",
                 MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
-                _dataService.DeleteAppointment(SelectedItem.Id);
+                _SqliteDataService.DeleteAppointment(SelectedItem.Id);
                 LoadAppointments();
-                DataService.NotifyDataChanged();
+                SqliteDataService.NotifyDataChanged();
                 MessageBox.Show("Запись удалена", "Успешно");
             }
         }

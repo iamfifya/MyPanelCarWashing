@@ -56,6 +56,8 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" HorizontalAlignment="Center">
@@ -80,6 +82,15 @@
                                 <TextBlock Text="🏢 Компании (65%)" FontSize="12" Foreground="#7F8C8D"/>
                                 <TextBlock x:Name="TotalCompanyText" FontSize="24" FontWeight="Bold" 
                                            Foreground="#E67E22" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                                <TextBlock Text="Уникальных клиентов:" Width="150" FontWeight="Bold" Foreground="#34495E"/>
+                                <TextBlock x:Name="UniqueClientsText" HorizontalAlignment="Center" FontSize="24" Text="0" FontWeight="Bold" Foreground="#2980B9"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="5" HorizontalAlignment="Center">
+                                <TextBlock Text="Новых клиентов:" Width="150" FontWeight="Bold" Foreground="#34495E"/>
+                                <TextBlock x:Name="NewClientsText" HorizontalAlignment="Center" FontSize="24" Text="0" FontWeight="Bold" Foreground="#27AE60"/>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -150,10 +161,10 @@
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="Дата" Width="100" DisplayMemberBinding="{Binding Date, StringFormat=dd.MM.yyyy}"/>
-                                <GridViewColumn Header="Машин" Width="80" DisplayMemberBinding="{Binding Cars}"/>
-                                <GridViewColumn Header="Выручка" Width="120" DisplayMemberBinding="{Binding Revenue, StringFormat={}{0:N0} ₽}"/>
-                                <GridViewColumn Header="Мойщикам" Width="120" DisplayMemberBinding="{Binding WasherEarnings, StringFormat={}{0:N0} ₽}"/>
-                                <GridViewColumn Header="Компании" Width="120" DisplayMemberBinding="{Binding CompanyEarnings, StringFormat={}{0:N0} ₽}"/>
+                                <GridViewColumn Header="Машин" Width="80" DisplayMemberBinding="{Binding TotalCars}"/>
+                                <GridViewColumn Header="Выручка" Width="120" DisplayMemberBinding="{Binding TotalRevenue, StringFormat={}{0:N0} ₽}"/>
+                                <GridViewColumn Header="Мойщикам" Width="120" DisplayMemberBinding="{Binding TotalWasherEarnings, StringFormat={}{0:N0} ₽}"/>
+                                <GridViewColumn Header="Компании" Width="120" DisplayMemberBinding="{Binding TotalCompanyEarnings, StringFormat={}{0:N0} ₽}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
